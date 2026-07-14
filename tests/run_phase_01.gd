@@ -51,13 +51,24 @@ func run_checks() -> void:
 	var first_enemy := get_tree().get_nodes_in_group("enemies")[0] as Enemy
 	check(first_enemy.frozen_until > Time.get_ticks_msec(), "定身术冻结普通敌人")
 	var hud := level.hud as GameHud
+	player.global_position = Vector2(360, 580)
+	player.velocity = Vector2.ZERO
+	first_enemy.global_position = Vector2(430, 580)
+	first_enemy.velocity = Vector2.ZERO
 	first_enemy.invulnerable_until = 0
-	first_enemy.take_damage(1.0, player.global_position)
-	await get_tree().process_frame
+	for _frame in 2:
+		await get_tree().physics_frame
+	var enemy_health_before_attack := first_enemy.health
+	await player.perform_attack()
+	check(first_enemy.health == enemy_health_before_attack - player.stats.combo_damage[0], "玩家真实攻击区域可命中敌兵")
 	check(first_enemy.hit_reaction_until > Time.get_ticks_msec(), "敌兵受击进入可见反馈状态")
 	check(hud.enemy_panel.visible, "敌兵受击显示右上状态面板")
 	check(hud.enemy_name_label.text == first_enemy.stats.display_name, "右上状态面板显示敌兵名称")
 	check(hud.enemy_health_bar.value == first_enemy.health, "右上敌兵血条实时更新")
+	player.perform_attack()
+	player.perform_attack()
+	await get_tree().physics_frame
+	check(player.attack_area.monitoring, "连续攻击不会关闭攻击检测区")
 	first_enemy.hit_reaction_until = 0
 	first_enemy.frozen_until = 0
 	first_enemy.velocity.x = 100.0

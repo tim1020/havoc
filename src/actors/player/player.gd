@@ -26,7 +26,7 @@ func _ready() -> void:
 	health = stats.max_health
 	jumps_left = stats.jump_count
 	respawn_position = global_position
-	attack_area.monitoring = false
+	attack_area.monitoring = true
 	health_changed.emit(health, stats.max_health)
 
 
@@ -81,12 +81,10 @@ func perform_attack() -> void:
 	combo_expires_at = now + int(stats.combo_reset_seconds * 1000.0)
 	play_if_available("attack_%d" % (combo_index if combo_index > 0 else 3))
 	attack_area.position.x = absf(attack_area.position.x) * facing
-	attack_area.monitoring = true
 	await get_tree().physics_frame
 	for body in attack_area.get_overlapping_bodies():
 		if body.has_method("take_damage"):
 			body.take_damage(damage, global_position)
-	attack_area.monitoring = false
 
 
 func cast_freeze_spell() -> void:
