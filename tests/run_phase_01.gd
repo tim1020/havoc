@@ -50,6 +50,23 @@ func run_checks() -> void:
 	check(player.health == health_before_spell - player_stats.freeze_health_cost, "定身术消耗20点生命")
 	var first_enemy := get_tree().get_nodes_in_group("enemies")[0] as Enemy
 	check(first_enemy.frozen_until > Time.get_ticks_msec(), "定身术冻结普通敌人")
+	var hud := level.hud as GameHud
+	first_enemy.invulnerable_until = 0
+	first_enemy.take_damage(1.0, player.global_position)
+	await get_tree().process_frame
+	check(first_enemy.hit_reaction_until > Time.get_ticks_msec(), "敌兵受击进入可见反馈状态")
+	check(hud.enemy_panel.visible, "敌兵受击显示右上状态面板")
+	check(hud.enemy_name_label.text == first_enemy.stats.display_name, "右上状态面板显示敌兵名称")
+	check(hud.enemy_health_bar.value == first_enemy.health, "右上敌兵血条实时更新")
+	first_enemy.hit_reaction_until = 0
+	first_enemy.frozen_until = 0
+	first_enemy.velocity.x = 100.0
+	first_enemy.visual_time = 0.0
+	first_enemy.update_visual_animation()
+	var first_motion_position := first_enemy.sprite.position
+	first_enemy.visual_time = 0.2
+	first_enemy.update_visual_animation()
+	check(first_enemy.sprite.position != first_motion_position, "敌兵移动动画持续改变视觉帧")
 
 	player.invulnerable_until = 0
 	var health_before_hit := player.health
@@ -59,7 +76,6 @@ func run_checks() -> void:
 	player.take_damage(5.0, player.global_position + Vector2.LEFT)
 	check(player.health == health_after_first_hit, "玩家无敌帧阻止连续伤害")
 
-	var hud := level.hud as GameHud
 	hud.toggle_pause()
 	check(get_tree().paused and hud.pause_panel.visible, "暂停菜单可暂停场景")
 	hud.toggle_pause()

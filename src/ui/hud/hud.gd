@@ -8,6 +8,12 @@ extends CanvasLayer
 @onready var section_label: Label = %SectionLabel
 @onready var result_panel: Control = %ResultPanel
 @onready var pause_panel: Control = %PausePanel
+@onready var enemy_panel: Control = %EnemyPanel
+@onready var enemy_name_label: Label = %EnemyNameLabel
+@onready var enemy_health_bar: ProgressBar = %EnemyHealthBar
+@onready var enemy_health_label: Label = %EnemyHealthLabel
+
+var enemy_status_expires_at: int = 0
 
 
 func bind_player(player: Player) -> void:
@@ -32,6 +38,15 @@ func update_stones(stones: int) -> void:
 	stones_label.text = "灵石  %04d" % stones
 
 
+func show_enemy_status(enemy: Enemy, current: float, maximum: float) -> void:
+	enemy_panel.visible = true
+	enemy_name_label.text = enemy.stats.display_name
+	enemy_health_bar.max_value = maximum
+	enemy_health_bar.value = current
+	enemy_health_label.text = "%d / %d" % [roundi(current), roundi(maximum)]
+	enemy_status_expires_at = Time.get_ticks_msec() + 2500
+
+
 func set_section(section_name: String) -> void:
 	section_label.text = section_name
 	section_label.modulate.a = 1.0
@@ -50,10 +65,16 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	result_panel.visible = false
 	pause_panel.visible = false
+	enemy_panel.visible = false
 	%ReturnButton.pressed.connect(GameState.return_to_menu)
 	%ResumeButton.pressed.connect(toggle_pause)
 	%RestartButton.pressed.connect(restart_level)
 	%PauseMenuButton.pressed.connect(GameState.return_to_menu)
+
+
+func _process(_delta: float) -> void:
+	if enemy_panel.visible and Time.get_ticks_msec() >= enemy_status_expires_at:
+		enemy_panel.visible = false
 
 
 func _unhandled_input(event: InputEvent) -> void:

@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://src/ui/hud/hud.gd" id="1"]
 
@@ -16,6 +16,13 @@ corner_radius_bottom_left = 10
 
 [sub_resource type="StyleBoxFlat" id="HealthFill"]
 bg_color = Color(0.72, 0.12, 0.08, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="StyleBoxFlat" id="EnemyHealthFill"]
+bg_color = Color(0.92, 0.48, 0.08, 1)
 corner_radius_top_left = 5
 corner_radius_top_right = 5
 corner_radius_bottom_right = 5
@@ -91,6 +98,49 @@ theme_override_constants/shadow_offset_y = 2
 theme_override_font_sizes/font_size = 28
 text = "花果山脚"
 horizontal_alignment = 1
+
+[node name="EnemyPanel" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+offset_left = 778.0
+offset_top = 24.0
+offset_right = 1252.0
+offset_bottom = 116.0
+theme_override_styles/panel = SubResource("HudPanel")
+
+[node name="Margin" type="MarginContainer" parent="EnemyPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 12
+
+[node name="Rows" type="VBoxContainer" parent="EnemyPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="EnemyNameLabel" type="Label" parent="EnemyPanel/Margin/Rows"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.72, 0.26, 1)
+text = "敌兵"
+horizontal_alignment = 2
+
+[node name="HealthRow" type="HBoxContainer" parent="EnemyPanel/Margin/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="EnemyHealthBar" type="ProgressBar" parent="EnemyPanel/Margin/Rows/HealthRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(320, 22)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/fill = SubResource("EnemyHealthFill")
+show_percentage = false
+
+[node name="EnemyHealthLabel" type="Label" parent="EnemyPanel/Margin/Rows/HealthRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0 / 0"
 
 [node name="ResultPanel" type="PanelContainer" parent="."]
 unique_name_in_owner = true

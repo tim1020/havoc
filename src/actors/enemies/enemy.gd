@@ -3,6 +3,7 @@ extends CharacterBody2D
 
 signal health_changed(current: float, maximum: float)
 signal defeated(spirit_stones: int)
+signal hit_received(enemy: Enemy, current: float, maximum: float)
 
 enum Behavior {
 	MELEE,
@@ -29,6 +30,11 @@ var next_charge_at: int = 0
 var dead: bool = false
 var phase_two: bool = false
 var flight_time: float = 0.0
+var visual_time: float = 0.0
+var attack_animation_until: int = 0
+var hit_reaction_until: int = 0
+var base_sprite_position: Vector2
+var base_visual_scale: Vector2
 
 
 func _ready() -> void:
@@ -41,7 +47,16 @@ func _ready() -> void:
 	spawn_position = global_position
 	sprite.texture = visual_texture
 	sprite.scale = visual_scale
+	base_sprite_position = sprite.position
+	base_visual_scale = visual_scale
 	health_changed.emit(health, stats.max_health)
+
+
+func _process(delta: float) -> void:
+	if dead:
+		return
+	visual_time += delta
+	update_visual_animation()
 
 
 func _physics_process(delta: float) -> void:
@@ -110,6 +125,7 @@ func try_attack(player: Player) -> void:
 	if Time.get_ticks_msec() < next_attack_at:
 		return
 	next_attack_at = Time.get_ticks_msec() + (700 if phase_two else 1100)
+	attack_animation_until = Time.get_ticks_msec() + 260
 	player.take_damage(stats.contact_damage * (1.5 if phase_two else 1.0), global_position)
 
 
@@ -126,12 +142,52 @@ func take_damage(damage: float, source_position: Vector2) -> void:
 		return
 	health = maxf(0.0, health - damage)
 	invulnerable_until = Time.get_ticks_msec() + int(stats.invulnerability_seconds * 1000.0)
+	hit_reaction_until = Time.get_ticks_msec() + 220
 	velocity.x = signf(global_position.x - source_position.x) * stats.knockback_force
 	health_changed.emit(health, stats.max_health)
+	hit_received.emit(self, health, stats.max_health)
 	if behavior == Behavior.BOSS and not phase_two and health <= stats.max_health * 0.5:
 		phase_two = true
 	if is_zero_approx(health):
 		die()
+
+
+func update_visual_animation() -> void:
+	var now := Time.get_ticks_msec()
+	var facing := patrol_direction if not is_zero_approx(patrol_direction) else -1.0
+	var animation_scale := base_visual_scale
+	var animation_position := base_sprite_position
+	var animation_rotation := 0.0
+	var flash_amount := 0.0
+
+	if now < hit_reaction_until:
+		var pulse := sin(float(hit_reaction_until - now) * 0.045)
+		animation_scale *= Vector2(0.92, 1.08)
+		animation_position.x -= facing * 8.0
+		animation_rotation = -facing * 0.09
+		flash_amount = clampf(absf(pulse), 0.35, 1.0)
+	elif now < frozen_until:
+		animation_scale *= Vector2(1.02, 0.98)
+	elif now < attack_animation_until:
+		animation_scale *= Vector2(1.1, 0.94)
+		animation_position.x += facing * 12.0
+		animation_rotation = facing * 0.07
+	elif absf(velocity.x) > 8.0 or behavior == Behavior.FLYING:
+		var stride := sin(visual_time * (12.0 if phase_two else 9.0))
+		animation_position.y -= absf(stride) * 5.0
+		animation_rotation = stride * 0.035
+		animation_scale *= Vector2(1.0 + absf(stride) * 0.025, 1.0 - absf(stride) * 0.025)
+	else:
+		var breath := sin(visual_time * 2.8)
+		animation_position.y += breath * 2.5
+		animation_scale *= Vector2(1.0 - breath * 0.012, 1.0 + breath * 0.018)
+
+	sprite.position = animation_position
+	sprite.scale = animation_scale
+	sprite.rotation = animation_rotation
+	var shader_material := sprite.material as ShaderMaterial
+	if shader_material != null:
+		shader_material.set_shader_parameter("flash_amount", flash_amount)
 
 
 func freeze_for(seconds: float) -> void:

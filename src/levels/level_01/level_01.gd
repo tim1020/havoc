@@ -166,8 +166,14 @@ func spawn_enemy(position_value: Vector2, stats_value: EnemyStats, texture_value
 	enemy.visual_scale = scale_value
 	enemy.behavior = behavior_value
 	enemy.defeated.connect(add_spirit_stones)
+	enemy.hit_received.connect(show_enemy_status)
 	add_child(enemy)
 	return enemy
+
+
+func show_enemy_status(enemy: Enemy, current: float, maximum: float) -> void:
+	if hud != null:
+		hud.show_enemy_status(enemy, current, maximum)
 
 
 func add_spirit_stones(amount: int) -> void:
