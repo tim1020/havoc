@@ -13,6 +13,8 @@ extends ActorStats
 @export_group("Actions")
 @export var combo_damage: PackedFloat32Array = PackedFloat32Array([10.0, 10.0, 10.0])
 @export_range(0.1, 2.0, 0.05) var combo_reset_seconds: float = 0.65
+@export_range(0.1, 3.0, 0.05) var charge_seconds: float = 0.75
+@export_range(0.0, 200.0, 1.0) var charged_attack_damage: float = 30.0
 @export_range(0.0, 100.0, 1.0) var freeze_health_cost: float = 20.0
 @export_range(0.0, 10.0, 0.1) var freeze_normal_seconds: float = 3.0
 @export_range(0.0, 10.0, 0.1) var freeze_boss_seconds: float = 1.5

@@ -18,7 +18,10 @@ func _ready() -> void:
 	enemy.invulnerable_until = 0
 	for _frame in 2:
 		await get_tree().physics_frame
-	await player.perform_attack()
+	player.begin_attack_charge()
+	player.release_attack_charge()
+	for _frame in 2:
+		await get_tree().physics_frame
 
 	for _frame in 2:
 		await get_tree().process_frame

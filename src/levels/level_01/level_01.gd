@@ -105,6 +105,21 @@ func create_ground_visual(rect: Rect2, visual_height: float) -> void:
 	sprite.scale = Vector2(rect.size.x / GROUND_TEXTURE.get_width(), visual_height / GROUND_TEXTURE.get_height())
 	sprite.z_index = -2
 	add_child(sprite)
+	create_standable_line(rect)
+
+
+func create_standable_line(rect: Rect2) -> void:
+	var line := Line2D.new()
+	line.points = PackedVector2Array([
+		Vector2(rect.position.x, rect.position.y),
+		Vector2(rect.end.x, rect.position.y),
+	])
+	line.width = 5.0
+	line.default_color = Color(1.0, 0.82, 0.15, 1.0)
+	line.z_index = 4
+	line.antialiased = true
+	line.add_to_group("standable_surfaces")
+	add_child(line)
 
 
 func create_thorn_hazard(position_value: Vector2, size: Vector2) -> void:

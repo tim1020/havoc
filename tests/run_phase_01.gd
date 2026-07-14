@@ -38,6 +38,7 @@ func run_checks() -> void:
 	check(get_tree().get_nodes_in_group("enemies").size() == 8, "第一关生成8名敌人")
 	check(get_tree().get_nodes_in_group("bosses").size() == 2, "第一关生成中Boss与关底Boss")
 	check(level.find_children("*", "Hazard", true, false).size() == 3, "第一关生成3组资源化陷阱")
+	check(get_tree().get_nodes_in_group("standable_surfaces").size() == 8, "第一关8段可站立顶边均有提示线")
 
 	player.jumps_left = 2
 	player.try_jump()
@@ -59,16 +60,49 @@ func run_checks() -> void:
 	for _frame in 2:
 		await get_tree().physics_frame
 	var enemy_health_before_attack := first_enemy.health
-	await player.perform_attack()
-	check(first_enemy.health == enemy_health_before_attack - player.stats.combo_damage[0], "玩家真实攻击区域可命中敌兵")
+	var attack_press := InputEventAction.new()
+	attack_press.action = "attack"
+	attack_press.pressed = true
+	player._unhandled_input(attack_press)
+	await get_tree().physics_frame
+	check(first_enemy.health == enemy_health_before_attack, "按下攻击键不会立即攻击")
+	var attack_release := InputEventAction.new()
+	attack_release.action = "attack"
+	attack_release.pressed = false
+	player._unhandled_input(attack_release)
+	for _frame in 2:
+		await get_tree().physics_frame
+	check(first_enemy.health == enemy_health_before_attack - player.stats.combo_damage[0], "短按松开触发普通攻击")
 	check(first_enemy.hit_reaction_until > Time.get_ticks_msec(), "敌兵受击进入可见反馈状态")
 	check(hud.enemy_panel.visible, "敌兵受击显示右上状态面板")
 	check(hud.enemy_name_label.text == first_enemy.stats.display_name, "右上状态面板显示敌兵名称")
 	check(hud.enemy_health_bar.value == first_enemy.health, "右上敌兵血条实时更新")
-	player.perform_attack()
-	player.perform_attack()
-	await get_tree().physics_frame
-	check(player.attack_area.monitoring, "连续攻击不会关闭攻击检测区")
+	var boar: Enemy
+	for enemy_node in get_tree().get_nodes_in_group("enemies"):
+		var enemy := enemy_node as Enemy
+		if enemy.stats.display_name == "山猪妖":
+			boar = enemy
+			break
+	check(boar != null, "山猪妖已生成用于蓄力攻击检查")
+	if boar != null:
+		player.global_position = Vector2(2600, 580)
+		boar.global_position = Vector2(2670, 580)
+		boar.velocity = Vector2.ZERO
+		boar.invulnerable_until = 0
+		for _frame in 2:
+			await get_tree().physics_frame
+		var boar_health_before_charge := boar.health
+		player.begin_attack_charge()
+		player.attack_pressed_at = Time.get_ticks_msec() - int(player.stats.charge_seconds * 1000.0) - 10
+		player.update_charge_feedback()
+		check(player.sprite.scale.x > player.base_sprite_scale.x, "长按攻击显示蓄力视觉反馈")
+		await get_tree().physics_frame
+		check(boar.health == boar_health_before_charge, "长按期间不会连续攻击")
+		player.release_attack_charge()
+		for _frame in 2:
+			await get_tree().physics_frame
+		check(boar.health == boar_health_before_charge - player.stats.charged_attack_damage, "蓄力松开触发30点攻击")
+	check(player.attack_area.monitoring, "攻击检测区保持常驻监测")
 	first_enemy.hit_reaction_until = 0
 	first_enemy.frozen_until = 0
 	first_enemy.velocity.x = 100.0
