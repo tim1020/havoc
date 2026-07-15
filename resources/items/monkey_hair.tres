@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ItemDefinition" load_steps=2 format=3]
+[ext_resource type="Script" path="res://src/resources/item_definition.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = &"monkey_hair"
+display_name = "毫毛分身"
+category = 2
+price = 100
+power = 15.0
+duration = 8.0
+color = Color(0.91, 0.73, 0.34, 1)

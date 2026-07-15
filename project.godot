@@ -45,7 +45,7 @@ attack={
 }
 item={
 "deadzone": 0.5,
-"events": [Object(InputEventKey,"physical_keycode":76)]
+"events": [Object(InputEventKey,"physical_keycode":67)]
 }
 pause={
 "deadzone": 0.5,

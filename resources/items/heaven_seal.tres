@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ItemDefinition" load_steps=2 format=3]
+[ext_resource type="Script" path="res://src/resources/item_definition.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = &"heaven_seal"
+display_name = "翻天印"
+category = 2
+price = 150
+power = 80.0
+color = Color(0.33, 0.56, 0.78, 1)

@@ -3,6 +3,9 @@ extends Node2D
 const PLAYER_SCENE := preload("res://src/actors/player/player.tscn")
 const ENEMY_SCENE := preload("res://src/actors/enemies/enemy.tscn")
 const HUD_SCENE := preload("res://src/ui/hud/hud.tscn")
+const ITEM_PICKUP_SCENE := preload("res://src/world/item_pickup.tscn")
+const SHOP_SCENE := preload("res://src/ui/shop/shop_panel.tscn")
+const BREAKABLE_WALL_SCENE := preload("res://src/world/breakable_wall.tscn")
 const THORN_TEXTURE := preload("res://assets/generated/environments/level_01/thorn_spikes.png")
 const THORN_STATS := preload("res://resources/stats/hazards/thorn_spikes.tres")
 
@@ -20,6 +23,7 @@ const LEVEL_WIDTH := SECTION_WIDTH * 4.0
 
 var player: Player
 var hud: GameHud
+var shop: ShopPanel
 var spirit_stones: int = 0
 var current_section: int = -1
 var completed: bool = false
@@ -30,7 +34,9 @@ func _ready() -> void:
 	create_world_collision()
 	spawn_player()
 	spawn_enemies()
+	spawn_items()
 	spawn_hud()
+	spawn_secret_shop()
 	update_section(true)
 
 
@@ -151,7 +157,7 @@ func spawn_hud() -> void:
 	hud = HUD_SCENE.instantiate() as GameHud
 	add_child(hud)
 	hud.bind_player(player)
-	hud.update_stones(spirit_stones)
+	hud.update_stones(GameState.stones)
 
 
 func spawn_enemies() -> void:
@@ -161,7 +167,8 @@ func spawn_enemies() -> void:
 	spawn_enemy(Vector2(1950, 550), EAGLE_STATS, 3, Enemy.Behavior.FLYING, Vector2.ONE)
 	spawn_enemy(Vector2(2700, 560), BOAR_STATS, 2, Enemy.Behavior.CHARGE, Vector2(1.08, 1.08))
 	spawn_enemy(Vector2(3250, 550), EAGLE_STATS, 3, Enemy.Behavior.FLYING, Vector2.ONE)
-	spawn_enemy(Vector2(3650, 535), AXE_BULL_STATS, 4, Enemy.Behavior.BOSS, Vector2(1.25, 1.25))
+	var axe_bull := spawn_enemy(Vector2(3650, 535), AXE_BULL_STATS, 4, Enemy.Behavior.BOSS, Vector2(1.25, 1.25))
+	axe_bull.defeated.connect(func(_reward: int) -> void: spawn_pickup(Vector2(3650, 580), &"elixir"))
 	var boss := spawn_enemy(Vector2(4650, 515), DEMON_KING_STATS, 5, Enemy.Behavior.BOSS, Vector2(1.4, 1.4))
 	boss.defeated.connect(complete_level)
 
@@ -187,8 +194,35 @@ func show_enemy_status(enemy: Enemy, current: float, maximum: float) -> void:
 
 func add_spirit_stones(amount: int) -> void:
 	spirit_stones += amount
+	GameState.add_stones(amount)
 	if hud != null:
-		hud.update_stones(spirit_stones)
+		hud.update_stones(GameState.stones)
+
+
+func spawn_items() -> void:
+	spawn_pickup(Vector2(850, 475), &"peach")
+	spawn_pickup(Vector2(1160, 590), &"fire_spear")
+	spawn_pickup(Vector2(1770, 455), &"peach")
+	spawn_pickup(Vector2(2240, 590), &"cosmic_ring")
+	spawn_pickup(Vector2(4100, 590), &"peach")
+	spawn_pickup(Vector2(4380, 455), &"fire_wheels")
+
+
+func spawn_pickup(position_value: Vector2, item_id: StringName) -> ItemPickup:
+	var pickup := ITEM_PICKUP_SCENE.instantiate() as ItemPickup
+	pickup.position = position_value
+	pickup.item = ItemCatalog.get_definition(item_id)
+	add_child(pickup)
+	return pickup
+
+
+func spawn_secret_shop() -> void:
+	shop = SHOP_SCENE.instantiate() as ShopPanel
+	add_child(shop)
+	var wall := BREAKABLE_WALL_SCENE.instantiate() as BreakableWall
+	wall.position = Vector2(3040, 414)
+	wall.broken.connect(func() -> void: shop.open_shop(player, "水帘洞隐藏商店"))
+	add_child(wall)
 
 
 func update_section(force: bool) -> void:
@@ -206,3 +240,4 @@ func complete_level(_reward: int) -> void:
 	completed = true
 	player.controls_enabled = false
 	hud.show_result(spirit_stones)
+	shop.open_shop(player, "第一关过关商店")

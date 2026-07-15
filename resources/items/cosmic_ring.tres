@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ItemDefinition" load_steps=2 format=3]
+[ext_resource type="Script" path="res://src/resources/item_definition.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = &"cosmic_ring"
+display_name = "乾坤圈"
+category = 2
+price = 80
+power = 40.0
+duration = 2.0
+color = Color(1, 0.75, 0.12, 1)

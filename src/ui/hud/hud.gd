@@ -5,6 +5,7 @@ extends CanvasLayer
 @onready var health_label: Label = %HealthLabel
 @onready var lives_label: Label = %LivesLabel
 @onready var stones_label: Label = %StonesLabel
+@onready var artifact_labels: Array[Label] = [%Artifact1, %Artifact2, %Artifact3]
 @onready var section_label: Label = %SectionLabel
 @onready var result_panel: Control = %ResultPanel
 @onready var pause_panel: Control = %PausePanel
@@ -20,8 +21,12 @@ func bind_player(player: Player) -> void:
 	health_bar.max_value = player.stats.max_health
 	player.health_changed.connect(update_health)
 	GameState.lives_changed.connect(update_lives)
+	GameState.stones_changed.connect(update_stones)
+	GameState.artifacts_changed.connect(update_artifacts)
 	update_health(player.health, player.stats.max_health)
 	update_lives(GameState.lives)
+	update_stones(GameState.stones)
+	update_artifacts(GameState.artifacts)
 
 
 func update_health(current: float, maximum: float) -> void:
@@ -36,6 +41,17 @@ func update_lives(current_lives: int) -> void:
 
 func update_stones(stones: int) -> void:
 	stones_label.text = "灵石  %04d" % stones
+
+
+func update_artifacts(artifacts: Array[StringName]) -> void:
+	for index in artifact_labels.size():
+		if index < artifacts.size():
+			var item := ItemCatalog.get_definition(artifacts[index])
+			artifact_labels[index].text = item.display_name if item != null else "?"
+			artifact_labels[index].modulate = item.color if item != null else Color.WHITE
+		else:
+			artifact_labels[index].text = "空"
+			artifact_labels[index].modulate = Color(0.65, 0.65, 0.65)
 
 
 func show_enemy_status(enemy: Enemy, current: float, maximum: float) -> void:
@@ -57,7 +73,7 @@ func set_section(section_name: String) -> void:
 
 func show_result(stones: int) -> void:
 	result_panel.visible = true
-	%ResultText.text = "花果山重归平静\n本关灵石：%d" % stones
+	%ResultText.text = "花果山重归平静\n本关灵石：%d　总计：%d" % [stones, GameState.stones]
 	%ReturnButton.grab_focus()
 
 

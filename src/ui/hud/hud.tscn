@@ -35,7 +35,7 @@ script = ExtResource("1")
 offset_left = 28.0
 offset_top = 24.0
 offset_right = 502.0
-offset_bottom = 116.0
+offset_bottom = 154.0
 theme_override_styles/panel = SubResource("HudPanel")
 
 [node name="Margin" type="MarginContainer" parent="TopPanel"]
@@ -84,6 +84,35 @@ text = "毫毛  × 3"
 unique_name_in_owner = true
 layout_mode = 2
 text = "灵石  0000"
+
+[node name="ArtifactRow" type="HBoxContainer" parent="TopPanel/Margin/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Hint" type="Label" parent="TopPanel/Margin/Rows/ArtifactRow"]
+layout_mode = 2
+text = "C 法宝"
+
+[node name="Artifact1" type="Label" parent="TopPanel/Margin/Rows/ArtifactRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(92, 26)
+layout_mode = 2
+text = "空"
+horizontal_alignment = 1
+
+[node name="Artifact2" type="Label" parent="TopPanel/Margin/Rows/ArtifactRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(92, 26)
+layout_mode = 2
+text = "空"
+horizontal_alignment = 1
+
+[node name="Artifact3" type="Label" parent="TopPanel/Margin/Rows/ArtifactRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(92, 26)
+layout_mode = 2
+text = "空"
+horizontal_alignment = 1
 
 [node name="SectionLabel" type="Label" parent="."]
 unique_name_in_owner = true

@@ -88,6 +88,13 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 22
 text = "开始游戏"
 
+[node name="ContinueButton" type="Button" parent="Panel/Margin/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "继续游戏"
+
 [node name="QuitButton" type="Button" parent="Panel/Margin/Content"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 48)
@@ -99,5 +106,5 @@ text = "退出"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.62, 0.61, 0.56, 1)
 theme_override_font_sizes/font_size = 14
-text = "A/D 移动 · K/空格 跳跃 · J 攻击 · J+K 定身"
+text = "A/D 移动 · K/空格 跳跃 · J 攻击 · C 法宝 · J+K 定身"
 horizontal_alignment = 1

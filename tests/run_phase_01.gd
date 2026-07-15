@@ -1,9 +1,13 @@
 extends Node
 
 var failures: Array[String] = []
+const TEST_SAVE := "/tmp/havoc_phase_01_save.json"
 
 
 func _ready() -> void:
+	GameState.save_path = TEST_SAVE
+	GameState.stones = 0
+	GameState.artifacts.clear()
 	run_checks()
 
 
@@ -185,11 +189,15 @@ func run_checks() -> void:
 		demon_king.take_damage(demon_king.stats.max_health, player.global_position)
 		await get_tree().process_frame
 		check(level.completed and hud.result_panel.visible, "击败混世魔王触发过关结算")
+		check(level.shop.visible, "击败混世魔王自动打开过关商店")
+		level.shop.close_shop()
 
 	await get_tree().create_timer(0.5).timeout
 	level.queue_free()
 	for _frame in 3:
 		await get_tree().process_frame
+	if FileAccess.file_exists(TEST_SAVE):
+		DirAccess.remove_absolute(TEST_SAVE)
 	if failures.is_empty():
 		print("PHASE 01 CORE CHECKS PASSED")
 		get_tree().quit(0)

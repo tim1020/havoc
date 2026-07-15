@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ItemDefinition" load_steps=2 format=3]
+[ext_resource type="Script" path="res://src/resources/item_definition.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = &"fire_wheels"
+display_name = "风火轮"
+category = 2
+price = 80
+power = 45.0
+duration = 3.0
+color = Color(1, 0.42, 0.08, 1)

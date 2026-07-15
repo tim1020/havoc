@@ -24,6 +24,7 @@ var attack_held: bool = false
 var attack_consumed: bool = false
 var attack_pressed_at: int = 0
 var base_sprite_scale: Vector2
+var speed_boost_until: int = 0
 
 
 func _ready() -> void:
@@ -59,6 +60,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			begin_attack_charge()
 	elif event.is_action_released("attack"):
 		release_attack_charge()
+	elif event.is_action_pressed("item"):
+		use_current_artifact()
 
 
 func _physics_process(delta: float) -> void:
@@ -72,7 +75,8 @@ func _physics_process(delta: float) -> void:
 		facing = signf(direction)
 		sprite.flip_h = facing < 0.0
 		var accel := stats.acceleration if is_on_floor() else stats.air_acceleration
-		velocity.x = move_toward(velocity.x, direction * stats.move_speed, accel * delta)
+		var speed_multiplier := 2.0 if Time.get_ticks_msec() < speed_boost_until else 1.0
+		velocity.x = move_toward(velocity.x, direction * stats.move_speed * speed_multiplier, accel * delta)
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, stats.friction * delta)
 
@@ -133,6 +137,7 @@ func perform_attack(damage_override: float = -1.0) -> void:
 	attack_effect.flip_h = facing < 0.0
 	attack_effect.position.x = absf(attack_effect.position.x) * facing
 	attack_effect.scale = Vector2(1.25, 1.25) if damage_override >= 0.0 else Vector2.ONE
+	attack_effect.modulate = Color.WHITE
 	attack_effect.visible = true
 	attack_effect.play("attack")
 	await get_tree().physics_frame
@@ -163,6 +168,61 @@ func cast_freeze_spell() -> void:
 		if enemy.has_method("freeze_for"):
 			var duration := stats.freeze_boss_seconds if enemy.is_in_group("bosses") else stats.freeze_normal_seconds
 			enemy.freeze_for(duration)
+
+
+func apply_healing_item(item: ItemDefinition) -> void:
+	health = minf(stats.max_health, health + item.power)
+	if item.id == &"wine":
+		speed_boost_until = Time.get_ticks_msec() + int(item.duration * 1000.0)
+	health_changed.emit(health, stats.max_health)
+
+
+func use_current_artifact() -> void:
+	var item_id := GameState.pop_artifact()
+	if item_id.is_empty():
+		return
+	var item := ItemCatalog.get_definition(item_id)
+	if item == null:
+		return
+	play_if_available("spell")
+	attack_effect.modulate = item.color
+	attack_effect.scale = Vector2(1.4, 1.4)
+	attack_effect.flip_h = facing < 0.0
+	attack_effect.position.x = absf(attack_effect.position.x) * facing
+	attack_effect.visible = true
+	attack_effect.play("attack")
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	if item.id == &"purple_bell":
+		for enemy_node in enemies:
+			var enemy := enemy_node as Enemy
+			enemy.take_damage(item.power, global_position)
+			enemy.freeze_for(item.duration)
+		return
+	var target := nearest_enemy(enemies)
+	if target == null:
+		return
+	if item.id == &"binding_rope":
+		target.freeze_for(2.0 if target.is_in_group("bosses") else item.duration)
+	elif item.id == &"fire_spear":
+		for enemy_node in enemies:
+			var enemy := enemy_node as Enemy
+			var offset := enemy.global_position - global_position
+			if signf(offset.x) == facing and absf(offset.x) <= 700.0 and absf(offset.y) <= 110.0:
+				enemy.take_damage(item.power, global_position)
+	else:
+		target.take_damage(item.power, global_position)
+
+
+func nearest_enemy(enemies: Array[Node]) -> Enemy:
+	var result: Enemy
+	var best_distance := INF
+	for enemy_node in enemies:
+		var enemy := enemy_node as Enemy
+		var distance := global_position.distance_squared_to(enemy.global_position)
+		if distance < best_distance:
+			best_distance = distance
+			result = enemy
+	return result
 
 
 func take_damage(damage: float, source_position: Vector2) -> void:
