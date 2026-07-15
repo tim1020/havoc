@@ -23,8 +23,18 @@ func capture_level_02() -> bool:
 	var level := LEVEL_02.instantiate() as CampaignLevel
 	add_child(level)
 	await settle(8)
-	level.player.global_position = Vector2(4050, 580)
+	for enemy_node in get_tree().get_nodes_in_group("enemies"):
+		var enemy := enemy_node as Enemy
+		enemy.set_physics_process(false)
+		enemy.visible = false
+	level.player.set_physics_process(false)
+	level.player.global_position = Vector2(4440, 580)
 	level.player.velocity = Vector2.ZERO
+	var camera := level.player.get_node("Camera") as Camera2D
+	camera.position_smoothing_enabled = false
+	camera.reset_smoothing()
+	var checkpoint := get_tree().get_first_node_in_group("checkpoints") as Checkpoint
+	checkpoint.activate(level.player)
 	await settle(8)
 	var saved := save_view("%s/level_02_actual.png" % OUTPUT_DIR) == OK
 	level.queue_free()
@@ -37,10 +47,22 @@ func capture_level_03() -> bool:
 	var level := LEVEL_03.instantiate() as CampaignLevel
 	add_child(level)
 	await settle(8)
-	level.player.global_position = Vector2(3060, 570)
+	for enemy_node in get_tree().get_nodes_in_group("enemies"):
+		var enemy := enemy_node as Enemy
+		enemy.set_physics_process(false)
+		enemy.visible = false
+	level.player.set_physics_process(false)
+	level.player.global_position = Vector2(3060, 650)
 	level.player.velocity = Vector2.ZERO
 	level.player.facing = 1.0
-	level.player.start_staff_flight()
+	level.player.sprite.play(&"idle")
+	var camera := level.player.get_node("Camera") as Camera2D
+	camera.position_smoothing_enabled = false
+	camera.reset_smoothing()
+	level.player.begin_attack_charge()
+	level.player.attack_started_on_floor = true
+	level.player.attack_pressed_at = Time.get_ticks_msec() - int(level.player.stats.charge_seconds * 1000.0)
+	level.player.update_charge_feedback()
 	await settle(6)
 	return save_view("%s/level_03_staff_actual.png" % OUTPUT_DIR) == OK
 

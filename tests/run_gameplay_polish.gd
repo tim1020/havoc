@@ -27,6 +27,10 @@ func run_checks() -> void:
 	for _frame in 6:
 		await get_tree().physics_frame
 	var player := level.player as Player
+	var lives_before_test := GameState.lives
+	GameState.infinite_lives = true
+	check(GameState.consume_life() and GameState.lives == lives_before_test and level.hud.lives_label.text.contains("∞"), "debug测试模式救命毫毛无限且HUD明确显示")
+	GameState.infinite_lives = false
 	for enemy_node in get_tree().get_nodes_in_group("enemies"):
 		(enemy_node as Enemy).set_physics_process(false)
 
@@ -114,7 +118,7 @@ func run_checks() -> void:
 	var staff_player := level3.player as Player
 	var idle_texture := staff_player.sprite.sprite_frames.get_frame_texture(&"idle", 0) as AtlasTexture
 	check(GameState.has_staff and staff_player.stats == Player.STAFF_STATS, "第三关进入时确保金箍棒与蓄力能力已解锁")
-	check(idle_texture.atlas.resource_path.ends_with("staff_wukong_frames.svg"), "第三关及后续使用已有金箍棒角色图片")
+	check(idle_texture.atlas.resource_path.ends_with("player_staff_atlas.png"), "第三关及后续使用生成的持棒PNG角色动画")
 	level3.queue_free()
 	await get_tree().process_frame
 	await get_tree().process_frame

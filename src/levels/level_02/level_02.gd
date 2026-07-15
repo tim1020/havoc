@@ -14,6 +14,15 @@ const TURTLE_FRAMES := preload("res://assets/vector/characters/campaign/turtle_c
 const DRAGON_KING_FRAMES := preload("res://assets/vector/characters/campaign/dragon_king_frames.svg")
 const URCHIN := preload("res://resources/stats/hazards/sea_urchin.tres")
 const ELECTRIC := preload("res://resources/stats/hazards/electric_field.tres")
+const CHECKPOINT := preload("res://src/world/checkpoint.gd")
+
+
+func _ready() -> void:
+	super()
+	var checkpoint = CHECKPOINT.new()
+	checkpoint.position = Vector2(4520, 650)
+	checkpoint.checkpoint_position = Vector2(4520, 580)
+	add_child(checkpoint)
 
 
 func on_level_victory() -> void:

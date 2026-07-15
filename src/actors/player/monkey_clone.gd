@@ -1,7 +1,7 @@
 class_name MonkeyClone
 extends CharacterBody2D
 
-const STAFF_ATLAS := preload("res://assets/vector/characters/campaign/staff_wukong_frames.svg")
+const STAFF_FRAMES := preload("res://resources/animations/player_staff_frames.tres")
 
 var damage: float = 15.0
 var expires_at: int
@@ -15,8 +15,9 @@ func _ready() -> void:
 	collision_mask = 1
 	expires_at = Time.get_ticks_msec() + 8000
 	sprite = AnimatedSprite2D.new()
-	sprite.position.y = -48
-	sprite.sprite_frames = create_frames()
+	sprite.position.y = -62
+	sprite.scale = Vector2(0.25, 0.25)
+	sprite.sprite_frames = STAFF_FRAMES
 	sprite.play(&"run")
 	add_child(sprite)
 
@@ -39,7 +40,7 @@ func _physics_process(_delta: float) -> void:
 		velocity.x = 0.0
 		if Time.get_ticks_msec() >= next_attack_at:
 			next_attack_at = Time.get_ticks_msec() + 700
-			sprite.play(&"attack")
+			sprite.play(&"attack_1")
 			target.take_damage(damage, global_position)
 	move_and_slide()
 
@@ -56,20 +57,3 @@ func nearest_enemy() -> Enemy:
 			best = distance
 			result = enemy
 	return result
-
-
-func create_frames() -> SpriteFrames:
-	var frames := SpriteFrames.new()
-	frames.remove_animation(&"default")
-	for animation in [&"idle", &"run", &"attack"]:
-		frames.add_animation(animation)
-		frames.set_animation_speed(animation, 8.0)
-		frames.set_animation_loop(animation, animation != &"attack")
-	var columns := {&"idle": [0, 1], &"run": [2, 3], &"attack": [4, 5]}
-	for animation: StringName in columns:
-		for column in columns[animation]:
-			var texture := AtlasTexture.new()
-			texture.atlas = STAFF_ATLAS
-			texture.region = Rect2(column * 128, 0, 128, 128)
-			frames.add_frame(animation, texture)
-	return frames

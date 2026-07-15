@@ -7,6 +7,7 @@ var failures: Array[String] = []
 
 func _ready() -> void:
 	GameState.save_path = TEST_SAVE
+	GameState.infinite_lives = false
 	if FileAccess.file_exists(TEST_SAVE):
 		DirAccess.remove_absolute(TEST_SAVE)
 	await run_checks()

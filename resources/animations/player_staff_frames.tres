@@ -1,0 +1,98 @@
+[gd_resource type="SpriteFrames" load_steps=10 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/generated/characters/player/player_staff_atlas.png" id="1"]
+
+[sub_resource type="AtlasTexture" id="Idle"]
+atlas = ExtResource("1")
+region = Rect2(0, 0, 384, 512)
+
+[sub_resource type="AtlasTexture" id="Run"]
+atlas = ExtResource("1")
+region = Rect2(384, 0, 384, 512)
+
+[sub_resource type="AtlasTexture" id="Jump"]
+atlas = ExtResource("1")
+region = Rect2(768, 0, 384, 512)
+
+[sub_resource type="AtlasTexture" id="Attack1"]
+atlas = ExtResource("1")
+region = Rect2(1152, 0, 384, 512)
+
+[sub_resource type="AtlasTexture" id="Attack2"]
+atlas = ExtResource("1")
+region = Rect2(0, 512, 384, 512)
+
+[sub_resource type="AtlasTexture" id="Attack3"]
+atlas = ExtResource("1")
+region = Rect2(384, 512, 384, 512)
+
+[sub_resource type="AtlasTexture" id="Hurt"]
+atlas = ExtResource("1")
+region = Rect2(768, 512, 384, 512)
+
+[sub_resource type="AtlasTexture" id="Respawn"]
+atlas = ExtResource("1")
+region = Rect2(1152, 512, 384, 512)
+
+[resource]
+animations = [{
+"frames": [{"duration": 1.0, "texture": SubResource("Idle")}, {"duration": 1.0, "texture": SubResource("Idle")}],
+"loop": true,
+"name": &"idle",
+"speed": 2.0
+}, {
+"frames": [{"duration": 1.0, "texture": SubResource("Run")}, {"duration": 1.0, "texture": SubResource("Jump")}],
+"loop": true,
+"name": &"run",
+"speed": 6.0
+}, {
+"frames": [{"duration": 1.0, "texture": SubResource("Idle")}, {"duration": 1.0, "texture": SubResource("Hurt")}],
+"loop": true,
+"name": &"crouch",
+"speed": 2.0
+}, {
+"frames": [{"duration": 1.0, "texture": SubResource("Jump")}, {"duration": 1.0, "texture": SubResource("Run")}],
+"loop": false,
+"name": &"jump",
+"speed": 4.0
+}, {
+"frames": [{"duration": 1.0, "texture": SubResource("Attack1")}, {"duration": 1.0, "texture": SubResource("Attack2")}],
+"loop": false,
+"name": &"attack_1",
+"speed": 8.0
+}, {
+"frames": [{"duration": 1.0, "texture": SubResource("Attack2")}, {"duration": 1.0, "texture": SubResource("Attack3")}],
+"loop": false,
+"name": &"attack_2",
+"speed": 8.0
+}, {
+"frames": [{"duration": 1.0, "texture": SubResource("Attack3")}, {"duration": 1.0, "texture": SubResource("Attack1")}],
+"loop": false,
+"name": &"attack_3",
+"speed": 10.0
+}, {
+"frames": [{"duration": 1.0, "texture": SubResource("Hurt")}, {"duration": 1.0, "texture": SubResource("Hurt")}],
+"loop": false,
+"name": &"hurt",
+"speed": 5.0
+}, {
+"frames": [{"duration": 1.0, "texture": SubResource("Hurt")}, {"duration": 1.0, "texture": SubResource("Hurt")}],
+"loop": false,
+"name": &"death",
+"speed": 3.0
+}, {
+"frames": [{"duration": 1.0, "texture": SubResource("Respawn")}, {"duration": 1.0, "texture": SubResource("Idle")}],
+"loop": false,
+"name": &"respawn",
+"speed": 4.0
+}, {
+"frames": [{"duration": 1.0, "texture": SubResource("Respawn")}, {"duration": 1.0, "texture": SubResource("Attack1")}],
+"loop": false,
+"name": &"spell",
+"speed": 6.0
+}, {
+"frames": [{"duration": 1.0, "texture": SubResource("Attack3")}, {"duration": 1.0, "texture": SubResource("Respawn")}],
+"loop": true,
+"name": &"victory",
+"speed": 4.0
+}]

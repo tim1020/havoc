@@ -37,6 +37,18 @@ func run_checks() -> void:
 	check(get_tree().get_nodes_in_group("standable_surfaces").size() == 11, "第二关11段可站立面均有顶边线")
 	check(level2.player.collision_mask & 4 != 0, "第二关玩家与敌人启用双向实体碰撞")
 	check_enemy_animation_coverage(level2_enemies, 6, "第二关")
+	var dragon_checkpoint := get_tree().get_first_node_in_group("checkpoints") as Checkpoint
+	check(dragon_checkpoint != null and dragon_checkpoint.checkpoint_position == Vector2(4520, 580), "龙王战前设置独立重生检查点")
+	dragon_checkpoint.activate(level2.player)
+	var infinite_lives_before_test := GameState.infinite_lives
+	GameState.infinite_lives = false
+	GameState.lives = 2
+	level2.player.health = 1.0
+	level2.player.invulnerable_until = 0
+	level2.player.take_damage(2.0, level2.player.global_position + Vector2.RIGHT)
+	await get_tree().create_timer(1.2).timeout
+	check(absf(level2.player.global_position.x - 4520.0) < 8.0 and level2.player.global_position.y < 660.0, "龙王战死亡后从Boss前检查点重生")
+	GameState.infinite_lives = infinite_lives_before_test
 
 	var crab := find_enemy("蟹将")
 	crab.set_physics_process(false)
@@ -89,27 +101,38 @@ func run_checks() -> void:
 	check_enemy_animation_coverage(level3_enemies, 7, "第三关")
 	var player := level3.player as Player
 	check(player.stats.combo_damage == PackedFloat32Array([15.0, 15.0, 15.0]), "第三关切换15点三连棒法")
-	check(player.sprite.sprite_frames.get_frame_count(&"staff_fly") == 2, "御棒飞行使用真实2帧角色动画")
+	var idle_texture := player.sprite.sprite_frames.get_frame_texture(&"idle", 0) as AtlasTexture
+	check(idle_texture.atlas.resource_path.ends_with("player_staff_atlas.png"), "第三关使用生成的持棒PNG角色动画")
+	player.set_physics_process(false)
+	player.global_position = Vector2(10000, 580)
+	var repeated_charge_ok := true
+	for _attempt in 3:
+		player.begin_attack_charge()
+		player.attack_started_on_floor = true
+		player.attack_pressed_at = Time.get_ticks_msec() - int(player.stats.charge_seconds * 1000.0)
+		player.release_attack_charge()
+		await get_tree().physics_frame
+		repeated_charge_ok = repeated_charge_ok and player.global_position.x == 10000.0 and not player.attack_held and player.sprite.animation == &"attack_3"
+	check(repeated_charge_ok, "地面蓄力可连续释放且不会变成自动前进")
 
-	var skeleton := find_enemy("骷髅兵")
-	skeleton.set_physics_process(false)
+	var charged_target := find_enemy("牛头")
+	charged_target.set_physics_process(false)
 	player.set_physics_process(false)
 	player.global_position = Vector2(500, 580)
-	skeleton.global_position = Vector2(570, 580)
-	skeleton.patrol_direction = 1.0
-	skeleton.invulnerable_until = 0
-	var skeleton_health := skeleton.health
+	charged_target.global_position = Vector2(570, 580)
+	charged_target.patrol_direction = 1.0
+	charged_target.invulnerable_until = 0
+	await get_tree().physics_frame
+	var charged_target_health := charged_target.health
 	player.facing = 1.0
-	player.start_staff_flight()
+	player.attack_started_on_floor = true
+	player.begin_attack_charge()
+	player.attack_started_on_floor = true
+	player.attack_pressed_at = Time.get_ticks_msec() - int(player.stats.charge_seconds * 1000.0)
+	player.release_attack_charge()
 	for _frame in 2:
 		await get_tree().physics_frame
-	player.apply_staff_flight_damage()
-	check(player.is_staff_flying() and player.staff_flying_until > Time.get_ticks_msec(), "地面满蓄力进入2秒御棒飞行")
-	check(skeleton.health == skeleton_health - 20.0, "御棒撞击造成20点伤害")
-	skeleton.invulnerable_until = 0
-	player.global_position = skeleton.global_position + Vector2(0, -80)
-	player.staff_slam()
-	check(skeleton.health == 0.0, "御棒飞行中攻击触发40点下劈")
+	check(charged_target.health == charged_target_health - player.stats.charged_attack_damage, "地面满蓄力造成40点强化攻击")
 	player.set_physics_process(true)
 
 	var targets: Array[Enemy] = []

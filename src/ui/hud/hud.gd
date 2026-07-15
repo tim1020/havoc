@@ -41,7 +41,7 @@ func update_health(current: float, maximum: float) -> void:
 
 
 func update_lives(current_lives: int) -> void:
-	lives_label.text = "毫毛  × %d" % current_lives
+	lives_label.text = "毫毛  × ∞" if GameState.infinite_lives else "毫毛  × %d" % current_lives
 
 
 func update_stones(stones: int) -> void:

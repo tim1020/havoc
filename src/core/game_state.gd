@@ -17,6 +17,7 @@ const MAX_ARTIFACTS := 3
 
 var current_level_path: String = FIRST_LEVEL
 var lives: int = 3
+var infinite_lives: bool = OS.is_debug_build()
 var stones: int = 0
 var artifacts: Array[StringName] = []
 var unlocked_level: int = 1
@@ -84,6 +85,8 @@ func start_new_game() -> void:
 
 
 func consume_life() -> bool:
+	if infinite_lives:
+		return true
 	if lives <= 0:
 		return false
 	lives -= 1
