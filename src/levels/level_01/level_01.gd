@@ -3,8 +3,6 @@ extends Node2D
 const PLAYER_SCENE := preload("res://src/actors/player/player.tscn")
 const ENEMY_SCENE := preload("res://src/actors/enemies/enemy.tscn")
 const HUD_SCENE := preload("res://src/ui/hud/hud.tscn")
-const BACKGROUND := preload("res://assets/generated/environments/level_01/flower_fruit_mountain_background.png")
-const GROUND_TEXTURE := preload("res://assets/generated/environments/level_01/mossy_stone_platform.png")
 const THORN_TEXTURE := preload("res://assets/generated/environments/level_01/thorn_spikes.png")
 const THORN_STATS := preload("res://resources/stats/hazards/thorn_spikes.tres")
 
@@ -52,13 +50,7 @@ func _process(_delta: float) -> void:
 
 
 func create_backgrounds() -> void:
-	for section in 4:
-		var backdrop := Sprite2D.new()
-		backdrop.texture = BACKGROUND
-		backdrop.position = Vector2(SECTION_WIDTH * section + SECTION_WIDTH * 0.5, 360.0)
-		backdrop.scale = Vector2(SECTION_WIDTH / BACKGROUND.get_width(), 720.0 / BACKGROUND.get_height())
-		backdrop.z_index = -20
-		add_child(backdrop)
+	add_child(Level01Backdrop.new())
 
 
 func create_world_collision() -> void:
@@ -99,12 +91,18 @@ func create_static_rect(rect: Rect2) -> void:
 
 
 func create_ground_visual(rect: Rect2, visual_height: float) -> void:
-	var sprite := Sprite2D.new()
-	sprite.texture = GROUND_TEXTURE
-	sprite.position = Vector2(rect.position.x + rect.size.x * 0.5, rect.position.y + visual_height * 0.5)
-	sprite.scale = Vector2(rect.size.x / GROUND_TEXTURE.get_width(), visual_height / GROUND_TEXTURE.get_height())
-	sprite.z_index = -2
-	add_child(sprite)
+	var surface := Polygon2D.new()
+	surface.polygon = PackedVector2Array([
+		rect.position,
+		Vector2(rect.end.x, rect.position.y),
+		Vector2(rect.end.x, rect.position.y + visual_height),
+		Vector2(rect.position.x, rect.position.y + visual_height),
+	])
+	var section := clampi(floori(rect.position.x / SECTION_WIDTH), 0, 3)
+	var colors := [Color("657350"), Color("526f4f"), Color("52656a"), Color("39464d")]
+	surface.color = colors[section]
+	surface.z_index = -2
+	add_child(surface)
 	create_standable_line(rect)
 
 

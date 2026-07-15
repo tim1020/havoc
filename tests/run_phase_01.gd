@@ -38,7 +38,25 @@ func run_checks() -> void:
 	check(get_tree().get_nodes_in_group("enemies").size() == 8, "第一关生成8名敌人")
 	check(get_tree().get_nodes_in_group("bosses").size() == 2, "第一关生成中Boss与关底Boss")
 	check(level.find_children("*", "Hazard", true, false).size() == 3, "第一关生成3组资源化陷阱")
-	check(get_tree().get_nodes_in_group("standable_surfaces").size() == 8, "第一关8段可站立顶边均有提示线")
+	var standable_lines := get_tree().get_nodes_in_group("standable_surfaces")
+	check(standable_lines.size() == 8, "第一关8段可站立顶边均有提示线")
+	check(level.find_children("*", "Level01Backdrop", true, false).size() == 1, "第一关使用一个连续分区线稿背景")
+	var static_bodies := level.find_children("*", "StaticBody2D", true, false)
+	var aligned_lines := 0
+	for line_node in standable_lines:
+		var line := line_node as Line2D
+		for body_node in static_bodies:
+			var body := body_node as StaticBody2D
+			var shape_node := body.get_child(0) as CollisionShape2D
+			var rectangle := shape_node.shape as RectangleShape2D
+			var left := body.position.x - rectangle.size.x * 0.5
+			var right := body.position.x + rectangle.size.x * 0.5
+			var top := body.position.y - rectangle.size.y * 0.5
+			if line.points[0].is_equal_approx(Vector2(left, top)) and line.points[1].is_equal_approx(Vector2(right, top)):
+				aligned_lines += 1
+				break
+	check(aligned_lines == 8, "可站立提示线逐段对齐真实碰撞面")
+	check(player.collision_mask & 4 != 0, "玩家碰撞掩码包含敌兵层")
 
 	player.jumps_left = 2
 	player.try_jump()
@@ -50,6 +68,7 @@ func run_checks() -> void:
 	player.cast_freeze_spell()
 	check(player.health == health_before_spell - player_stats.freeze_health_cost, "定身术消耗20点生命")
 	var first_enemy := get_tree().get_nodes_in_group("enemies")[0] as Enemy
+	check(first_enemy.collision_mask & 2 != 0, "敌兵碰撞掩码包含玩家层")
 	check(first_enemy.frozen_until > Time.get_ticks_msec(), "定身术冻结普通敌人")
 	var hud := level.hud as GameHud
 	player.global_position = Vector2(360, 580)
@@ -112,6 +131,17 @@ func run_checks() -> void:
 	first_enemy.visual_time = 0.2
 	first_enemy.update_visual_animation()
 	check(first_enemy.sprite.position != first_motion_position, "敌兵移动动画持续改变视觉帧")
+	player.set_physics_process(false)
+	first_enemy.set_physics_process(false)
+	player.global_position = Vector2(360, 580)
+	first_enemy.global_position = Vector2(500, 580)
+	player.velocity = Vector2(600, 0)
+	for _frame in 20:
+		await get_tree().physics_frame
+		player.move_and_slide()
+	check(player.global_position.x < first_enemy.global_position.x, "玩家与同高度敌兵正面接触时不能穿透")
+	player.set_physics_process(true)
+	first_enemy.set_physics_process(true)
 
 	player.invulnerable_until = 0
 	var health_before_hit := player.health
