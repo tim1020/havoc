@@ -10,6 +10,7 @@ const SECOND_LEVEL := "res://src/levels/level_02/level_02.tscn"
 const THIRD_LEVEL := "res://src/levels/level_03/level_03.tscn"
 const FOURTH_LEVEL := "res://src/levels/level_04/level_04.tscn"
 const FIFTH_LEVEL := "res://src/levels/level_05/level_05.tscn"
+const SIXTH_LEVEL := "res://src/levels/level_06/level_06.tscn"
 const SAVE_PATH := "user://havoc_save.json"
 const MAX_LIVES := 3
 const MAX_ARTIFACTS := 3
@@ -22,6 +23,7 @@ var unlocked_level: int = 1
 var current_level: int = 1
 var life_bought_this_level: bool = false
 var has_staff: bool = false
+var game_completed: bool = false
 var save_path: String = SAVE_PATH
 var settings := {
 	"master_volume": 1.0,
@@ -38,6 +40,7 @@ func start_new_game() -> void:
 	current_level = 1
 	life_bought_this_level = false
 	has_staff = false
+	game_completed = false
 	current_level_path = FIRST_LEVEL
 	emit_resource_signals()
 	save_game()
@@ -154,6 +157,7 @@ func save_game(path: String = "") -> Error:
 		"current_level_path": current_level_path,
 		"life_bought_this_level": life_bought_this_level,
 		"has_staff": has_staff,
+		"game_completed": game_completed,
 		"settings": settings,
 	}))
 	return OK
@@ -180,6 +184,7 @@ func load_game(path: String = "") -> bool:
 	current_level_path = String(parsed.get("current_level_path", FIRST_LEVEL))
 	life_bought_this_level = bool(parsed.get("life_bought_this_level", false))
 	has_staff = bool(parsed.get("has_staff", false))
+	game_completed = bool(parsed.get("game_completed", false))
 	var loaded_settings = parsed.get("settings", {})
 	if loaded_settings is Dictionary:
 		for key in settings:
@@ -205,6 +210,13 @@ func emit_resource_signals() -> void:
 
 func unlock_staff() -> void:
 	has_staff = true
+	save_game()
+
+
+func complete_game() -> void:
+	game_completed = true
+	unlocked_level = maxi(unlocked_level, 6)
+	current_level = 6
 	save_game()
 
 

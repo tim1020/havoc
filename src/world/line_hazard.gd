@@ -1,7 +1,7 @@
 class_name LineHazard
 extends Hazard
 
-enum Kind { SPIKES, ELECTRIC, FIRE, VORTEX, ROOT, PEACH_BOMB, WATER, POLLEN, LIGHTNING, WIND, LASER }
+enum Kind { SPIKES, ELECTRIC, FIRE, VORTEX, ROOT, PEACH_BOMB, WATER, POLLEN, LIGHTNING, WIND, LASER, GOLD_ARRAY }
 
 @export var kind: Kind = Kind.SPIKES
 @export var visual_size: Vector2 = Vector2(90, 50)
@@ -66,6 +66,9 @@ func _draw() -> void:
 				draw_line(Vector2(-visual_size.x * 0.45, y), Vector2(visual_size.x * 0.45, y), Color(0.8, 0.95, 1.0, 0.55), 5, true)
 		Kind.LASER:
 			draw_rect(Rect2(-visual_size * 0.5, visual_size), Color(1.0, 0.32, 0.35, 0.35 + sin(elapsed * 8.0) * 0.2), true)
+		Kind.GOLD_ARRAY:
+			for ring in 3:
+				draw_arc(Vector2.ZERO, 18.0 + ring * 14.0, elapsed + ring, elapsed + ring + PI * 1.55, 24, Color("f4cf52"), 6, true)
 
 
 func on_body_entered(body: Node2D) -> void:

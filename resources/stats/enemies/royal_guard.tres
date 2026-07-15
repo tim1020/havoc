@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=2 format=3]
+[ext_resource type="Script" path="res://src/resources/enemy_stats.gd" id="1"]
+[resource]
+script = ExtResource("1")
+display_name = "御前侍卫"
+max_health = 70.0
+contact_damage = 30.0
+invulnerability_seconds = 0.12
+knockback_force = 220.0
+move_speed = 260.0
+gravity = 2400.0
+detection_range = 700.0
+attack_range = 105.0
+spirit_stones = 30
+backstab_multiplier = 2.0

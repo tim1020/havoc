@@ -23,3 +23,5 @@ extends ActorStats
 @export var phase_thresholds: PackedFloat32Array = PackedFloat32Array([0.5])
 @export_range(1.0, 3.0, 0.05) var phase_damage_multiplier: float = 1.5
 @export var reflects_projectiles: bool = false
+@export_range(0.0, 5000.0, 1.0) var shield_health: float = 0.0
+@export_range(1.0, 3.0, 0.1) var backstab_multiplier: float = 1.0

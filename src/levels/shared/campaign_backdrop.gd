@@ -18,8 +18,10 @@ func _draw() -> void:
 		draw_underworld()
 	elif level_number == 4:
 		draw_peach_garden()
-	else:
+	elif level_number == 5:
 		draw_heaven_gate()
+	else:
+		draw_celestial_palace()
 
 
 func draw_dragon_palace() -> void:
@@ -156,3 +158,31 @@ func draw_heaven_gate() -> void:
 		draw_circle(Vector2(offset + x, 115), 42, Color("e5c35c"))
 	draw_rect(Rect2(offset + 420, 150, 440, 470), Color("c94f43"), true)
 	draw_rect(Rect2(offset + 420, 150, 440, 470), Color("f3d370"), false, 14)
+
+
+func draw_celestial_palace() -> void:
+	var colors := [Color("5b4965"), Color("664354"), Color("50394c"), Color("3c2633")]
+	for section in 4:
+		draw_rect(Rect2(section * SECTION_WIDTH, 0, SECTION_WIDTH, 720), colors[section])
+	# 6-1 殿前长阶
+	for index in 9:
+		var rect := Rect2(40 + index * 140, 640 - index * 48, 190, 30)
+		draw_rect(rect, Color("c9a85a"), true)
+		draw_line(rect.position, Vector2(rect.end.x, rect.position.y), Color("f3d36b"), 5, true)
+	# 6-2 凌霄长廊
+	var offset := SECTION_WIDTH
+	for x in [120.0, 350.0, 610.0, 880.0, 1140.0]:
+		draw_line(Vector2(offset + x, 100), Vector2(offset + x, 620), Color("d5b55c"), 28, true)
+		draw_arc(Vector2(offset + x, 260), 52, -PI * 0.3, PI * 1.3, 24, Color("9d4d42"), 9, true)
+	# 6-3 九龙壁
+	offset = SECTION_WIDTH * 2
+	for index in 9:
+		var center := Vector2(offset + 90 + index * 140, 280 + (index % 2) * 80)
+		draw_arc(center, 58, 0, TAU * 0.82, 25, Color("d7b744"), 12, true)
+		draw_circle(center + Vector2(42, -20), 12, Color("f2de8a"))
+	# 6-4 玉帝宝座
+	offset = SECTION_WIDTH * 3
+	draw_rect(Rect2(offset + 440, 260, 400, 350), Color("8f3035"), true)
+	draw_rect(Rect2(offset + 440, 260, 400, 350), Color("e0b64f"), false, 14)
+	for x in [150.0, 370.0, 910.0, 1130.0]:
+		draw_line(Vector2(offset + x, 100), Vector2(offset + x, 630), Color("d5ba68"), 30, true)

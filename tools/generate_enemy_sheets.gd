@@ -33,6 +33,13 @@ const PROFILES := [
 	["virudhaka", "sword_king", "#c69a4f", "#4f7b68", "sword"],
 	["virupaksha", "serpent_king", "#c58b52", "#8b4f4f", "snake"],
 	["vaishravana", "umbrella_king", "#d0a75e", "#596a8b", "umbrella"],
+	["yellow_turban", "hammer_guard", "#bd8a51", "#d2b33f", "hammer"],
+	["curtain_general", "curtain_general", "#8d7381", "#596579", "crescent"],
+	["royal_guard", "royal_guard", "#34384a", "#171923", "dagger"],
+	["heaven_hound", "hound", "#32343d", "#575c6c", "fang"],
+	["nezha", "nezha", "#d96c55", "#d6a33d", "spear"],
+	["erlang", "erlang", "#b6c3cf", "#485d76", "crescent"],
+	["jade_emperor", "emperor", "#d3b15b", "#8e3f42", "seal"],
 ]
 
 const POSES := [
@@ -151,6 +158,20 @@ func species_features(species: String, head_y: int, body_y: int, main: String, c
 			return "<path d=\"M18 %d Q50 %d 27 %d Q4 %d 34 %d\" fill=\"none\" stroke=\"#6bad55\" stroke-width=\"9\"/>" % [body_y - 12, body_y - 30, body_y - 48, body_y - 60, body_y - 75]
 		"umbrella_king":
 			return "<path d=\"M-23 %d H24 L16 %d H-16Z\" fill=\"#5f7397\"/>" % [head_y - 17, head_y - 30]
+		"hammer_guard":
+			return "<path d=\"M-24 %d H25\" stroke=\"#e1c341\" stroke-width=\"12\"/><path d=\"M-19 %d L-30 %d M20 %d L31 %d\" stroke=\"#b44c3f\" stroke-width=\"8\"/>" % [head_y - 20, body_y - 2, body_y + 18, body_y - 2, body_y + 18]
+		"curtain_general":
+			return "<path d=\"M-23 %d H24 L18 %d H-17Z\" fill=\"#73839a\"/><path d=\"M-17 %d H18\" stroke=\"#a7b5c3\" stroke-width=\"7\"/>" % [head_y - 16, head_y - 29, body_y - 12]
+		"royal_guard":
+			return "<path d=\"M-24 %d Q0 %d 24 %d L18 %d H-18Z\" fill=\"#12151d\"/><path d=\"M-20 %d H20\" stroke=\"#78404d\" stroke-width=\"6\"/>" % [head_y + 2, head_y - 25, head_y + 2, body_y + 20, head_y - 4]
+		"hound":
+			return "<path d=\"M-31 %d Q0 %d 31 %d L24 %d L-24 %dZ\" fill=\"%s\"/><circle cx=\"7\" cy=\"%d\" r=\"4\" fill=\"#7edcf0\"/><path d=\"M-12 %d L-24 %d M14 %d L27 %d\" stroke=\"%s\" stroke-width=\"9\"/>" % [body_y - 8, body_y - 28, body_y - 8, body_y + 20, body_y + 20, main, head_y - 12, body_y + 11, body_y + 30, body_y + 11, body_y + 30, main]
+		"nezha":
+			return "<circle cx=\"-20\" cy=\"%d\" r=\"9\" fill=\"#d94c4c\"/><circle cx=\"20\" cy=\"%d\" r=\"9\" fill=\"#d94c4c\"/><path d=\"M-28 %d Q0 %d 28 %d\" fill=\"none\" stroke=\"#e4b63c\" stroke-width=\"7\"/>" % [head_y, head_y, body_y + 21, body_y + 32, body_y + 21]
+		"erlang":
+			return "<path d=\"M-18 %d H19 L14 %d H-13Z\" fill=\"#bec9d2\"/><circle cx=\"2\" cy=\"%d\" r=\"4\" fill=\"#63d7ed\"/>" % [head_y - 16, head_y - 29, head_y - 12]
+		"emperor":
+			return "<path d=\"M-27 %d H28 L18 %d H-18Z\" fill=\"#d7b34e\"/><path d=\"M-22 %d Q0 %d 22 %d\" stroke=\"#f2d67b\" stroke-width=\"7\" fill=\"none\"/>" % [head_y - 18, head_y - 34, body_y - 12, body_y - 24, body_y - 12]
 	return ""
 
 
@@ -177,6 +198,11 @@ func weapon_shape(weapon: String, body_y: int, pose: Array, main: String) -> Str
 		"pipa": return "<ellipse cx=\"%d\" cy=\"%d\" rx=\"16\" ry=\"25\" fill=\"#b77842\"/><path d=\"M%d %d l18 -44\" stroke=\"#8a552f\" stroke-width=\"7\"/>" % [hand_x + 15, body_y - 2, hand_x + 15, body_y - 8]
 		"snake": return "<path d=\"M%d %d Q%d %d %d %d Q%d %d %d %d\" fill=\"none\" stroke=\"#6cac52\" stroke-width=\"9\"/>" % [hand_x, body_y + 5, hand_x + 25, body_y - 28, hand_x + 43, body_y, hand_x + 55, body_y + 18, hand_x + 68, body_y - 8]
 		"umbrella": return "<path d=\"M%d %d L%d %d\" stroke=\"#815b38\" stroke-width=\"7\"/><path d=\"M%d %d Q%d %d %d %dZ\" fill=\"#6684b3\"/>" % [hand_x, body_y + 10, hand_x + 18, body_y - 48, hand_x - 22, body_y - 35, hand_x + 18, body_y - 70, hand_x + 58, body_y - 35]
+		"hammer": return "<path d=\"M%d %d L%d %d\" stroke=\"#7a5739\" stroke-width=\"7\"/><rect x=\"%d\" y=\"%d\" width=\"30\" height=\"20\" fill=\"#858b8e\"/>" % [hand_x, body_y + 8, hand_x + 25, body_y - 30, hand_x + 12, body_y - 42]
+		"crescent": return "<path d=\"M%d %d L%d %d\" stroke=\"#8a6842\" stroke-width=\"7\"/><path d=\"M%d %d q22 8 30 -11 q-2 25 -28 29Z\" fill=\"#d7e1e5\"/>" % [hand_x, body_y + 12, hand_x + 30, body_y - 42, hand_x + 22, body_y - 48]
+		"dagger": return "<path d=\"M%d %d l28 -26\" stroke=\"#d9e0e5\" stroke-width=\"7\"/>" % [hand_x, body_y + 5]
+		"fang": return "<path d=\"M%d %d l20 -12 l-8 22Z\" fill=\"#e8e0cb\"/>" % [hand_x, body_y]
+		"seal": return "<rect x=\"%d\" y=\"%d\" width=\"28\" height=\"28\" fill=\"#d6ad42\"/><path d=\"M%d %d l18 18 M%d %d l-18 18\" stroke=\"#8f3c3c\"/>" % [hand_x, body_y - 24, hand_x + 5, body_y - 19, hand_x + 23, body_y - 19]
 	return ""
 
 

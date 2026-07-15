@@ -43,6 +43,7 @@ var base_collision_layer: int
 var base_collision_mask: int
 var ghost_solid: bool = true
 var disguised: bool = false
+var shield_health: float = 0.0
 
 
 func _ready() -> void:
@@ -52,6 +53,7 @@ func _ready() -> void:
 	if stats.is_boss:
 		add_to_group("bosses")
 	health = stats.max_health
+	shield_health = stats.shield_health
 	base_collision_layer = collision_layer
 	base_collision_mask = collision_mask
 	spawn_position = global_position
@@ -146,7 +148,9 @@ func try_attack(player: Player) -> void:
 	attack_effect.position.x = -58.0 if sprite.flip_h else 58.0
 	attack_effect.visible = true
 	attack_effect.play("attack")
-	player.take_damage(stats.contact_damage * (stats.phase_damage_multiplier if phase_two else 1.0), global_position)
+	var backstab := signf(player.global_position.x - global_position.x) == patrol_direction
+	var damage := stats.contact_damage * (stats.phase_damage_multiplier if phase_two else 1.0)
+	player.take_damage(damage * (stats.backstab_multiplier if backstab else 1.0), global_position)
 	if stats.contact_slow_seconds > 0.0:
 		player.apply_slow(stats.contact_slow_seconds)
 	if stats.contact_root_seconds > 0.0:
@@ -167,6 +171,12 @@ func apply_contact_damage() -> void:
 
 func take_damage(damage: float, source_position: Vector2) -> void:
 	if dead or not ghost_solid or Time.get_ticks_msec() < invulnerable_until:
+		return
+	if shield_health > 0.0:
+		shield_health = maxf(0.0, shield_health - damage)
+		invulnerable_until = Time.get_ticks_msec() + int(stats.invulnerability_seconds * 1000.0)
+		hit_reaction_until = Time.get_ticks_msec() + 180
+		hit_received.emit(self, health + shield_health, stats.max_health + stats.shield_health)
 		return
 	var source_direction := signf(source_position.x - global_position.x)
 	if not is_zero_approx(source_direction) and is_equal_approx(source_direction, patrol_direction):

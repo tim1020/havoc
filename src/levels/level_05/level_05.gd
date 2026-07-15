@@ -161,5 +161,9 @@ func drop_peach(position_value: Vector2) -> void:
 	add_child(pickup)
 
 
+func next_level_path() -> String:
+	return GameState.SIXTH_LEVEL
+
+
 func spec(position_value: Vector2, stats_value: EnemyStats, atlas_value: Texture2D, behavior_value: Enemy.Behavior = Enemy.Behavior.MELEE, scale_value: Vector2 = Vector2.ONE) -> Dictionary:
 	return {"position": position_value, "stats": stats_value, "atlas": atlas_value, "behavior": behavior_value, "scale": scale_value, "final_boss": false}

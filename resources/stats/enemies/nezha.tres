@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=2 format=3]
+[ext_resource type="Script" path="res://src/resources/enemy_stats.gd" id="1"]
+[resource]
+script = ExtResource("1")
+display_name = "哪吒"
+max_health = 700.0
+contact_damage = 35.0
+invulnerability_seconds = 0.15
+knockback_force = 380.0
+move_speed = 260.0
+gravity = 2400.0
+detection_range = 1000.0
+attack_range = 190.0
+spirit_stones = 300
+is_boss = true
+phase_thresholds = PackedFloat32Array(0.5)
+phase_damage_multiplier = 1.5

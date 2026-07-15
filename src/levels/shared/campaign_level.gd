@@ -82,7 +82,8 @@ func surface_color(x: float) -> Color:
 	var hell := [Color("5f5865"), Color("4d4656"), Color("554958"), Color("332f3a")]
 	var garden := [Color("719357"), Color("7b5d45"), Color("c2b5ca"), Color("765b3e")]
 	var heaven := [Color("d8e9ee"), Color("c7d6e5"), Color("b9c9dd"), Color("e4dfd2")]
-	return sea[section] if level_number == 2 else (hell[section] if level_number == 3 else (garden[section] if level_number == 4 else heaven[section]))
+	var palace := [Color("b29451"), Color("9d6948"), Color("76526a"), Color("8d3438")]
+	return sea[section] if level_number == 2 else (hell[section] if level_number == 3 else (garden[section] if level_number == 4 else (heaven[section] if level_number == 5 else palace[section])))
 
 
 func spawn_player() -> void:
