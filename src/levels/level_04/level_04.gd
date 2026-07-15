@@ -2,6 +2,7 @@ extends CampaignLevel
 
 const ENEMY_TEMPLATE := preload("res://src/actors/enemies/enemy.tscn")
 const HAZARD_TEMPLATE := preload("res://src/world/line_hazard.tscn")
+const TIMED_PLATFORM := preload("res://src/world/timed_platform.gd")
 const GUARDIAN := preload("res://resources/stats/enemies/garden_guardian.tres")
 const FLOWER_FAIRY := preload("res://resources/stats/enemies/flower_fairy.tres")
 const PEACH_DEMON := preload("res://resources/stats/enemies/peach_demon.tres")
@@ -32,6 +33,27 @@ func _ready() -> void:
 			enemy.health_changed.connect(check_fairy_phase)
 		elif enemy.stats == LAND_GOD:
 			enemy.health_changed.connect(check_land_phase)
+
+
+func create_world() -> void:
+	for rect in ground_rects():
+		create_surface(rect, rect.size.y)
+	var platforms := platform_rects()
+	for index in platforms.size():
+		var rect := platforms[index]
+		if index >= 2 and index <= 5:
+			create_timed_surface(rect, 2.0 if index == 3 else 3.0)
+		else:
+			create_surface(rect, 72.0)
+
+
+func create_timed_surface(rect: Rect2, delay: float) -> void:
+	var platform = TIMED_PLATFORM.new()
+	platform.position = rect.position + rect.size * 0.5
+	platform.visual_size = rect.size
+	platform.collapse_delay = delay
+	platform.surface_color = surface_color(rect.position.x)
+	add_child(platform)
 
 
 func ground_rects() -> Array[Rect2]:

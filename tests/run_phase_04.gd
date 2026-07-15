@@ -32,6 +32,18 @@ func run_checks() -> void:
 	var backdrop := level.find_children("*", "CampaignBackdrop", true, false)[0] as CampaignBackdrop
 	check(backdrop.level_number == 4, "第四关使用独立蟠桃园四分区线稿背景")
 	check(get_tree().get_nodes_in_group("standable_surfaces").size() == 14, "第四关14段可站立面均有顶边线")
+	var timed_platforms := get_tree().get_nodes_in_group("timed_platforms")
+	check(timed_platforms.size() == 4, "瑶池木桥、莲花和荷叶使用计时下沉平台")
+	if timed_platforms.size() == 4:
+		check(timed_platforms[1].collapse_delay == 2.0, "莲花平台站立2秒后下沉")
+		timed_platforms[0].collapse_delay = 0.01
+		timed_platforms[0].start_collapse(level.player)
+		await get_tree().create_timer(0.05).timeout
+		await get_tree().physics_frame
+		check(timed_platforms[0].collapsed and timed_platforms[0].collision.disabled, "计时结束后平台关闭碰撞并开始下沉")
+		await get_tree().create_timer(2.1).timeout
+		await get_tree().physics_frame
+		check(not timed_platforms[0].collapsed and not timed_platforms[0].collision.disabled, "下沉平台2秒后自动复位")
 	check_enemy_animation_coverage(enemies, 6)
 	check(level.player.collision_mask & 4 != 0, "第四关玩家与敌人启用双向实体碰撞")
 
