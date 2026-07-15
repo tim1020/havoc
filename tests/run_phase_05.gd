@@ -93,7 +93,7 @@ func run_checks() -> void:
 	var accepted := king.take_projectile_damage(15.0, level.player.global_position)
 	check(not accepted and king.health == health_before, "多闻天王混元伞反射追踪棒")
 	kill_enemy(king, level.player)
-	await get_tree().process_frame
+	await get_tree().create_timer(1.0).timeout
 	check(count_rewards() == 4, "四天王每场胜利均掉落1个蟠桃")
 	check(level.completed and level.shop.visible, "四天王连战结束后完成第五关并打开商店")
 	check(GameState.FIFTH_LEVEL.ends_with("level_05.tscn"), "第五关路径已纳入全局进度")

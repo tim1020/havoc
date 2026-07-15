@@ -7,6 +7,7 @@ extends CanvasLayer
 @onready var stones_label: Label = %StonesLabel
 @onready var artifact_labels: Array[Label] = [%Artifact1, %Artifact2, %Artifact3]
 @onready var section_label: Label = %SectionLabel
+@onready var victory_banner: Label = %VictoryBanner
 @onready var result_panel: Control = %ResultPanel
 @onready var pause_panel: Control = %PausePanel
 @onready var enemy_panel: Control = %EnemyPanel
@@ -51,7 +52,7 @@ func update_artifacts(artifacts: Array[StringName]) -> void:
 	for index in artifact_labels.size():
 		if index < artifacts.size():
 			var item := ItemCatalog.get_definition(artifacts[index])
-			artifact_labels[index].text = item.display_name if item != null else "?"
+			artifact_labels[index].text = ("▶ " if index == 0 else "") + (item.display_name if item != null else "?")
 			artifact_labels[index].modulate = item.color if item != null else Color.WHITE
 		else:
 			artifact_labels[index].text = "空"
@@ -77,11 +78,31 @@ func set_section(section_name: String) -> void:
 	tween.tween_property(section_label, "modulate:a", 0.0, 0.6)
 
 
+func play_victory_animation(title: String = "关卡通过") -> void:
+	victory_banner.text = title
+	victory_banner.visible = true
+	victory_banner.modulate.a = 0.0
+	victory_banner.scale = Vector2(0.65, 0.65)
+	victory_banner.pivot_offset = victory_banner.size * 0.5
+	var tween := create_tween().set_parallel(true)
+	tween.tween_property(victory_banner, "modulate:a", 1.0, 0.22)
+	tween.tween_property(victory_banner, "scale", Vector2.ONE, 0.28).set_trans(Tween.TRANS_BACK)
+	tween.chain().tween_interval(0.32)
+	tween.chain().tween_property(victory_banner, "modulate:a", 0.0, 0.22)
+	tween.chain().tween_callback(func() -> void: victory_banner.visible = false)
+
+
 func show_result(stones: int, level_title: String = "第一关") -> void:
 	result_panel.visible = true
+	result_panel.modulate.a = 0.0
+	result_panel.scale = Vector2(0.82, 0.82)
+	result_panel.pivot_offset = result_panel.size * 0.5
 	%ResultTitle.text = "%s完成" % level_title
 	%ResultText.text = "%s挑战完成\n本关灵石：%d　总计：%d" % [level_title, stones, GameState.stones]
 	%ReturnButton.grab_focus()
+	var tween := create_tween().set_parallel(true)
+	tween.tween_property(result_panel, "modulate:a", 1.0, 0.35)
+	tween.tween_property(result_panel, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_BACK)
 
 
 func _ready() -> void:
@@ -89,6 +110,7 @@ func _ready() -> void:
 	result_panel.visible = false
 	pause_panel.visible = false
 	enemy_panel.visible = false
+	victory_banner.visible = false
 	%ReturnButton.pressed.connect(GameState.return_to_menu)
 	%ResumeButton.pressed.connect(toggle_pause)
 	%RestartButton.pressed.connect(restart_level)

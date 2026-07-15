@@ -86,7 +86,7 @@ func run_checks() -> void:
 	damage_enemy(emperor, 600.0, level.player)
 	check(emperor.shield_health == 0.0 and level.emperor_shield_breaks == 2, "玉帝第二轮护盾可再次击破")
 	damage_enemy(emperor, 600.0, level.player)
-	await get_tree().process_frame
+	await get_tree().create_timer(1.0).timeout
 	check(level.completed and GameState.game_completed, "击败玉皇大帝完成主线并写入通关状态")
 	check(level.hud.get_node("ResultPanel").visible and not level.shop.visible, "最终胜利显示主线通关结算且不打开普通商店")
 	check(level.emperor_reinforcement_timer.is_stopped(), "最终胜利停止玉帝增援")

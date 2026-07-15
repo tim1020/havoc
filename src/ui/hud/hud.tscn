@@ -91,7 +91,7 @@ theme_override_constants/separation = 8
 
 [node name="Hint" type="Label" parent="TopPanel/Margin/Rows/ArtifactRow"]
 layout_mode = 2
-text = "C 法宝"
+text = "C短切/长用"
 
 [node name="Artifact1" type="Label" parent="TopPanel/Margin/Rows/ArtifactRow"]
 unique_name_in_owner = true
@@ -170,6 +170,21 @@ show_percentage = false
 unique_name_in_owner = true
 layout_mode = 2
 text = "0 / 0"
+
+[node name="VictoryBanner" type="Label" parent="."]
+unique_name_in_owner = true
+offset_left = 310.0
+offset_top = 270.0
+offset_right = 970.0
+offset_bottom = 370.0
+theme_override_colors/font_color = Color(1, 0.78, 0.22, 1)
+theme_override_colors/font_shadow_color = Color(0.12, 0.025, 0.01, 0.95)
+theme_override_constants/shadow_offset_x = 5
+theme_override_constants/shadow_offset_y = 6
+theme_override_font_sizes/font_size = 64
+text = "关卡通过"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="ResultPanel" type="PanelContainer" parent="."]
 unique_name_in_owner = true

@@ -20,6 +20,7 @@ const TRIP_ROOT := preload("res://resources/stats/hazards/trip_root.tres")
 const PEACH_BOMB := preload("res://resources/stats/hazards/peach_bomb.tres")
 const POOL_WATER := preload("res://resources/stats/hazards/jade_pool_water.tres")
 const POLLEN := preload("res://resources/stats/hazards/pollen_mist.tres")
+const CHECKPOINT := preload("res://src/world/checkpoint.gd")
 
 var fairy_clones_spawned := false
 var land_phase_spawned := false
@@ -27,6 +28,10 @@ var land_phase_spawned := false
 
 func _ready() -> void:
 	super()
+	var checkpoint = CHECKPOINT.new()
+	checkpoint.position = Vector2(2680, 650)
+	checkpoint.checkpoint_position = Vector2(2680, 580)
+	add_child(checkpoint)
 	for enemy_node in get_tree().get_nodes_in_group("enemies"):
 		var enemy := enemy_node as Enemy
 		if enemy.stats == FAIRY_LEADER:

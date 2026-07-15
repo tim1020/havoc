@@ -8,6 +8,7 @@
 - 设计基准：`doc/00_故事大纲.md` 至 `doc/06_素材清单.md`
 - 开发路线：`doc/07_开发路线图.md`
 - 最终验收：`doc/15_第七阶段验收清单.md`
+- 玩法增强验收：`doc/16_玩法增强验收清单.md`
 - 数值通过 Godot Resource（`.tres`）维护，场景和脚本不重复定义平衡参数
 
 ## 本地运行
@@ -26,7 +27,8 @@
 - `J` 短按松开：空手三连击
 - `J` 长按松开：蓄力攻击
 - `J` + `K`：定身术
-- `C`：使用队首法宝
+- `C` 短按：切换当前法宝
+- `C` 长按：使用当前法宝
 - `Esc`：暂停
 
 暂停菜单可调节总音量、音乐、音效，并可开启“减少界面动画”。
@@ -37,6 +39,7 @@
 for phase in 01 02 03 04 05 06 07; do
   /Applications/Godot.app/Contents/MacOS/Godot --headless --path . "res://tests/run_phase_${phase}.tscn"
 done
+/Applications/Godot.app/Contents/MacOS/Godot --headless --path . res://tests/run_gameplay_polish.tscn
 ```
 
 ## macOS 构建

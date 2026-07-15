@@ -238,7 +238,10 @@ func update_section(force: bool) -> void:
 
 func complete_level(_reward: int) -> void:
 	completed = true
-	player.controls_enabled = false
+	player.play_victory()
+	hud.play_victory_animation("第一关通过")
+	AudioService.play_sfx(self, AudioService.VICTORY)
+	await get_tree().create_timer(0.9).timeout
 	hud.show_result(spirit_stones)
 	shop.closed.connect(func() -> void:
 		if get_tree().current_scene == self:

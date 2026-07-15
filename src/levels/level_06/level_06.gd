@@ -140,9 +140,11 @@ func spawn_burst(position_value: Vector2) -> void:
 func complete_main_story(_reward: int) -> void:
 	completed = true
 	emperor_reinforcement_timer.stop()
-	player.controls_enabled = false
+	player.play_victory()
+	hud.play_victory_animation("大闹天宫 · 通关")
 	AudioService.play_sfx(self, AudioService.VICTORY)
 	GameState.complete_game()
+	await get_tree().create_timer(0.9).timeout
 	hud.show_result(earned_stones, "主线通关")
 
 

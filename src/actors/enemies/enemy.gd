@@ -14,6 +14,7 @@ enum Behavior {
 
 const FRAME_SIZE := Vector2(128.0, 128.0)
 const MELEE_EFFECT_ATLAS := preload("res://assets/vector/effects/melee_arc_frames.svg")
+const ENEMY_PROJECTILE := preload("res://src/combat/enemy_projectile.gd")
 
 @export var stats: EnemyStats
 @export var behavior: Behavior = Behavior.MELEE
@@ -44,6 +45,7 @@ var base_collision_mask: int
 var ghost_solid: bool = true
 var disguised: bool = false
 var shield_health: float = 0.0
+var next_projectile_at: int = 0
 
 
 func _ready() -> void:
@@ -110,6 +112,8 @@ func update_grounded(player: Player) -> void:
 	if behavior == Behavior.CHARGE and Time.get_ticks_msec() >= next_charge_at:
 		velocity.x = patrol_direction * stats.move_speed * 2.7
 		next_charge_at = Time.get_ticks_msec() + 2200
+	elif absf(distance.x) > stats.attack_range and try_ranged_attack(player):
+		velocity.x = move_toward(velocity.x, 0.0, 160.0)
 	elif absf(distance.x) > stats.attack_range:
 		var multiplier := 1.3 if behavior == Behavior.BOSS and phase_two else 1.0
 		velocity.x = patrol_direction * stats.move_speed * multiplier
@@ -137,6 +141,26 @@ func update_flying(delta: float, player: Player) -> void:
 	var target := player.global_position + Vector2(0.0, -54.0)
 	velocity = global_position.direction_to(target) * stats.move_speed
 	sprite.flip_h = velocity.x > 0.0
+	try_ranged_attack(player)
+
+
+func try_ranged_attack(player: Player) -> bool:
+	if player == null or stats.projectile_damage <= 0.0 or Time.get_ticks_msec() < next_projectile_at:
+		return false
+	next_projectile_at = Time.get_ticks_msec() + int(stats.projectile_cooldown * 1000.0)
+	attack_animation_until = Time.get_ticks_msec() + 320
+	var aim := (player.global_position + Vector2(0, -42) - (global_position + Vector2(0, -52))).normalized()
+	var angles := [-0.18, 0.0, 0.18] if phase_two else [0.0]
+	for angle in angles:
+		var projectile = ENEMY_PROJECTILE.new()
+		projectile.direction = aim.rotated(angle)
+		projectile.speed = stats.projectile_speed
+		projectile.damage = stats.projectile_damage * (stats.phase_damage_multiplier if phase_two else 1.0)
+		projectile.color = stats.projectile_color
+		projectile.source_position = global_position
+		projectile.global_position = global_position + Vector2(0, -52)
+		get_tree().current_scene.add_child(projectile)
+	return true
 
 
 func try_attack(player: Player) -> void:

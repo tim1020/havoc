@@ -100,7 +100,7 @@ func run_checks() -> void:
 	check(player.health == 73.0, "拾取蟠桃立即回复33点生命")
 	fire_spear.on_body_entered(player)
 	check(GameState.artifacts == [&"fire_spear"], "拾取法宝进入队列")
-	check(level.hud.artifact_labels[0].text == "火尖枪", "HUD显示法宝队首")
+	check(level.hud.artifact_labels[0].text == "▶ 火尖枪", "HUD标记当前法宝")
 	var enemy: Enemy
 	for enemy_node in get_tree().get_nodes_in_group("enemies"):
 		var candidate := enemy_node as Enemy
@@ -108,21 +108,33 @@ func run_checks() -> void:
 			enemy = candidate
 			break
 	check(enemy != null, "山猪妖可用于法宝伤害测试")
+	var reward_target: Enemy
+	for enemy_node in get_tree().get_nodes_in_group("enemies"):
+		var candidate := enemy_node as Enemy
+		if candidate.stats.display_name == "叛猴喽啰":
+			reward_target = candidate
+			break
 	player.global_position = Vector2(360, 580)
 	player.facing = 1.0
 	enemy.global_position = Vector2(500, 580)
 	enemy.invulnerable_until = 0
+	reward_target.set_physics_process(false)
+	reward_target.global_position = Vector2(680, 580)
+	reward_target.health = 30.0
+	reward_target.invulnerable_until = 0
 	var enemy_health := enemy.health
 	player.use_current_artifact()
 	check(GameState.artifacts.is_empty(), "使用法宝消费队首")
+	for _frame in 24:
+		await get_tree().physics_frame
 	check(enemy.health == enemy_health - 30.0, "火尖枪按资源数值造成30点伤害")
-	check(GameState.stones == 15, "火尖枪贯穿击杀路径敌人并自动累计奖励")
+	check(GameState.stones == reward_target.stats.spirit_stones, "火尖枪贯穿击杀路径敌人并自动累计奖励")
 	var stones_before_reward := GameState.stones
 	level.add_spirit_stones(10)
-	check(GameState.stones == stones_before_reward + 10 and level.hud.stones_label.text == "灵石  0025", "敌人奖励累计到全局灵石并更新HUD")
+	check(GameState.stones == stones_before_reward + 10 and level.hud.stones_label.text == "灵石  0020", "敌人奖励累计到全局灵石并更新HUD")
 
 	GameState.stones = 1000
-	GameState.artifacts = [&"fire_spear", &"cosmic_ring", &"fire_wheels"]
+	GameState.artifacts = [&"fire_spear", &"cosmic_ring"]
 	GameState.lives = 2
 	GameState.life_bought_this_level = false
 	player.health = 40.0
@@ -131,7 +143,7 @@ func run_checks() -> void:
 	shop.request_purchase(ItemCatalog.get_definition(&"peach"))
 	check(GameState.stones == 1000 and player.health == 40.0, "商品选择后未确认不会扣款或生效")
 	shop.confirm_pending()
-	check(GameState.stones == 950 and player.health == 73.0, "确认购买蟠桃后扣款并立即回复")
+	check(GameState.stones == 950 and player.health == 40.0 and GameState.artifacts == [&"fire_spear", &"cosmic_ring", &"peach"], "确认购买蟠桃后进入法宝栏且不立即回复")
 	shop.request_purchase(ItemCatalog.get_definition(&"heaven_seal"))
 	shop.confirm_pending()
 	check(GameState.stones == 950 and GameState.artifacts.size() == 3, "满栏购买法宝失败且不扣款")
@@ -139,7 +151,7 @@ func run_checks() -> void:
 	shop.confirm_pending()
 	shop.request_purchase(ItemCatalog.get_definition(&"heaven_seal"))
 	shop.confirm_pending()
-	check(GameState.stones == 800 and GameState.artifacts == [&"fire_spear", &"fire_wheels", &"heaven_seal"], "确认销毁指定法宝后可购买新法宝")
+	check(GameState.stones == 800 and GameState.artifacts == [&"fire_spear", &"peach", &"heaven_seal"], "确认销毁指定法宝后可购买新法宝")
 	shop.request_purchase(ItemCatalog.get_definition(&"life_hair"))
 	shop.confirm_pending()
 	check(GameState.lives == 3 and GameState.life_bought_this_level, "商店可购买本关唯一一根救命毫毛")

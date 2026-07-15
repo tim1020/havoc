@@ -6,6 +6,7 @@ const TEST_SAVE := "/tmp/havoc_phase_01_save.json"
 
 func _ready() -> void:
 	GameState.save_path = TEST_SAVE
+	GameState.has_staff = false
 	GameState.stones = 0
 	GameState.artifacts.clear()
 	run_checks()
@@ -116,10 +117,11 @@ func run_checks() -> void:
 	check(boar != null, "山猪妖已生成用于蓄力攻击检查")
 	if boar != null:
 		player.global_position = Vector2(2600, 580)
+		player.facing = 1.0
 		boar.global_position = Vector2(2670, 580)
 		boar.velocity = Vector2.ZERO
 		boar.invulnerable_until = 0
-		for _frame in 2:
+		for _frame in 4:
 			await get_tree().physics_frame
 		var boar_health_before_charge := boar.health
 		player.begin_attack_charge()
@@ -187,7 +189,7 @@ func run_checks() -> void:
 		check(demon_king.phase_two, "混世魔王半血进入第二阶段")
 		demon_king.invulnerable_until = 0
 		demon_king.take_damage(demon_king.stats.max_health, player.global_position)
-		await get_tree().process_frame
+		await get_tree().create_timer(1.0).timeout
 		check(level.completed and hud.result_panel.visible, "击败混世魔王触发过关结算")
 		check(level.shop.visible, "击败混世魔王自动打开过关商店")
 		level.shop.close_shop()

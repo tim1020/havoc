@@ -23,6 +23,8 @@ var completed: bool = false
 
 
 func _ready() -> void:
+	if level_number >= 3 and not GameState.has_staff:
+		GameState.unlock_staff()
 	var audio = AUDIO_DIRECTOR.new()
 	audio.track_number = level_number
 	add_child(audio)
@@ -168,8 +170,10 @@ func update_section(force: bool) -> void:
 
 func complete_level(_reward: int) -> void:
 	completed = true
-	player.controls_enabled = false
+	player.play_victory()
+	hud.play_victory_animation("第%d关通过" % level_number)
 	AudioService.play_sfx(self, AudioService.VICTORY)
+	await get_tree().create_timer(0.9).timeout
 	on_level_victory()
 	hud.show_result(earned_stones, "第%d关" % level_number)
 	shop.closed.connect(advance_after_shop, CONNECT_ONE_SHOT)

@@ -25,3 +25,9 @@ extends ActorStats
 @export var reflects_projectiles: bool = false
 @export_range(0.0, 5000.0, 1.0) var shield_health: float = 0.0
 @export_range(1.0, 3.0, 0.1) var backstab_multiplier: float = 1.0
+
+@export_group("Ranged Attack")
+@export_range(0.0, 200.0, 1.0) var projectile_damage: float = 0.0
+@export_range(100.0, 1200.0, 10.0) var projectile_speed: float = 480.0
+@export_range(0.5, 10.0, 0.1) var projectile_cooldown: float = 2.4
+@export var projectile_color: Color = Color("ff7a45")

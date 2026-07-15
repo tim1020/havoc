@@ -21,8 +21,10 @@ func _ready() -> void:
 	visible = false
 	for item in ItemCatalog.shop_items():
 		var button := Button.new()
-		button.custom_minimum_size = Vector2(170, 48)
+		button.custom_minimum_size = Vector2(180, 72)
 		button.text = "%s  %d" % [item.display_name, item.price]
+		button.icon = ItemIconFactory.create(item)
+		button.expand_icon = true
 		button.modulate = item.color
 		button.pressed.connect(request_purchase.bind(item))
 		products.add_child(button)
@@ -77,14 +79,8 @@ func purchase_pending_item() -> void:
 		return
 	if pending_item.category == ItemDefinition.Category.LIFE:
 		status_label.text = "购买成功" if GameState.purchase_life(pending_item.price) else "无法购买：每关限购1根、持有上限3根或灵石不足"
-	elif pending_item.category == ItemDefinition.Category.ARTIFACT:
+	elif pending_item.category in [ItemDefinition.Category.ARTIFACT, ItemDefinition.Category.HEALING]:
 		status_label.text = "购买成功" if GameState.purchase_artifact(pending_item.id, pending_item.price) else "无法购买：法宝栏已满或灵石不足"
-	else:
-		if GameState.spend_stones(pending_item.price):
-			player.apply_healing_item(pending_item)
-			status_label.text = "购买成功，当前生命 %d" % roundi(player.health)
-		else:
-			status_label.text = "灵石不足"
 
 
 func update_discard_buttons(artifacts: Array[StringName]) -> void:

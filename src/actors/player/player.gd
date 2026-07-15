@@ -4,6 +4,9 @@ extends CharacterBody2D
 const STAFF_STATS := preload("res://resources/stats/player_staff.tres")
 const STAFF_ATLAS := preload("res://assets/vector/characters/campaign/staff_wukong_frames.svg")
 const STAFF_PROJECTILE := preload("res://src/combat/staff_projectile.tscn")
+const ARTIFACT_PROJECTILE := preload("res://src/combat/artifact_projectile.gd")
+const MONKEY_CLONE := preload("res://src/actors/player/monkey_clone.gd")
+const ITEM_HOLD_SECONDS := 0.45
 
 signal health_changed(current: float, maximum: float)
 signal died
@@ -15,6 +18,7 @@ signal respawned
 @onready var standing_shape: CollisionShape2D = %StandingShape
 @onready var attack_area: Area2D = %AttackArea
 @onready var attack_effect: AnimatedSprite2D = %AttackEffect
+@onready var charge_bar: ProgressBar = %ChargeBar
 
 var health: float
 var jumps_left: int
@@ -35,6 +39,9 @@ var confused_until: int = 0
 var attack_started_on_floor: bool = true
 var staff_flying_until: int = 0
 var staff_flight_hits: Dictionary[int, bool] = {}
+var item_held: bool = false
+var item_consumed: bool = false
+var item_pressed_at: int = 0
 
 
 func _ready() -> void:
@@ -82,7 +89,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_released("attack"):
 		release_attack_charge()
 	elif event.is_action_pressed("item"):
-		use_current_artifact()
+		begin_item_hold()
+	elif event.is_action_released("item"):
+		release_item_hold()
 
 
 func _physics_process(delta: float) -> void:
@@ -114,6 +123,7 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	update_animation(direction)
 	update_charge_feedback()
+	update_item_hold()
 
 
 func try_jump() -> void:
@@ -186,11 +196,14 @@ func perform_attack(damage_override: float = -1.0) -> void:
 
 func update_charge_feedback() -> void:
 	if not attack_held:
+		charge_bar.visible = false
 		sprite.modulate = Color("ffc1e7") if Time.get_ticks_msec() < confused_until else Color.WHITE
 		sprite.scale = base_sprite_scale
 		return
 	var held_seconds := float(Time.get_ticks_msec() - attack_pressed_at) / 1000.0
 	var progress := clampf(held_seconds / stats.charge_seconds, 0.0, 1.0)
+	charge_bar.visible = true
+	charge_bar.value = progress
 	var pulse := 1.0 + sin(Time.get_ticks_msec() * 0.018) * 0.025 * progress
 	sprite.modulate = Color(1.0, 1.0, 1.0 - progress * 0.35)
 	sprite.scale = base_sprite_scale * (1.0 + progress * 0.08) * pulse
@@ -213,6 +226,34 @@ func apply_healing_item(item: ItemDefinition) -> void:
 	if item.id == &"wine":
 		speed_boost_until = Time.get_ticks_msec() + int(item.duration * 1000.0)
 	health_changed.emit(health, stats.max_health)
+
+
+func restore_full_health() -> void:
+	health = stats.max_health
+	health_changed.emit(health, stats.max_health)
+
+
+func begin_item_hold() -> void:
+	if item_held:
+		return
+	item_held = true
+	item_consumed = false
+	item_pressed_at = Time.get_ticks_msec()
+
+
+func update_item_hold() -> void:
+	if item_held and not item_consumed and Time.get_ticks_msec() - item_pressed_at >= int(ITEM_HOLD_SECONDS * 1000.0):
+		item_consumed = true
+		use_current_artifact()
+
+
+func release_item_hold() -> void:
+	if not item_held:
+		return
+	item_held = false
+	if not item_consumed:
+		GameState.rotate_artifacts()
+	item_consumed = false
 
 
 func apply_slow(seconds: float) -> void:
@@ -239,33 +280,43 @@ func use_current_artifact() -> void:
 	var item := ItemCatalog.get_definition(item_id)
 	if item == null:
 		return
+	if item.category == ItemDefinition.Category.HEALING:
+		apply_healing_item(item)
+		show_artifact_flash(item)
+		return
 	play_if_available("spell")
+	show_artifact_flash(item)
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	if item.id == &"monkey_hair":
+		spawn_monkey_clones(item)
+		return
+	var target := nearest_enemy(enemies)
+	if target == null and item.id != &"purple_bell" and item.id != &"fire_spear":
+		return
+	var projectile = ARTIFACT_PROJECTILE.new()
+	projectile.item = item
+	projectile.target = target
+	projectile.direction = facing
+	projectile.source_position = global_position
+	projectile.global_position = global_position + Vector2(facing * 45.0, -55.0)
+	get_tree().current_scene.add_child(projectile)
+
+
+func show_artifact_flash(item: ItemDefinition) -> void:
 	attack_effect.modulate = item.color
 	attack_effect.scale = Vector2(1.4, 1.4)
 	attack_effect.flip_h = facing < 0.0
 	attack_effect.position.x = absf(attack_effect.position.x) * facing
 	attack_effect.visible = true
 	attack_effect.play("attack")
-	var enemies := get_tree().get_nodes_in_group("enemies")
-	if item.id == &"purple_bell":
-		for enemy_node in enemies:
-			var enemy := enemy_node as Enemy
-			enemy.take_damage(item.power, global_position)
-			enemy.freeze_for(item.duration)
-		return
-	var target := nearest_enemy(enemies)
-	if target == null:
-		return
-	if item.id == &"binding_rope":
-		target.freeze_for(2.0 if target.is_in_group("bosses") else item.duration)
-	elif item.id == &"fire_spear":
-		for enemy_node in enemies:
-			var enemy := enemy_node as Enemy
-			var offset := enemy.global_position - global_position
-			if signf(offset.x) == facing and absf(offset.x) <= 700.0 and absf(offset.y) <= 110.0:
-				enemy.take_damage(item.power, global_position)
-	else:
-		target.take_damage(item.power, global_position)
+
+
+func spawn_monkey_clones(item: ItemDefinition) -> void:
+	for offset in [-65.0, 0.0, 65.0]:
+		var clone = MONKEY_CLONE.new()
+		clone.damage = item.power
+		clone.global_position = global_position + Vector2(offset, 0)
+		get_tree().current_scene.add_child(clone)
 
 
 func nearest_enemy(enemies: Array[Node]) -> Enemy:
@@ -345,7 +396,7 @@ func setup_staff_frames() -> void:
 		&"idle": [0, 1, 3.0, true], &"run": [2, 3, 8.0, true], &"crouch": [0, 1, 3.0, true],
 		&"jump": [2, 3, 5.0, true], &"staff_fly": [2, 3, 10.0, true],
 		&"attack_1": [4, 5, 10.0, false], &"attack_2": [5, 4, 10.0, false], &"attack_3": [4, 5, 12.0, false],
-		&"hurt": [6, 7, 10.0, false], &"death": [8, 9, 6.0, false], &"respawn": [9, 8, 6.0, false], &"spell": [4, 5, 10.0, false],
+		&"hurt": [6, 7, 10.0, false], &"death": [8, 9, 6.0, false], &"respawn": [9, 8, 6.0, false], &"spell": [4, 5, 10.0, false], &"victory": [5, 4, 5.0, true],
 	}
 	for animation: StringName in definitions:
 		var definition: Array = definitions[animation]
@@ -358,6 +409,28 @@ func setup_staff_frames() -> void:
 			texture.region = Rect2(column * 128, 0, 128, 128)
 			frames.add_frame(animation, texture)
 	sprite.sprite_frames = frames
+
+
+func play_victory() -> void:
+	attack_held = false
+	item_held = false
+	charge_bar.visible = false
+	restore_full_health()
+	controls_enabled = false
+	velocity = Vector2.ZERO
+	if not sprite.sprite_frames.has_animation(&"victory"):
+		sprite.sprite_frames.add_animation(&"victory")
+		sprite.sprite_frames.set_animation_speed(&"victory", 5.0)
+		sprite.sprite_frames.set_animation_loop(&"victory", true)
+		for source_animation in [&"respawn", &"attack_3"]:
+			if sprite.sprite_frames.has_animation(source_animation):
+				for index in sprite.sprite_frames.get_frame_count(source_animation):
+					sprite.sprite_frames.add_frame(&"victory", sprite.sprite_frames.get_frame_texture(source_animation, index))
+	play_if_available(&"victory")
+	attack_effect.modulate = Color("ffd34f")
+	attack_effect.scale = Vector2(1.8, 1.8)
+	attack_effect.visible = true
+	attack_effect.play(&"attack")
 
 
 func take_damage(damage: float, source_position: Vector2) -> void:

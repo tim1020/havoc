@@ -96,7 +96,7 @@ func run_checks() -> void:
 	check(count_enemy("桃妖") == 6, "土地公第二阶段召唤2只桃妖")
 	land_god.invulnerable_until = 0
 	land_god.take_damage(land_god.health, level.player.global_position)
-	await get_tree().process_frame
+	await get_tree().create_timer(1.0).timeout
 	check(level.completed and level.shop.visible, "击败蟠桃土地公完成第四关并打开商店")
 	check(GameState.FOURTH_LEVEL.ends_with("level_04.tscn"), "第四关路径已纳入全局进度")
 

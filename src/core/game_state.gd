@@ -151,6 +151,14 @@ func pop_artifact() -> StringName:
 	return item_id
 
 
+func rotate_artifacts() -> void:
+	if artifacts.size() <= 1:
+		return
+	artifacts.append(artifacts.pop_front())
+	artifacts_changed.emit(artifacts.duplicate())
+	save_game()
+
+
 func purchase_life(price: int) -> bool:
 	if life_bought_this_level or lives >= MAX_LIVES or stones < price:
 		return false

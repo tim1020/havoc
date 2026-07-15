@@ -68,7 +68,7 @@ func run_checks() -> void:
 	check(dragon.current_phase == 3, "东海龙王30%生命进入化龙阶段")
 	dragon.invulnerable_until = 0
 	dragon.take_damage(300.0, level2.player.global_position)
-	await get_tree().process_frame
+	await get_tree().create_timer(1.0).timeout
 	check(level2.completed and level2.shop.visible, "击败东海龙王完成第二关并打开商店")
 	check(GameState.has_staff, "击败东海龙王永久解锁金箍棒")
 	level2.shop.close_shop()
@@ -164,7 +164,7 @@ func run_checks() -> void:
 	check(yanluo.current_phase == 2, "阎罗王半血进入鬼王阶段")
 	yanluo.invulnerable_until = 0
 	yanluo.take_damage(400.0, player.global_position)
-	await get_tree().process_frame
+	await get_tree().create_timer(1.0).timeout
 	check(level3.completed and level3.shop.visible, "击败阎罗王完成第三关并打开商店")
 	level3.shop.close_shop()
 	level3.queue_free()
