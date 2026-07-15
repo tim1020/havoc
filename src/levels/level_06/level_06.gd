@@ -141,6 +141,7 @@ func complete_main_story(_reward: int) -> void:
 	completed = true
 	emperor_reinforcement_timer.stop()
 	player.controls_enabled = false
+	AudioService.play_sfx(self, AudioService.VICTORY)
 	GameState.complete_game()
 	hud.show_result(earned_stones, "主线通关")
 

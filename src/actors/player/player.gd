@@ -158,6 +158,7 @@ func release_attack_charge() -> void:
 
 
 func perform_attack(damage_override: float = -1.0) -> void:
+	AudioService.play_sfx(self, AudioService.ATTACK, -4.0)
 	var now := Time.get_ticks_msec()
 	var damage := damage_override
 	if damage_override >= 0.0:
@@ -363,6 +364,7 @@ func take_damage(damage: float, source_position: Vector2) -> void:
 	if Time.get_ticks_msec() < invulnerable_until or not controls_enabled:
 		return
 	health = maxf(0.0, health - damage)
+	AudioService.play_sfx(self, AudioService.HIT, -3.0)
 	invulnerable_until = Time.get_ticks_msec() + int(stats.invulnerability_seconds * 1000.0)
 	velocity.x = signf(global_position.x - source_position.x) * stats.knockback_force
 	play_if_available("hurt")

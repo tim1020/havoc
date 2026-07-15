@@ -7,7 +7,7 @@
 - 当前开发分支：`feat/1.0`
 - 设计基准：`doc/00_故事大纲.md` 至 `doc/06_素材清单.md`
 - 开发路线：`doc/07_开发路线图.md`
-- 当前阶段验收：`doc/08_第一阶段验收清单.md`
+- 最终验收：`doc/15_第七阶段验收清单.md`
 - 数值通过 Godot Resource（`.tres`）维护，场景和脚本不重复定义平衡参数
 
 ## 本地运行
@@ -26,10 +26,24 @@
 - `J` 短按松开：空手三连击
 - `J` 长按松开：蓄力攻击
 - `J` + `K`：定身术
+- `C`：使用队首法宝
 - `Esc`：暂停
 
-## 第一阶段自测
+暂停菜单可调节总音量、音乐、音效，并可开启“减少界面动画”。
+
+## 自动测试
 
 ```bash
-/Applications/Godot.app/Contents/MacOS/Godot --headless --path . res://tests/run_phase_01.tscn
+for phase in 01 02 03 04 05 06 07; do
+  /Applications/Godot.app/Contents/MacOS/Godot --headless --path . "res://tests/run_phase_${phase}.tscn"
+done
+```
+
+## macOS 构建
+
+需要安装与 Godot 版本匹配的 4.6.3 导出模板：
+
+```bash
+mkdir -p builds
+/Applications/Godot.app/Contents/MacOS/Godot --headless --path . --export-debug macOS builds/Havoc.app
 ```

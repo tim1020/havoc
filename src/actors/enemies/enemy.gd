@@ -172,6 +172,7 @@ func apply_contact_damage() -> void:
 func take_damage(damage: float, source_position: Vector2) -> void:
 	if dead or not ghost_solid or Time.get_ticks_msec() < invulnerable_until:
 		return
+	AudioService.play_sfx(self, AudioService.HIT, -5.0)
 	if shield_health > 0.0:
 		shield_health = maxf(0.0, shield_health - damage)
 		invulnerable_until = Time.get_ticks_msec() + int(stats.invulnerability_seconds * 1000.0)

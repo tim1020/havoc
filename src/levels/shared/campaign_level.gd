@@ -7,6 +7,7 @@ const HUD_SCENE := preload("res://src/ui/hud/hud.tscn")
 const ITEM_PICKUP_SCENE := preload("res://src/world/item_pickup.tscn")
 const SHOP_SCENE := preload("res://src/ui/shop/shop_panel.tscn")
 const LINE_HAZARD_SCENE := preload("res://src/world/line_hazard.tscn")
+const AUDIO_DIRECTOR := preload("res://src/audio/audio_director.gd")
 const SECTION_WIDTH := 1280.0
 const LEVEL_WIDTH := SECTION_WIDTH * 4.0
 
@@ -22,6 +23,9 @@ var completed: bool = false
 
 
 func _ready() -> void:
+	var audio = AUDIO_DIRECTOR.new()
+	audio.track_number = level_number
+	add_child(audio)
 	add_child(CampaignBackdrop.new(level_number))
 	create_world()
 	spawn_player()
@@ -165,6 +169,7 @@ func update_section(force: bool) -> void:
 func complete_level(_reward: int) -> void:
 	completed = true
 	player.controls_enabled = false
+	AudioService.play_sfx(self, AudioService.VICTORY)
 	on_level_victory()
 	hud.show_result(earned_stones, "第%d关" % level_number)
 	shop.closed.connect(advance_after_shop, CONNECT_ONE_SHOT)

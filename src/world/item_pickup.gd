@@ -47,5 +47,6 @@ func on_body_entered(body: Node2D) -> void:
 			return
 	else:
 		GameState.pickup_artifact(item.id)
+	AudioService.play_sfx(get_tree().current_scene, AudioService.PICKUP, -3.0)
 	collected.emit(item)
 	queue_free()

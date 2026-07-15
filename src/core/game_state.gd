@@ -29,7 +29,42 @@ var settings := {
 	"master_volume": 1.0,
 	"music_volume": 0.8,
 	"effects_volume": 0.9,
+	"reduced_motion": false,
 }
+
+
+func _ready() -> void:
+	if not load_game():
+		apply_audio_settings()
+
+
+func set_setting(key: String, value: Variant) -> void:
+	if not settings.has(key):
+		return
+	settings[key] = bool(value) if key == "reduced_motion" else clampf(float(value), 0.0, 1.0)
+	apply_audio_settings()
+	save_game()
+
+
+func apply_audio_settings() -> void:
+	ensure_audio_bus(&"Music")
+	ensure_audio_bus(&"SFX")
+	set_bus_volume(&"Master", float(settings.master_volume))
+	set_bus_volume(&"Music", float(settings.music_volume))
+	set_bus_volume(&"SFX", float(settings.effects_volume))
+
+
+func ensure_audio_bus(bus_name: StringName) -> void:
+	if AudioServer.get_bus_index(bus_name) >= 0:
+		return
+	AudioServer.add_bus()
+	AudioServer.set_bus_name(AudioServer.bus_count - 1, bus_name)
+
+
+func set_bus_volume(bus_name: StringName, value: float) -> void:
+	var index := AudioServer.get_bus_index(bus_name)
+	AudioServer.set_bus_mute(index, is_zero_approx(value))
+	AudioServer.set_bus_volume_db(index, linear_to_db(maxf(value, 0.001)))
 
 
 func start_new_game() -> void:
@@ -187,8 +222,10 @@ func load_game(path: String = "") -> bool:
 	game_completed = bool(parsed.get("game_completed", false))
 	var loaded_settings = parsed.get("settings", {})
 	if loaded_settings is Dictionary:
-		for key in settings:
+		for key in ["master_volume", "music_volume", "effects_volume"]:
 			settings[key] = clampf(float(loaded_settings.get(key, settings[key])), 0.0, 1.0)
+		settings.reduced_motion = bool(loaded_settings.get("reduced_motion", settings.reduced_motion))
+	apply_audio_settings()
 	emit_resource_signals()
 	return true
 

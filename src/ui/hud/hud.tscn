@@ -215,9 +215,9 @@ text = "返回主菜单"
 [node name="PausePanel" type="PanelContainer" parent="."]
 unique_name_in_owner = true
 offset_left = 430.0
-offset_top = 190.0
+offset_top = 60.0
 offset_right = 850.0
-offset_bottom = 530.0
+offset_bottom = 660.0
 theme_override_styles/panel = SubResource("HudPanel")
 
 [node name="Margin" type="MarginContainer" parent="PausePanel"]
@@ -238,6 +238,59 @@ theme_override_colors/font_color = Color(1, 0.78, 0.31, 1)
 theme_override_font_sizes/font_size = 34
 text = "暂停"
 horizontal_alignment = 1
+
+[node name="MasterRow" type="HBoxContainer" parent="PausePanel/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Label" type="Label" parent="PausePanel/Margin/Content/MasterRow"]
+custom_minimum_size = Vector2(72, 0)
+layout_mode = 2
+text = "总音量"
+
+[node name="MasterSlider" type="HSlider" parent="PausePanel/Margin/Content/MasterRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.05
+
+[node name="MusicRow" type="HBoxContainer" parent="PausePanel/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Label" type="Label" parent="PausePanel/Margin/Content/MusicRow"]
+custom_minimum_size = Vector2(72, 0)
+layout_mode = 2
+text = "音乐"
+
+[node name="MusicSlider" type="HSlider" parent="PausePanel/Margin/Content/MusicRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.05
+
+[node name="EffectsRow" type="HBoxContainer" parent="PausePanel/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Label" type="Label" parent="PausePanel/Margin/Content/EffectsRow"]
+custom_minimum_size = Vector2(72, 0)
+layout_mode = 2
+text = "音效"
+
+[node name="EffectsSlider" type="HSlider" parent="PausePanel/Margin/Content/EffectsRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.05
+
+[node name="ReducedMotionButton" type="CheckButton" parent="PausePanel/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "减少界面动画"
 
 [node name="ResumeButton" type="Button" parent="PausePanel/Margin/Content"]
 unique_name_in_owner = true

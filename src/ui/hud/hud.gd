@@ -13,6 +13,10 @@ extends CanvasLayer
 @onready var enemy_name_label: Label = %EnemyNameLabel
 @onready var enemy_health_bar: ProgressBar = %EnemyHealthBar
 @onready var enemy_health_label: Label = %EnemyHealthLabel
+@onready var master_slider: HSlider = %MasterSlider
+@onready var music_slider: HSlider = %MusicSlider
+@onready var effects_slider: HSlider = %EffectsSlider
+@onready var reduced_motion_button: CheckButton = %ReducedMotionButton
 
 var enemy_status_expires_at: int = 0
 
@@ -66,6 +70,8 @@ func show_enemy_status(enemy: Enemy, current: float, maximum: float) -> void:
 func set_section(section_name: String) -> void:
 	section_label.text = section_name
 	section_label.modulate.a = 1.0
+	if GameState.settings.reduced_motion:
+		return
 	var tween := create_tween()
 	tween.tween_interval(1.5)
 	tween.tween_property(section_label, "modulate:a", 0.0, 0.6)
@@ -87,6 +93,14 @@ func _ready() -> void:
 	%ResumeButton.pressed.connect(toggle_pause)
 	%RestartButton.pressed.connect(restart_level)
 	%PauseMenuButton.pressed.connect(GameState.return_to_menu)
+	master_slider.value = GameState.settings.master_volume
+	music_slider.value = GameState.settings.music_volume
+	effects_slider.value = GameState.settings.effects_volume
+	reduced_motion_button.button_pressed = GameState.settings.reduced_motion
+	master_slider.value_changed.connect(func(value: float) -> void: GameState.set_setting("master_volume", value))
+	music_slider.value_changed.connect(func(value: float) -> void: GameState.set_setting("music_volume", value))
+	effects_slider.value_changed.connect(func(value: float) -> void: GameState.set_setting("effects_volume", value))
+	reduced_motion_button.toggled.connect(func(enabled: bool) -> void: GameState.set_setting("reduced_motion", enabled))
 
 
 func _process(_delta: float) -> void:
