@@ -24,6 +24,15 @@ const PROFILES := [
 	["peach_child", "peach_child", "#f1d4ad", "#dc6d6d", "bomb"],
 	["fairy_leader", "fairy_leader", "#f0c4dc", "#8c62c5", "ribbon"],
 	["peach_land_god", "land_god", "#d3b58b", "#706442", "vine"],
+	["gold_guard", "heaven_guard", "#d4a84e", "#b7c0ca", "sword"],
+	["heaven_archer", "archer", "#bdcad7", "#6c89a5", "bow"],
+	["cloud_immortal", "cloud", "#d8e4ef", "#778fb5", "talisman"],
+	["gate_guardian", "heaven_guard", "#d6b15d", "#7c8791", "pillar"],
+	["growth_phantom", "sword_king", "#8da8d2", "#5f72a0", "sword"],
+	["dhritarashtra", "musician", "#d7b46c", "#774f91", "pipa"],
+	["virudhaka", "sword_king", "#c69a4f", "#4f7b68", "sword"],
+	["virupaksha", "serpent_king", "#c58b52", "#8b4f4f", "snake"],
+	["vaishravana", "umbrella_king", "#d0a75e", "#596a8b", "umbrella"],
 ]
 
 const POSES := [
@@ -130,6 +139,18 @@ func species_features(species: String, head_y: int, body_y: int, main: String, c
 			return "<path d=\"M-42 %d Q-20 %d 0 %d Q20 %d 43 %d\" fill=\"none\" stroke=\"#f2eee0\" stroke-width=\"12\"/><path d=\"M-32 %d L-43 %d M31 %d L43 %d\" stroke=\"#2b3038\" stroke-width=\"5\"/>" % [body_y + 15, body_y - 8, body_y + 10, body_y - 8, body_y + 15, body_y + 9, body_y + 28, body_y + 9, body_y + 28]
 		"land_god":
 			return "<path d=\"M-18 %d Q0 %d 18 %d\" fill=\"none\" stroke=\"#eeeeea\" stroke-width=\"11\"/><path d=\"M-24 %d H25\" stroke=\"#667343\" stroke-width=\"9\"/>" % [head_y + 12, head_y + 35, head_y + 12, head_y - 18]
+		"heaven_guard", "sword_king":
+			return "<path d=\"M-23 %d H24 L17 %d H-17Z\" fill=\"#d6b54e\"/><path d=\"M-22 %d H22\" stroke=\"#f0e3a5\" stroke-width=\"7\"/>" % [head_y - 17, head_y - 31, body_y - 13]
+		"archer":
+			return "<path d=\"M-24 %d L-36 %d M-19 %d L-34 %d M-14 %d L-31 %d\" stroke=\"#8a6748\" stroke-width=\"5\"/>" % [body_y - 10, body_y - 34, body_y, body_y - 23, body_y + 10, body_y - 12]
+		"cloud":
+			return "<path d=\"M-32 %d Q-18 %d -3 %d Q12 %d 30 %d\" fill=\"none\" stroke=\"#f3f7f8\" stroke-width=\"14\"/>" % [body_y + 25, body_y + 10, body_y + 24, body_y + 8, body_y + 23]
+		"musician":
+			return "<path d=\"M-20 %d H22 L16 %d H-15Z\" fill=\"#b87345\"/>" % [head_y - 17, head_y - 29]
+		"serpent_king":
+			return "<path d=\"M18 %d Q50 %d 27 %d Q4 %d 34 %d\" fill=\"none\" stroke=\"#6bad55\" stroke-width=\"9\"/>" % [body_y - 12, body_y - 30, body_y - 48, body_y - 60, body_y - 75]
+		"umbrella_king":
+			return "<path d=\"M-23 %d H24 L16 %d H-16Z\" fill=\"#5f7397\"/>" % [head_y - 17, head_y - 30]
 	return ""
 
 
@@ -149,6 +170,13 @@ func weapon_shape(weapon: String, body_y: int, pose: Array, main: String) -> Str
 		"bomb": return "<circle cx=\"%d\" cy=\"%d\" r=\"13\" fill=\"#eb849b\"/><path d=\"M%d %d l8 -12\" stroke=\"#5b844c\"/>" % [hand_x + 12, body_y - 3, hand_x + 15, body_y - 14]
 		"ribbon": return "<path d=\"M%d %d Q%d %d %d %d Q%d %d %d %d\" fill=\"none\" stroke=\"#f3a7d2\" stroke-width=\"7\"/>" % [hand_x, body_y, hand_x + 38, body_y - 35, hand_x + 52, body_y + 5, hand_x + 65, body_y + 28, hand_x + 82, body_y - 12]
 		"vine": return "<path d=\"M%d %d Q%d %d %d %d\" fill=\"none\" stroke=\"#60934f\" stroke-width=\"9\"/>" % [hand_x, body_y + 8, hand_x + 30, body_y - 15, hand_x + 45, body_y - 42]
+		"sword": return "<path d=\"M%d %d L%d %d\" stroke=\"#e6eef1\" stroke-width=\"7\"/><path d=\"M%d %d l8 -15 l8 15Z\" fill=\"#f5d66b\"/>" % [hand_x, body_y + 8, hand_x + 35, body_y - 35, hand_x + 35, body_y - 35]
+		"bow": return "<path d=\"M%d %d Q%d %d %d %d M%d %d L%d %d\" fill=\"none\" stroke=\"#8a5f39\" stroke-width=\"5\"/>" % [hand_x, body_y - 35, hand_x + 36, body_y, hand_x, body_y + 35, hand_x, body_y - 35, hand_x, body_y + 35]
+		"talisman": return "<rect x=\"%d\" y=\"%d\" width=\"18\" height=\"30\" fill=\"#f5dd63\"/><path d=\"M%d %d l10 12\" stroke=\"#b7433d\"/>" % [hand_x, body_y - 24, hand_x + 4, body_y - 18]
+		"pillar": return "<path d=\"M%d %d L%d %d\" stroke=\"#92999f\" stroke-width=\"16\"/>" % [hand_x, body_y + 20, hand_x + 22, body_y - 50]
+		"pipa": return "<ellipse cx=\"%d\" cy=\"%d\" rx=\"16\" ry=\"25\" fill=\"#b77842\"/><path d=\"M%d %d l18 -44\" stroke=\"#8a552f\" stroke-width=\"7\"/>" % [hand_x + 15, body_y - 2, hand_x + 15, body_y - 8]
+		"snake": return "<path d=\"M%d %d Q%d %d %d %d Q%d %d %d %d\" fill=\"none\" stroke=\"#6cac52\" stroke-width=\"9\"/>" % [hand_x, body_y + 5, hand_x + 25, body_y - 28, hand_x + 43, body_y, hand_x + 55, body_y + 18, hand_x + 68, body_y - 8]
+		"umbrella": return "<path d=\"M%d %d L%d %d\" stroke=\"#815b38\" stroke-width=\"7\"/><path d=\"M%d %d Q%d %d %d %dZ\" fill=\"#6684b3\"/>" % [hand_x, body_y + 10, hand_x + 18, body_y - 48, hand_x - 22, body_y - 35, hand_x + 18, body_y - 70, hand_x + 58, body_y - 35]
 	return ""
 
 

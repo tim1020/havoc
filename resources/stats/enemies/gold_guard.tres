@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=2 format=3]
+[ext_resource type="Script" path="res://src/resources/enemy_stats.gd" id="1"]
+[resource]
+script = ExtResource("1")
+display_name = "金甲天兵"
+max_health = 60.0
+contact_damage = 20.0
+invulnerability_seconds = 0.15
+knockback_force = 240.0
+move_speed = 180.0
+gravity = 2400.0
+detection_range = 560.0
+attack_range = 120.0
+spirit_stones = 25

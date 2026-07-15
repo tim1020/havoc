@@ -187,6 +187,14 @@ func take_damage(damage: float, source_position: Vector2) -> void:
 		die()
 
 
+func take_projectile_damage(damage: float, source_position: Vector2) -> bool:
+	if stats.reflects_projectiles:
+		attack_animation_until = Time.get_ticks_msec() + 260
+		return false
+	take_damage(damage, source_position)
+	return true
+
+
 func reveal_disguise() -> void:
 	disguised = false
 	attack_animation_until = Time.get_ticks_msec() + 500

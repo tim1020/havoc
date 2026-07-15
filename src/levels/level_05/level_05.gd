@@ -1,0 +1,165 @@
+extends CampaignLevel
+
+const ENEMY_TEMPLATE := preload("res://src/actors/enemies/enemy.tscn")
+const ITEM_TEMPLATE := preload("res://src/world/item_pickup.tscn")
+const TIMED_PLATFORM := preload("res://src/world/timed_platform.gd")
+const GATE_SCRIPT := preload("res://src/world/heaven_gate.gd")
+const GOLD_GUARD := preload("res://resources/stats/enemies/gold_guard.tres")
+const ARCHER := preload("res://resources/stats/enemies/heaven_archer.tres")
+const CLOUD := preload("res://resources/stats/enemies/cloud_immortal.tres")
+const GUARDIAN := preload("res://resources/stats/enemies/gate_guardian.tres")
+const PHANTOM := preload("res://resources/stats/enemies/growth_phantom.tres")
+const ILLUSION := preload("res://resources/stats/enemies/heaven_illusion.tres")
+const GUARD_FRAMES := preload("res://assets/vector/characters/campaign/gold_guard_frames.svg")
+const ARCHER_FRAMES := preload("res://assets/vector/characters/campaign/heaven_archer_frames.svg")
+const CLOUD_FRAMES := preload("res://assets/vector/characters/campaign/cloud_immortal_frames.svg")
+const GUARDIAN_FRAMES := preload("res://assets/vector/characters/campaign/gate_guardian_frames.svg")
+const PHANTOM_FRAMES := preload("res://assets/vector/characters/campaign/growth_phantom_frames.svg")
+const KING_STATS := [
+	preload("res://resources/stats/enemies/dhritarashtra.tres"), preload("res://resources/stats/enemies/virudhaka.tres"),
+	preload("res://resources/stats/enemies/virupaksha.tres"), preload("res://resources/stats/enemies/vaishravana.tres"),
+]
+const KING_FRAMES := [
+	preload("res://assets/vector/characters/campaign/dhritarashtra_frames.svg"), preload("res://assets/vector/characters/campaign/virudhaka_frames.svg"),
+	preload("res://assets/vector/characters/campaign/virupaksha_frames.svg"), preload("res://assets/vector/characters/campaign/vaishravana_frames.svg"),
+]
+const LIGHTNING := preload("res://resources/stats/hazards/heaven_lightning.tres")
+const WIND := preload("res://resources/stats/hazards/gale_wind.tres")
+const LASER := preload("res://resources/stats/hazards/statue_laser.tres")
+
+var gate
+var phantom_clones_spawned := false
+var current_king_index := -1
+var reinforcement_timer: Timer
+var reinforcement_index := 0
+
+
+func _ready() -> void:
+	super()
+	gate = GATE_SCRIPT.new()
+	gate.position = Vector2(3790, 650)
+	gate.destroyed.connect(start_king_battle)
+	add_child(gate)
+	reinforcement_timer = Timer.new()
+	reinforcement_timer.wait_time = 6.0
+	reinforcement_timer.timeout.connect(spawn_gate_reinforcement)
+	add_child(reinforcement_timer)
+	reinforcement_timer.start()
+	for enemy_node in get_tree().get_nodes_in_group("enemies"):
+		var enemy := enemy_node as Enemy
+		if enemy.stats == PHANTOM:
+			enemy.health_changed.connect(check_phantom_phase)
+
+
+func create_world() -> void:
+	for rect in ground_rects():
+		create_surface(rect, rect.size.y)
+	for index in platform_rects().size():
+		var rect := platform_rects()[index]
+		if index in [1, 3, 5]:
+			var cloud = TIMED_PLATFORM.new()
+			cloud.position = rect.position + rect.size * 0.5
+			cloud.visual_size = rect.size
+			cloud.collapse_delay = 2.0
+			cloud.surface_color = Color("aebbc7")
+			add_child(cloud)
+		else:
+			create_surface(rect, 72.0)
+
+
+func ground_rects() -> Array[Rect2]:
+	return [Rect2(0, 650, 470, 120), Rect2(620, 650, 420, 120), Rect2(1160, 650, 330, 120), Rect2(2500, 650, 1060, 120), Rect2(3680, 650, 1440, 120)]
+
+
+func platform_rects() -> Array[Rect2]:
+	return [Rect2(360, 500, 210, 24), Rect2(560, 430, 190, 20), Rect2(850, 520, 210, 24), Rect2(1080, 440, 180, 20), Rect2(1370, 550, 230, 24), Rect2(1640, 470, 190, 20), Rect2(1880, 395, 230, 24), Rect2(2170, 330, 250, 24), Rect2(2740, 510, 300, 24), Rect2(3190, 445, 300, 24), Rect2(4130, 500, 300, 24), Rect2(4600, 440, 320, 24)]
+
+
+func enemy_specs() -> Array:
+	return [
+		spec(Vector2(350, 580), CLOUD, CLOUD_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(680, 580), GOLD_GUARD, GUARD_FRAMES), spec(Vector2(960, 470), ARCHER, ARCHER_FRAMES), spec(Vector2(1220, 500), CLOUD, CLOUD_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(1450, 580), GOLD_GUARD, GUARD_FRAMES),
+		spec(Vector2(1650, 420), ARCHER, ARCHER_FRAMES), spec(Vector2(1900, 345), CLOUD, CLOUD_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(2140, 580), GOLD_GUARD, GUARD_FRAMES), spec(Vector2(2390, 580), GUARDIAN, GUARDIAN_FRAMES),
+		spec(Vector2(2640, 580), GOLD_GUARD, GUARD_FRAMES), spec(Vector2(2860, 460), ARCHER, ARCHER_FRAMES), spec(Vector2(3090, 580), GUARDIAN, GUARDIAN_FRAMES), spec(Vector2(3330, 400), ARCHER, ARCHER_FRAMES), spec(Vector2(3500, 580), GOLD_GUARD, GUARD_FRAMES), spec(Vector2(3650, 580), GUARDIAN, GUARDIAN_FRAMES),
+		spec(Vector2(3380, 510), PHANTOM, PHANTOM_FRAMES, Enemy.Behavior.BOSS, Vector2(1.35, 1.35)),
+	]
+
+
+func item_specs() -> Array:
+	return [
+		{"position": Vector2(400, 455), "id": &"peach"}, {"position": Vector2(900, 475), "id": &"wine"},
+		{"position": Vector2(1450, 505), "id": &"peach"}, {"position": Vector2(3450, 395), "id": &"elixir"},
+		{"position": Vector2(4700, 395), "id": &"binding_rope"},
+	]
+
+
+func hazard_specs() -> Array:
+	return [
+		{"position": Vector2(800, 530), "stats": LIGHTNING, "kind": LineHazard.Kind.LIGHTNING, "size": Vector2(70, 250)},
+		{"position": Vector2(2050, 500), "stats": LIGHTNING, "kind": LineHazard.Kind.LIGHTNING, "size": Vector2(70, 280)},
+		{"position": Vector2(1700, 420), "stats": WIND, "kind": LineHazard.Kind.WIND, "size": Vector2(900, 260), "push_force": 380.0},
+		{"position": Vector2(3000, 430), "stats": WIND, "kind": LineHazard.Kind.WIND, "size": Vector2(850, 260), "push_force": 420.0},
+		{"position": Vector2(4100, 500), "stats": LASER, "kind": LineHazard.Kind.LASER, "size": Vector2(35, 250)},
+		{"position": Vector2(4950, 500), "stats": LASER, "kind": LineHazard.Kind.LASER, "size": Vector2(35, 250)},
+	]
+
+
+func check_phantom_phase(current: float, maximum: float) -> void:
+	if phantom_clones_spawned or current > maximum * 0.5:
+		return
+	phantom_clones_spawned = true
+	for offset in [-130.0, 130.0]:
+		spawn_enemy(Vector2(3380 + offset, 520), ILLUSION, PHANTOM_FRAMES, &"heaven_illusions")
+
+
+func start_king_battle() -> void:
+	reinforcement_timer.stop()
+	spawn_king(0)
+
+
+func spawn_gate_reinforcement() -> void:
+	if gate.broken:
+		return
+	var use_archer := reinforcement_index % 2 == 1
+	spawn_enemy(Vector2(3980 + reinforcement_index % 3 * 80, 580), ARCHER if use_archer else GOLD_GUARD, ARCHER_FRAMES if use_archer else GUARD_FRAMES, &"gate_reinforcements")
+	reinforcement_index += 1
+
+
+func spawn_king(index: int) -> void:
+	current_king_index = index
+	var king := spawn_enemy(Vector2(4610, 510), KING_STATS[index], KING_FRAMES[index], &"active_king")
+	king.behavior = Enemy.Behavior.BOSS
+	king.visual_scale = Vector2(1.5, 1.5)
+	king.sprite.scale = king.visual_scale
+	king.defeated.connect(king_defeated.bind(index), CONNECT_ONE_SHOT)
+
+
+func king_defeated(_reward: int, index: int) -> void:
+	drop_peach(Vector2(4550, 580))
+	if index < KING_STATS.size() - 1:
+		spawn_king(index + 1)
+	else:
+		complete_level(0)
+
+
+func spawn_enemy(position_value: Vector2, stats_value: EnemyStats, atlas: Texture2D, group_name: StringName) -> Enemy:
+	var enemy := ENEMY_TEMPLATE.instantiate() as Enemy
+	enemy.position = position_value
+	enemy.stats = stats_value
+	enemy.animation_atlas = atlas
+	enemy.defeated.connect(add_stones)
+	enemy.hit_received.connect(show_enemy_status)
+	enemy.add_to_group(group_name)
+	add_child(enemy)
+	return enemy
+
+
+func drop_peach(position_value: Vector2) -> void:
+	var pickup := ITEM_TEMPLATE.instantiate() as ItemPickup
+	pickup.position = position_value
+	pickup.item = ItemCatalog.get_definition(&"peach")
+	pickup.add_to_group("king_rewards")
+	add_child(pickup)
+
+
+func spec(position_value: Vector2, stats_value: EnemyStats, atlas_value: Texture2D, behavior_value: Enemy.Behavior = Enemy.Behavior.MELEE, scale_value: Vector2 = Vector2.ONE) -> Dictionary:
+	return {"position": position_value, "stats": stats_value, "atlas": atlas_value, "behavior": behavior_value, "scale": scale_value, "final_boss": false}

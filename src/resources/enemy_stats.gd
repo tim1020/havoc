@@ -22,3 +22,4 @@ extends ActorStats
 @export_range(0.0, 10.0, 0.1) var ghost_solid_seconds: float = 0.0
 @export var phase_thresholds: PackedFloat32Array = PackedFloat32Array([0.5])
 @export_range(1.0, 3.0, 0.05) var phase_damage_multiplier: float = 1.5
+@export var reflects_projectiles: bool = false

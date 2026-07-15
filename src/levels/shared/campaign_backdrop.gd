@@ -16,8 +16,10 @@ func _draw() -> void:
 		draw_dragon_palace()
 	elif level_number == 3:
 		draw_underworld()
-	else:
+	elif level_number == 4:
 		draw_peach_garden()
+	else:
+		draw_heaven_gate()
 
 
 func draw_dragon_palace() -> void:
@@ -125,3 +127,32 @@ func draw_bezier(points: PackedVector2Array, color: Color, width: float) -> void
 	curve.add_point(points[0], Vector2.ZERO, points[1] - points[0])
 	curve.add_point(points[3], points[2] - points[3], Vector2.ZERO)
 	draw_polyline(curve.tessellate(5, 3.0), color, width, true)
+
+
+func draw_heaven_gate() -> void:
+	var colors := [Color("6fa9ca"), Color("5d93bd"), Color("527fa9"), Color("456f98")]
+	for section in 4:
+		draw_rect(Rect2(section * SECTION_WIDTH, 0, SECTION_WIDTH, 720), colors[section])
+	# 5-1 云海浮台
+	for x in range(80, 1260, 180):
+		draw_circle(Vector2(x, 560 + (x % 3) * 18), 90, Color("e9f3f5"))
+		draw_circle(Vector2(x + 65, 585), 70, Color("d7e5eb"))
+	# 5-2 下层天梯
+	var offset := SECTION_WIDTH
+	for index in 8:
+		var rect := Rect2(offset + 80 + index * 150, 620 - index * 55, 190, 32)
+		draw_rect(rect, Color("d8d8d0"), true)
+		draw_line(rect.position, Vector2(rect.end.x, rect.position.y), Color("f1d36b"), 5, true)
+	# 5-3 幻影天梯
+	offset = SECTION_WIDTH * 2
+	for x in [140.0, 420.0, 700.0, 980.0, 1180.0]:
+		draw_line(Vector2(offset + x, 120), Vector2(offset + x, 620), Color("e1e4e8"), 18, true)
+		draw_circle(Vector2(offset + x, 125), 34, Color("f5d86d"))
+	draw_arc(Vector2(offset + 640, 590), 390, PI, TAU, 40, Color("f6e4a0"), 12, true)
+	# 5-4 南天门广场
+	offset = SECTION_WIDTH * 3
+	for x in [180.0, 390.0, 890.0, 1100.0]:
+		draw_line(Vector2(offset + x, 120), Vector2(offset + x, 625), Color("eee8db"), 34, true)
+		draw_circle(Vector2(offset + x, 115), 42, Color("e5c35c"))
+	draw_rect(Rect2(offset + 420, 150, 440, 470), Color("c94f43"), true)
+	draw_rect(Rect2(offset + 420, 150, 440, 470), Color("f3d370"), false, 14)

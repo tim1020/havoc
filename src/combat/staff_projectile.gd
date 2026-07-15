@@ -25,5 +25,8 @@ func _physics_process(delta: float) -> void:
 	global_position += direction * speed * delta
 	rotation = direction.angle()
 	if global_position.distance_to(target.global_position) <= 52.0:
-		target.take_damage(damage, source_position)
+		if target.has_method("take_projectile_damage"):
+			target.take_projectile_damage(damage, source_position)
+		else:
+			target.take_damage(damage, source_position)
 		queue_free()

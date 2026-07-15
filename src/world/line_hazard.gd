@@ -1,12 +1,13 @@
 class_name LineHazard
 extends Hazard
 
-enum Kind { SPIKES, ELECTRIC, FIRE, VORTEX, ROOT, PEACH_BOMB, WATER, POLLEN }
+enum Kind { SPIKES, ELECTRIC, FIRE, VORTEX, ROOT, PEACH_BOMB, WATER, POLLEN, LIGHTNING, WIND, LASER }
 
 @export var kind: Kind = Kind.SPIKES
 @export var visual_size: Vector2 = Vector2(90, 50)
 @export_range(0.0, 10.0, 0.1) var slow_seconds: float = 0.0
 @export_range(0.0, 10.0, 0.1) var confusion_seconds: float = 0.0
+@export_range(-1000.0, 1000.0, 1.0) var push_force: float = 0.0
 
 var elapsed: float = 0.0
 
@@ -18,6 +19,10 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	elapsed += delta
+	if not is_zero_approx(push_force):
+		for body in get_overlapping_bodies():
+			if body is Player:
+				(body as Player).velocity.x += push_force * delta
 	queue_redraw()
 
 
@@ -52,6 +57,15 @@ func _draw() -> void:
 			for index in 7:
 				var angle := elapsed + index * TAU / 7.0
 				draw_circle(Vector2(cos(angle) * 30.0, sin(angle * 1.4) * 24.0), 7, Color(1.0, 0.55, 0.75, 0.62))
+		Kind.LIGHTNING:
+			var pulse := 0.6 + sin(elapsed * 12.0) * 0.35
+			draw_polyline(PackedVector2Array([Vector2(-12, -visual_size.y * 0.5), Vector2(15, -35), Vector2(-8, 5), Vector2(18, visual_size.y * 0.5)]), Color(1.0, 0.95, 0.55, pulse), 10, true)
+		Kind.WIND:
+			for index in 4:
+				var y := -45.0 + index * 30.0
+				draw_line(Vector2(-visual_size.x * 0.45, y), Vector2(visual_size.x * 0.45, y), Color(0.8, 0.95, 1.0, 0.55), 5, true)
+		Kind.LASER:
+			draw_rect(Rect2(-visual_size * 0.5, visual_size), Color(1.0, 0.32, 0.35, 0.35 + sin(elapsed * 8.0) * 0.2), true)
 
 
 func on_body_entered(body: Node2D) -> void:

@@ -56,6 +56,10 @@ func create_timed_surface(rect: Rect2, delay: float) -> void:
 	add_child(platform)
 
 
+func next_level_path() -> String:
+	return GameState.FIFTH_LEVEL
+
+
 func ground_rects() -> Array[Rect2]:
 	return [Rect2(0, 650, 1180, 120), Rect2(1280, 690, 1280, 80), Rect2(2560, 650, 1000, 120), Rect2(3680, 650, 1440, 120)]
 

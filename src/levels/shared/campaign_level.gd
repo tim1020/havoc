@@ -81,7 +81,8 @@ func surface_color(x: float) -> Color:
 	var sea := [Color("8c8065"), Color("4d93a5"), Color("4d8292"), Color("8f743d")]
 	var hell := [Color("5f5865"), Color("4d4656"), Color("554958"), Color("332f3a")]
 	var garden := [Color("719357"), Color("7b5d45"), Color("c2b5ca"), Color("765b3e")]
-	return sea[section] if level_number == 2 else (hell[section] if level_number == 3 else garden[section])
+	var heaven := [Color("d8e9ee"), Color("c7d6e5"), Color("b9c9dd"), Color("e4dfd2")]
+	return sea[section] if level_number == 2 else (hell[section] if level_number == 3 else (garden[section] if level_number == 4 else heaven[section]))
 
 
 func spawn_player() -> void:
@@ -134,6 +135,7 @@ func spawn_hazards() -> void:
 		hazard.visual_size = spec.size
 		hazard.slow_seconds = spec.get("slow_seconds", 0.0)
 		hazard.confusion_seconds = spec.get("confusion_seconds", 0.0)
+		hazard.push_force = spec.get("push_force", 0.0)
 		var shape := hazard.get_node("Shape").shape as RectangleShape2D
 		shape = shape.duplicate() as RectangleShape2D
 		shape.size = spec.size
