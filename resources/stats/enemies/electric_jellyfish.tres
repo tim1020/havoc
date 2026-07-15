@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=2 format=3]
+[ext_resource type="Script" path="res://src/resources/enemy_stats.gd" id="1"]
+[resource]
+script = ExtResource("1")
+display_name = "电水母"
+max_health = 25.0
+contact_damage = 10.0
+invulnerability_seconds = 0.15
+knockback_force = 130.0
+move_speed = 120.0
+gravity = 0.0
+detection_range = 520.0
+attack_range = 130.0
+spirit_stones = 15
+contact_slow_seconds = 2.0

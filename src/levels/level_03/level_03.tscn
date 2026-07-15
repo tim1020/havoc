@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/levels/level_03/level_03.gd" id="1"]
+
+[node name="Level03" type="Node2D"]
+script = ExtResource("1")
+level_number = 3
+section_names = PackedStringArray("奈何桥", "恶鬼道", "鬼门关前", "森罗殿")

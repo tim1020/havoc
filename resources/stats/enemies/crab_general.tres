@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=2 format=3]
+[ext_resource type="Script" path="res://src/resources/enemy_stats.gd" id="1"]
+[resource]
+script = ExtResource("1")
+display_name = "蟹将"
+max_health = 60.0
+contact_damage = 18.0
+invulnerability_seconds = 0.15
+knockback_force = 250.0
+move_speed = 115.0
+gravity = 2400.0
+detection_range = 430.0
+attack_range = 90.0
+spirit_stones = 25
+front_damage_multiplier = 0.5

@@ -1,6 +1,10 @@
 class_name Player
 extends CharacterBody2D
 
+const STAFF_STATS := preload("res://resources/stats/player_staff.tres")
+const STAFF_ATLAS := preload("res://assets/vector/characters/campaign/staff_wukong_frames.svg")
+const STAFF_PROJECTILE := preload("res://src/combat/staff_projectile.tscn")
+
 signal health_changed(current: float, maximum: float)
 signal died
 signal respawned
@@ -25,9 +29,18 @@ var attack_consumed: bool = false
 var attack_pressed_at: int = 0
 var base_sprite_scale: Vector2
 var speed_boost_until: int = 0
+var slowed_until: int = 0
+var rooted_until: int = 0
+var attack_started_on_floor: bool = true
+var staff_flying_until: int = 0
+var staff_flight_hits: Dictionary[int, bool] = {}
 
 
 func _ready() -> void:
+	if GameState.has_staff:
+		stats = STAFF_STATS
+		setup_staff_frames()
+		sprite.scale = Vector2.ONE
 	assert(stats != null, "PlayerStats is required")
 	health = stats.max_health
 	jumps_left = stats.jump_count
@@ -45,6 +58,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not controls_enabled:
 		return
 	if event is InputEventKey and event.echo:
+		return
+	if is_staff_flying():
+		if event.is_action_pressed("jump"):
+			stop_staff_flight()
+			try_jump()
+		elif event.is_action_pressed("attack"):
+			staff_slam()
 		return
 	if event.is_action_pressed("jump"):
 		if attack_held or Input.is_action_pressed("attack"):
@@ -65,17 +85,27 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if is_staff_flying():
+		velocity = Vector2(facing * stats.move_speed * 1.4, 0.0)
+		move_and_slide()
+		play_if_available("staff_fly")
+		apply_staff_flight_damage()
+		if Time.get_ticks_msec() >= staff_flying_until:
+			stop_staff_flight()
+		return
 	if not is_on_floor():
 		velocity.y += stats.gravity * delta
 	else:
 		jumps_left = stats.jump_count
 
-	var direction := Input.get_axis("move_left", "move_right") if controls_enabled else 0.0
+	var direction := Input.get_axis("move_left", "move_right") if controls_enabled and Time.get_ticks_msec() >= rooted_until else 0.0
 	if not is_zero_approx(direction):
 		facing = signf(direction)
 		sprite.flip_h = facing < 0.0
 		var accel := stats.acceleration if is_on_floor() else stats.air_acceleration
 		var speed_multiplier := 2.0 if Time.get_ticks_msec() < speed_boost_until else 1.0
+		if Time.get_ticks_msec() < slowed_until:
+			speed_multiplier *= 0.5
 		velocity.x = move_toward(velocity.x, direction * stats.move_speed * speed_multiplier, accel * delta)
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, stats.friction * delta)
@@ -99,6 +129,7 @@ func begin_attack_charge() -> void:
 	attack_held = true
 	attack_consumed = false
 	attack_pressed_at = Time.get_ticks_msec()
+	attack_started_on_floor = is_on_floor()
 
 
 func cancel_attack_charge() -> void:
@@ -114,7 +145,12 @@ func release_attack_charge() -> void:
 	if attack_consumed:
 		attack_consumed = false
 		return
-	if held_seconds >= stats.charge_seconds:
+	if held_seconds >= stats.charge_seconds and GameState.has_staff:
+		if attack_started_on_floor:
+			start_staff_flight()
+		else:
+			launch_tracking_staffs()
+	elif held_seconds >= stats.charge_seconds:
 		perform_attack(stats.charged_attack_damage)
 	else:
 		perform_attack()
@@ -177,6 +213,15 @@ func apply_healing_item(item: ItemDefinition) -> void:
 	health_changed.emit(health, stats.max_health)
 
 
+func apply_slow(seconds: float) -> void:
+	slowed_until = maxi(slowed_until, Time.get_ticks_msec() + int(seconds * 1000.0))
+
+
+func apply_root(seconds: float) -> void:
+	rooted_until = maxi(rooted_until, Time.get_ticks_msec() + int(seconds * 1000.0))
+	velocity.x = 0.0
+
+
 func use_current_artifact() -> void:
 	var item_id := GameState.pop_artifact()
 	if item_id.is_empty():
@@ -223,6 +268,86 @@ func nearest_enemy(enemies: Array[Node]) -> Enemy:
 			best_distance = distance
 			result = enemy
 	return result
+
+
+func start_staff_flight() -> void:
+	staff_flying_until = Time.get_ticks_msec() + 2000
+	staff_flight_hits.clear()
+	play_if_available("staff_fly")
+
+
+func is_staff_flying() -> bool:
+	return staff_flying_until > 0
+
+
+func stop_staff_flight() -> void:
+	staff_flying_until = 0
+	staff_flight_hits.clear()
+	velocity.x *= 0.5
+
+
+func apply_staff_flight_damage() -> void:
+	attack_area.position.x = absf(attack_area.position.x) * facing
+	for body in attack_area.get_overlapping_bodies():
+		if body is Enemy and not staff_flight_hits.has(body.get_instance_id()):
+			staff_flight_hits[body.get_instance_id()] = true
+			body.take_damage(20.0, global_position)
+
+
+func staff_slam() -> void:
+	stop_staff_flight()
+	velocity.y = 900.0
+	play_if_available("attack_3")
+	for enemy_node in get_tree().get_nodes_in_group("enemies"):
+		var enemy := enemy_node as Enemy
+		var offset := enemy.global_position - global_position
+		if absf(offset.x) <= 150.0 and offset.y >= -20.0 and offset.y <= 220.0:
+			enemy.take_damage(40.0, global_position)
+
+
+func launch_tracking_staffs() -> void:
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	if enemies.is_empty():
+		return
+	var targets: Array[Enemy] = []
+	for enemy_node in enemies:
+		var enemy := enemy_node as Enemy
+		if not enemy.dead:
+			targets.append(enemy)
+	if targets.is_empty():
+		return
+	targets.sort_custom(func(a: Enemy, b: Enemy) -> bool:
+		return global_position.distance_squared_to(a.global_position) < global_position.distance_squared_to(b.global_position)
+	)
+	for index in 3:
+		var projectile := STAFF_PROJECTILE.instantiate() as StaffProjectile
+		projectile.global_position = global_position + Vector2((index - 1) * 28.0, -45.0 - index * 12.0)
+		projectile.source_position = global_position
+		projectile.target = targets[index % targets.size()]
+		get_tree().current_scene.add_child(projectile)
+	play_if_available("spell")
+
+
+func setup_staff_frames() -> void:
+	var frames := SpriteFrames.new()
+	frames.remove_animation(&"default")
+	var definitions := {
+		&"idle": [0, 1, 3.0, true], &"run": [2, 3, 8.0, true], &"crouch": [0, 1, 3.0, true],
+		&"jump": [2, 3, 5.0, true], &"staff_fly": [2, 3, 10.0, true],
+		&"attack_1": [4, 5, 10.0, false], &"attack_2": [5, 4, 10.0, false], &"attack_3": [4, 5, 12.0, false],
+		&"hurt": [6, 7, 10.0, false], &"death": [8, 9, 6.0, false], &"respawn": [9, 8, 6.0, false], &"spell": [4, 5, 10.0, false],
+	}
+	for animation: StringName in definitions:
+		var definition: Array = definitions[animation]
+		frames.add_animation(animation)
+		frames.set_animation_speed(animation, definition[2])
+		frames.set_animation_loop(animation, definition[3])
+		for column in range(definition[0], definition[1] + (1 if definition[1] >= definition[0] else -1), 1 if definition[1] >= definition[0] else -1):
+			var texture := AtlasTexture.new()
+			texture.atlas = STAFF_ATLAS
+			texture.region = Rect2(column * 128, 0, 128, 128)
+			frames.add_frame(animation, texture)
+	sprite.sprite_frames = frames
 
 
 func take_damage(damage: float, source_position: Vector2) -> void:

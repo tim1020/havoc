@@ -240,4 +240,8 @@ func complete_level(_reward: int) -> void:
 	completed = true
 	player.controls_enabled = false
 	hud.show_result(spirit_stones)
+	shop.closed.connect(func() -> void:
+		if get_tree().current_scene == self:
+			GameState.advance_to_level(2, GameState.SECOND_LEVEL)
+	, CONNECT_ONE_SHOT)
 	shop.open_shop(player, "第一关过关商店")

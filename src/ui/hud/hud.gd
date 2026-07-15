@@ -71,9 +71,10 @@ func set_section(section_name: String) -> void:
 	tween.tween_property(section_label, "modulate:a", 0.0, 0.6)
 
 
-func show_result(stones: int) -> void:
+func show_result(stones: int, level_title: String = "第一关") -> void:
 	result_panel.visible = true
-	%ResultText.text = "花果山重归平静\n本关灵石：%d　总计：%d" % [stones, GameState.stones]
+	%ResultTitle.text = "%s完成" % level_title
+	%ResultText.text = "%s挑战完成\n本关灵石：%d　总计：%d" % [level_title, stones, GameState.stones]
 	%ReturnButton.grab_focus()
 
 

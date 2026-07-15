@@ -34,10 +34,14 @@ var next_attack_at: int = 0
 var next_charge_at: int = 0
 var dead: bool = false
 var phase_two: bool = false
+var current_phase: int = 1
 var flight_time: float = 0.0
 var visual_time: float = 0.0
 var attack_animation_until: int = 0
 var hit_reaction_until: int = 0
+var base_collision_layer: int
+var base_collision_mask: int
+var ghost_solid: bool = true
 
 
 func _ready() -> void:
@@ -47,6 +51,8 @@ func _ready() -> void:
 	if stats.is_boss:
 		add_to_group("bosses")
 	health = stats.max_health
+	base_collision_layer = collision_layer
+	base_collision_mask = collision_mask
 	spawn_position = global_position
 	setup_character_frames()
 	setup_attack_effect_frames()
@@ -59,6 +65,7 @@ func _process(delta: float) -> void:
 	if dead:
 		return
 	visual_time += delta
+	update_ghost_state()
 	update_visual_animation()
 
 
@@ -133,7 +140,13 @@ func try_attack(player: Player) -> void:
 	attack_effect.position.x = -58.0 if sprite.flip_h else 58.0
 	attack_effect.visible = true
 	attack_effect.play("attack")
-	player.take_damage(stats.contact_damage * (1.5 if phase_two else 1.0), global_position)
+	player.take_damage(stats.contact_damage * (stats.phase_damage_multiplier if phase_two else 1.0), global_position)
+	if stats.contact_slow_seconds > 0.0:
+		player.apply_slow(stats.contact_slow_seconds)
+	if stats.contact_root_seconds > 0.0:
+		player.apply_root(stats.contact_root_seconds)
+	if stats.pull_distance > 0.0:
+		player.global_position.x = move_toward(player.global_position.x, global_position.x, stats.pull_distance)
 
 
 func apply_contact_damage() -> void:
@@ -145,18 +158,39 @@ func apply_contact_damage() -> void:
 
 
 func take_damage(damage: float, source_position: Vector2) -> void:
-	if dead or Time.get_ticks_msec() < invulnerable_until:
+	if dead or not ghost_solid or Time.get_ticks_msec() < invulnerable_until:
 		return
+	var source_direction := signf(source_position.x - global_position.x)
+	if not is_zero_approx(source_direction) and is_equal_approx(source_direction, patrol_direction):
+		damage *= stats.front_damage_multiplier
 	health = maxf(0.0, health - damage)
 	invulnerable_until = Time.get_ticks_msec() + int(stats.invulnerability_seconds * 1000.0)
 	hit_reaction_until = Time.get_ticks_msec() + 220
 	velocity.x = signf(global_position.x - source_position.x) * stats.knockback_force
 	health_changed.emit(health, stats.max_health)
 	hit_received.emit(self, health, stats.max_health)
-	if behavior == Behavior.BOSS and not phase_two and health <= stats.max_health * 0.5:
-		phase_two = true
+	if behavior == Behavior.BOSS:
+		current_phase = 1
+		for threshold in stats.phase_thresholds:
+			if health <= stats.max_health * threshold:
+				current_phase += 1
+		phase_two = current_phase > 1
 	if is_zero_approx(health):
 		die()
+
+
+func update_ghost_state() -> void:
+	if stats.ghost_cycle_seconds <= 0.0:
+		return
+	var cycle_ms := int(stats.ghost_cycle_seconds * 1000.0)
+	var solid_ms := int(stats.ghost_solid_seconds * 1000.0)
+	var next_solid := Time.get_ticks_msec() % cycle_ms < solid_ms
+	if next_solid == ghost_solid:
+		return
+	ghost_solid = next_solid
+	collision_layer = base_collision_layer if ghost_solid else 0
+	collision_mask = base_collision_mask if ghost_solid else 0
+	sprite.modulate.a = 1.0 if ghost_solid else 0.35
 
 
 func update_visual_animation() -> void:

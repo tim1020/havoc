@@ -6,6 +6,8 @@ signal artifacts_changed(current_artifacts: Array[StringName])
 signal level_requested(level_path: String)
 
 const FIRST_LEVEL := "res://src/levels/level_01/level_01.tscn"
+const SECOND_LEVEL := "res://src/levels/level_02/level_02.tscn"
+const THIRD_LEVEL := "res://src/levels/level_03/level_03.tscn"
 const SAVE_PATH := "user://havoc_save.json"
 const MAX_LIVES := 3
 const MAX_ARTIFACTS := 3
@@ -17,6 +19,7 @@ var artifacts: Array[StringName] = []
 var unlocked_level: int = 1
 var current_level: int = 1
 var life_bought_this_level: bool = false
+var has_staff: bool = false
 var save_path: String = SAVE_PATH
 var settings := {
 	"master_volume": 1.0,
@@ -32,6 +35,7 @@ func start_new_game() -> void:
 	unlocked_level = 1
 	current_level = 1
 	life_bought_this_level = false
+	has_staff = false
 	current_level_path = FIRST_LEVEL
 	emit_resource_signals()
 	save_game()
@@ -147,6 +151,7 @@ func save_game(path: String = "") -> Error:
 		"current_level": current_level,
 		"current_level_path": current_level_path,
 		"life_bought_this_level": life_bought_this_level,
+		"has_staff": has_staff,
 		"settings": settings,
 	}))
 	return OK
@@ -172,6 +177,7 @@ func load_game(path: String = "") -> bool:
 	current_level = clampi(int(parsed.get("current_level", 1)), 1, unlocked_level)
 	current_level_path = String(parsed.get("current_level_path", FIRST_LEVEL))
 	life_bought_this_level = bool(parsed.get("life_bought_this_level", false))
+	has_staff = bool(parsed.get("has_staff", false))
 	var loaded_settings = parsed.get("settings", {})
 	if loaded_settings is Dictionary:
 		for key in settings:
@@ -193,6 +199,21 @@ func emit_resource_signals() -> void:
 	lives_changed.emit(lives)
 	stones_changed.emit(stones)
 	artifacts_changed.emit(artifacts.duplicate())
+
+
+func unlock_staff() -> void:
+	has_staff = true
+	save_game()
+
+
+func advance_to_level(level_number: int, level_path: String) -> void:
+	unlocked_level = maxi(unlocked_level, level_number)
+	current_level = level_number
+	current_level_path = level_path
+	life_bought_this_level = false
+	save_game()
+	get_tree().paused = false
+	get_tree().change_scene_to_file(level_path)
 
 
 func restart_current_level() -> void:
