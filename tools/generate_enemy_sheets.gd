@@ -18,6 +18,12 @@ const PROFILES := [
 	["ox_guard", "ox", "#866b58", "#4e5965", "axe"],
 	["horse_guard", "horse", "#9b6648", "#586b70", "spear"],
 	["yanluo_king", "yanluo", "#72445e", "#ba8e35", "brush"],
+	["garden_guardian", "guardian", "#c49b5d", "#59804d", "tree"],
+	["flower_fairy", "flower_fairy", "#efb0c7", "#7c6ac3", "basket"],
+	["peach_demon", "peach_demon", "#855f3d", "#5f8b4f", "branch"],
+	["peach_child", "peach_child", "#f1d4ad", "#dc6d6d", "bomb"],
+	["fairy_leader", "fairy_leader", "#f0c4dc", "#8c62c5", "ribbon"],
+	["peach_land_god", "land_god", "#d3b58b", "#706442", "vine"],
 ]
 
 const POSES := [
@@ -114,6 +120,16 @@ func species_features(species: String, head_y: int, body_y: int, main: String, c
 			return "<ellipse cx=\"9\" cy=\"%d\" rx=\"15\" ry=\"28\" fill=\"%s\"/><path d=\"M1 %d L-2 %d M17 %d L20 %d\" stroke=\"%s\" stroke-width=\"8\"/>" % [head_y + 8, main, head_y - 12, head_y - 32, head_y - 12, head_y - 32, main]
 		"yanluo":
 			return "<path d=\"M-20 %d H23 L16 %d H-15Z\" fill=\"#1d2029\"/><circle cx=\"0\" cy=\"%d\" r=\"5\" fill=\"#d6aa3e\"/>" % [head_y - 18, head_y - 31, head_y - 25]
+		"guardian":
+			return "<path d=\"M-24 %d L-35 %d L-18 %d M24 %d L35 %d L18 %d\" fill=\"#dbbe74\"/><rect x=\"-25\" y=\"%d\" width=\"50\" height=\"12\" rx=\"5\" fill=\"#cba84d\"/>" % [head_y - 14, head_y - 29, head_y - 7, head_y - 14, head_y - 29, head_y - 7, head_y - 21]
+		"flower_fairy", "fairy_leader":
+			return "<path d=\"M-20 %d Q0 %d 21 112 Q0 99 -22 112Z\" fill=\"%s\"/><path d=\"M-18 %d Q0 %d 18 %d\" fill=\"none\" stroke=\"#f4d5e6\" stroke-width=\"7\"/>" % [body_y + 18, body_y + 4, cloth, head_y - 15, head_y - 26, head_y - 15]
+		"peach_demon":
+			return "<path d=\"M-18 %d L-30 %d M17 %d L31 %d M-8 %d Q0 %d 8 %d\" stroke=\"#4d7d43\" stroke-width=\"9\"/><circle cx=\"-18\" cy=\"%d\" r=\"10\" fill=\"#e9859d\"/><circle cx=\"19\" cy=\"%d\" r=\"10\" fill=\"#e9859d\"/>" % [body_y - 12, head_y - 18, body_y - 10, head_y - 20, head_y - 16, head_y - 28, head_y - 16, head_y - 14, head_y - 16]
+		"peach_child":
+			return "<path d=\"M-42 %d Q-20 %d 0 %d Q20 %d 43 %d\" fill=\"none\" stroke=\"#f2eee0\" stroke-width=\"12\"/><path d=\"M-32 %d L-43 %d M31 %d L43 %d\" stroke=\"#2b3038\" stroke-width=\"5\"/>" % [body_y + 15, body_y - 8, body_y + 10, body_y - 8, body_y + 15, body_y + 9, body_y + 28, body_y + 9, body_y + 28]
+		"land_god":
+			return "<path d=\"M-18 %d Q0 %d 18 %d\" fill=\"none\" stroke=\"#eeeeea\" stroke-width=\"11\"/><path d=\"M-24 %d H25\" stroke=\"#667343\" stroke-width=\"9\"/>" % [head_y + 12, head_y + 35, head_y + 12, head_y - 18]
 	return ""
 
 
@@ -127,6 +143,12 @@ func weapon_shape(weapon: String, body_y: int, pose: Array, main: String) -> Str
 		"bowl": return "<path d=\"M%d %d q14 12 28 0Z\" fill=\"#8b6744\"/>" % [hand_x, body_y]
 		"brush": return "<path d=\"M%d %d L%d %d\" stroke=\"#d8b55b\" stroke-width=\"5\"/><path d=\"M%d %d l12 8 -15 8Z\" fill=\"#15151b\"/>" % [hand_x, body_y + 8, hand_x + 22, body_y - 30, hand_x + 22, body_y - 30]
 		"bubble": return "<circle cx=\"%d\" cy=\"%d\" r=\"14\" fill=\"none\" stroke=\"#c8f5ff\" stroke-width=\"4\"/>" % [hand_x + 12, body_y - 4]
+		"tree": return "<path d=\"M%d %d L%d %d\" stroke=\"#69462f\" stroke-width=\"12\"/><circle cx=\"%d\" cy=\"%d\" r=\"18\" fill=\"#5f984e\"/>" % [hand_x, body_y + 10, hand_x + 28, body_y - 42, hand_x + 28, body_y - 47]
+		"basket": return "<path d=\"M%d %d q18 14 36 0Z\" fill=\"#d49b55\"/><path d=\"M%d %d q18 -20 36 0\" fill=\"none\"/>" % [hand_x, body_y, hand_x, body_y]
+		"branch": return "<path d=\"M%d %d Q%d %d %d %d M%d %d l12 -18\" fill=\"none\" stroke=\"#5c7d3e\" stroke-width=\"7\"/>" % [hand_x, body_y + 8, hand_x + 22, body_y - 5, hand_x + 39, body_y - 30, hand_x + 25, body_y - 12]
+		"bomb": return "<circle cx=\"%d\" cy=\"%d\" r=\"13\" fill=\"#eb849b\"/><path d=\"M%d %d l8 -12\" stroke=\"#5b844c\"/>" % [hand_x + 12, body_y - 3, hand_x + 15, body_y - 14]
+		"ribbon": return "<path d=\"M%d %d Q%d %d %d %d Q%d %d %d %d\" fill=\"none\" stroke=\"#f3a7d2\" stroke-width=\"7\"/>" % [hand_x, body_y, hand_x + 38, body_y - 35, hand_x + 52, body_y + 5, hand_x + 65, body_y + 28, hand_x + 82, body_y - 12]
+		"vine": return "<path d=\"M%d %d Q%d %d %d %d\" fill=\"none\" stroke=\"#60934f\" stroke-width=\"9\"/>" % [hand_x, body_y + 8, hand_x + 30, body_y - 15, hand_x + 45, body_y - 42]
 	return ""
 
 

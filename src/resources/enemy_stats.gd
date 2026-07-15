@@ -15,7 +15,9 @@ extends ActorStats
 @export_range(0.0, 1.0, 0.05) var front_damage_multiplier: float = 1.0
 @export_range(0.0, 10.0, 0.1) var contact_slow_seconds: float = 0.0
 @export_range(0.0, 10.0, 0.1) var contact_root_seconds: float = 0.0
+@export_range(0.0, 10.0, 0.1) var contact_confusion_seconds: float = 0.0
 @export_range(0.0, 1000.0, 1.0) var pull_distance: float = 0.0
+@export_range(0.0, 1000.0, 1.0) var disguise_reveal_distance: float = 0.0
 @export_range(0.0, 10.0, 0.1) var ghost_cycle_seconds: float = 0.0
 @export_range(0.0, 10.0, 0.1) var ghost_solid_seconds: float = 0.0
 @export var phase_thresholds: PackedFloat32Array = PackedFloat32Array([0.5])

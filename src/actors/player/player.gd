@@ -31,6 +31,7 @@ var base_sprite_scale: Vector2
 var speed_boost_until: int = 0
 var slowed_until: int = 0
 var rooted_until: int = 0
+var confused_until: int = 0
 var attack_started_on_floor: bool = true
 var staff_flying_until: int = 0
 var staff_flight_hits: Dictionary[int, bool] = {}
@@ -98,7 +99,7 @@ func _physics_process(delta: float) -> void:
 	else:
 		jumps_left = stats.jump_count
 
-	var direction := Input.get_axis("move_left", "move_right") if controls_enabled and Time.get_ticks_msec() >= rooted_until else 0.0
+	var direction := movement_direction(Input.get_axis("move_left", "move_right")) if controls_enabled and Time.get_ticks_msec() >= rooted_until else 0.0
 	if not is_zero_approx(direction):
 		facing = signf(direction)
 		sprite.flip_h = facing < 0.0
@@ -184,7 +185,7 @@ func perform_attack(damage_override: float = -1.0) -> void:
 
 func update_charge_feedback() -> void:
 	if not attack_held:
-		sprite.modulate = Color.WHITE
+		sprite.modulate = Color("ffc1e7") if Time.get_ticks_msec() < confused_until else Color.WHITE
 		sprite.scale = base_sprite_scale
 		return
 	var held_seconds := float(Time.get_ticks_msec() - attack_pressed_at) / 1000.0
@@ -220,6 +221,14 @@ func apply_slow(seconds: float) -> void:
 func apply_root(seconds: float) -> void:
 	rooted_until = maxi(rooted_until, Time.get_ticks_msec() + int(seconds * 1000.0))
 	velocity.x = 0.0
+
+
+func apply_confusion(seconds: float) -> void:
+	confused_until = maxi(confused_until, Time.get_ticks_msec() + int(seconds * 1000.0))
+
+
+func movement_direction(raw_direction: float) -> float:
+	return -raw_direction if Time.get_ticks_msec() < confused_until else raw_direction
 
 
 func use_current_artifact() -> void:

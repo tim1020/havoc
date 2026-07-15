@@ -39,6 +39,10 @@ func enrage_partner(_reward: int, partner: Enemy) -> void:
 		partner.current_phase = 2
 
 
+func next_level_path() -> String:
+	return GameState.FOURTH_LEVEL
+
+
 func ground_rects() -> Array[Rect2]:
 	return [Rect2(0, 650, 520, 120), Rect2(610, 650, 430, 120), Rect2(1140, 650, 280, 120), Rect2(2420, 650, 1140, 120), Rect2(3680, 650, 1440, 120)]
 

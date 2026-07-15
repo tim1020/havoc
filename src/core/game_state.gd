@@ -8,6 +8,7 @@ signal level_requested(level_path: String)
 const FIRST_LEVEL := "res://src/levels/level_01/level_01.tscn"
 const SECOND_LEVEL := "res://src/levels/level_02/level_02.tscn"
 const THIRD_LEVEL := "res://src/levels/level_03/level_03.tscn"
+const FOURTH_LEVEL := "res://src/levels/level_04/level_04.tscn"
 const SAVE_PATH := "user://havoc_save.json"
 const MAX_LIVES := 3
 const MAX_ARTIFACTS := 3

@@ -14,8 +14,10 @@ func _init(value: int = 2) -> void:
 func _draw() -> void:
 	if level_number == 2:
 		draw_dragon_palace()
-	else:
+	elif level_number == 3:
 		draw_underworld()
+	else:
+		draw_peach_garden()
 
 
 func draw_dragon_palace() -> void:
@@ -84,3 +86,42 @@ func draw_underworld() -> void:
 		draw_circle(Vector2(offset + x, 180), 24, Color("d9c3a4"))
 	draw_rect(Rect2(offset + 440, 380, 400, 210), Color("3e2837"), true)
 	draw_rect(Rect2(offset + 440, 380, 400, 210), Color("b38a55"), false, 8)
+
+
+func draw_peach_garden() -> void:
+	var colors := [Color("5f815d"), Color("427f83"), Color("896c8b"), Color("4f704f")]
+	for section in 4:
+		draw_rect(Rect2(section * SECTION_WIDTH, 0, SECTION_WIDTH, 720), colors[section])
+	# 4-1 桃林小径
+	for x in [120.0, 360.0, 650.0, 940.0, 1160.0]:
+		draw_line(Vector2(x, 620), Vector2(x, 270), Color("704a35"), 24, true)
+		for angle in range(0, 360, 45):
+			var point := Vector2(x, 250) + Vector2.from_angle(deg_to_rad(angle)) * 78.0
+			draw_circle(point, 43, Color("e889a1"))
+	# 4-2 瑶池木桥
+	var offset := SECTION_WIDTH
+	draw_rect(Rect2(offset, 500, SECTION_WIDTH, 180), Color("4b9cad"), true)
+	for x in range(80, 1200, 170):
+		draw_circle(Vector2(offset + x, 535 + (x % 2) * 45), 48, Color("70b978"))
+	draw_arc(Vector2(offset + 640, 470), 420, PI, TAU, 36, Color("edc978"), 14, true)
+	# 4-3 七彩瑶台
+	offset = SECTION_WIDTH * 2
+	draw_circle(Vector2(offset + 640, 610), 390, Color("d8c6dd"))
+	for index in 7:
+		var x := offset + 180 + index * 150
+		draw_bezier(PackedVector2Array([Vector2(x, 80), Vector2(x + 80, 240), Vector2(x - 70, 370), Vector2(x + 25, 520)]), Color.from_hsv(index / 7.0, 0.55, 0.95), 9)
+	# 4-4 巨蟠桃树
+	offset = SECTION_WIDTH * 3
+	draw_line(Vector2(offset + 640, 650), Vector2(offset + 640, 115), Color("65452f"), 110, true)
+	for angle in range(0, 360, 30):
+		var point := Vector2(offset + 640, 170) + Vector2.from_angle(deg_to_rad(angle)) * 270.0
+		draw_circle(point, 115, Color("d77e96"))
+	for x in [300.0, 640.0, 980.0]:
+		draw_circle(Vector2(offset + x, 235), 42, Color("f3ae75"))
+
+
+func draw_bezier(points: PackedVector2Array, color: Color, width: float) -> void:
+	var curve := Curve2D.new()
+	curve.add_point(points[0], Vector2.ZERO, points[1] - points[0])
+	curve.add_point(points[3], points[2] - points[3], Vector2.ZERO)
+	draw_polyline(curve.tessellate(5, 3.0), color, width, true)

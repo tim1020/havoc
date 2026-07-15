@@ -42,6 +42,7 @@ var hit_reaction_until: int = 0
 var base_collision_layer: int
 var base_collision_mask: int
 var ghost_solid: bool = true
+var disguised: bool = false
 
 
 func _ready() -> void:
@@ -54,6 +55,7 @@ func _ready() -> void:
 	base_collision_layer = collision_layer
 	base_collision_mask = collision_mask
 	spawn_position = global_position
+	disguised = stats.disguise_reveal_distance > 0.0
 	setup_character_frames()
 	setup_attack_effect_frames()
 	sprite.scale = visual_scale
@@ -77,6 +79,10 @@ func _physics_process(delta: float) -> void:
 		return
 
 	var player := get_tree().get_first_node_in_group("player") as Player
+	if disguised:
+		velocity = Vector2.ZERO
+		if not update_disguise(player):
+			return
 	if behavior == Behavior.FLYING:
 		update_flying(delta, player)
 	else:
@@ -145,6 +151,8 @@ func try_attack(player: Player) -> void:
 		player.apply_slow(stats.contact_slow_seconds)
 	if stats.contact_root_seconds > 0.0:
 		player.apply_root(stats.contact_root_seconds)
+	if stats.contact_confusion_seconds > 0.0:
+		player.apply_confusion(stats.contact_confusion_seconds)
 	if stats.pull_distance > 0.0:
 		player.global_position.x = move_toward(player.global_position.x, global_position.x, stats.pull_distance)
 
@@ -177,6 +185,19 @@ func take_damage(damage: float, source_position: Vector2) -> void:
 		phase_two = current_phase > 1
 	if is_zero_approx(health):
 		die()
+
+
+func reveal_disguise() -> void:
+	disguised = false
+	attack_animation_until = Time.get_ticks_msec() + 500
+	sprite.play("attack")
+
+
+func update_disguise(player: Player) -> bool:
+	if player == null or global_position.distance_to(player.global_position) > stats.disguise_reveal_distance:
+		return false
+	reveal_disguise()
+	return true
 
 
 func update_ghost_state() -> void:
