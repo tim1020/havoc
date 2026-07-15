@@ -35,6 +35,12 @@ func run_checks() -> void:
 
 	var player := level.player as Player
 	check(player != null and player.health == player_stats.max_health, "玩家已生成且生命正确")
+	var all_player_states_animated := true
+	for animation in [&"idle", &"run", &"jump", &"attack_1", &"attack_2", &"attack_3", &"hurt", &"death", &"respawn", &"spell"]:
+		if player.sprite.sprite_frames.get_frame_count(animation) < 2:
+			all_player_states_animated = false
+	check(all_player_states_animated, "玩家核心状态均包含至少2个图像帧")
+	check(player.attack_effect.sprite_frames.get_frame_count(&"attack") == 4, "玩家攻击使用4帧独立弧光特效")
 	check(get_tree().get_nodes_in_group("enemies").size() == 8, "第一关生成8名敌人")
 	check(get_tree().get_nodes_in_group("bosses").size() == 2, "第一关生成中Boss与关底Boss")
 	check(level.find_children("*", "Hazard", true, false).size() == 3, "第一关生成3组资源化陷阱")
@@ -92,6 +98,7 @@ func run_checks() -> void:
 	for _frame in 2:
 		await get_tree().physics_frame
 	check(first_enemy.health == enemy_health_before_attack - player.stats.combo_damage[0], "短按松开触发普通攻击")
+	check(player.attack_effect.visible, "普通攻击播放可见逐帧特效")
 	check(first_enemy.hit_reaction_until > Time.get_ticks_msec(), "敌兵受击进入可见反馈状态")
 	check(hud.enemy_panel.visible, "敌兵受击显示右上状态面板")
 	check(hud.enemy_name_label.text == first_enemy.stats.display_name, "右上状态面板显示敌兵名称")
@@ -125,12 +132,19 @@ func run_checks() -> void:
 	first_enemy.hit_reaction_until = 0
 	first_enemy.frozen_until = 0
 	first_enemy.velocity.x = 100.0
-	first_enemy.visual_time = 0.0
 	first_enemy.update_visual_animation()
-	var first_motion_position := first_enemy.sprite.position
-	first_enemy.visual_time = 0.2
-	first_enemy.update_visual_animation()
-	check(first_enemy.sprite.position != first_motion_position, "敌兵移动动画持续改变视觉帧")
+	check(first_enemy.sprite.animation == &"walk", "敌兵移动时切换逐帧移动动画")
+	var enemy_rows: Dictionary[int, bool] = {}
+	var all_enemy_states_animated := true
+	for enemy_node in get_tree().get_nodes_in_group("enemies"):
+		var enemy := enemy_node as Enemy
+		enemy_rows[enemy.atlas_row] = true
+		for animation in [&"idle", &"walk", &"attack", &"hurt", &"death"]:
+			if enemy.sprite.sprite_frames.get_frame_count(animation) < 2:
+				all_enemy_states_animated = false
+	check(enemy_rows.size() == 6, "第一关6类敌人使用6组独立角色帧")
+	check(all_enemy_states_animated, "所有敌兵核心状态均包含至少2个图像帧")
+	check(first_enemy.attack_effect.sprite_frames.get_frame_count(&"attack") == 4, "敌兵攻击使用4帧独立弧光特效")
 	player.set_physics_process(false)
 	first_enemy.set_physics_process(false)
 	player.global_position = Vector2(360, 580)

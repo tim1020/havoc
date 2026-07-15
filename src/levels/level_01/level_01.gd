@@ -6,12 +6,7 @@ const HUD_SCENE := preload("res://src/ui/hud/hud.tscn")
 const THORN_TEXTURE := preload("res://assets/generated/environments/level_01/thorn_spikes.png")
 const THORN_STATS := preload("res://resources/stats/hazards/thorn_spikes.tres")
 
-const REBEL_MONKEY := preload("res://assets/generated/characters/enemies/level_01/rebel_monkey.png")
-const SNAKE := preload("res://assets/generated/characters/enemies/level_01/snake.png")
-const BOAR := preload("res://assets/generated/characters/enemies/level_01/boar_demon.png")
-const EAGLE := preload("res://assets/generated/characters/enemies/level_01/eagle_demon.png")
-const AXE_BULL := preload("res://assets/generated/characters/bosses/level_01/axe_bull.png")
-const DEMON_KING := preload("res://assets/generated/characters/bosses/level_01/demon_king.png")
+const ENEMY_ANIMATION_ATLAS := preload("res://assets/vector/characters/level_01_enemy_frames.svg")
 
 const REBEL_STATS := preload("res://resources/stats/enemies/rebel_monkey.tres")
 const SNAKE_STATS := preload("res://resources/stats/enemies/snake.tres")
@@ -160,22 +155,23 @@ func spawn_hud() -> void:
 
 
 func spawn_enemies() -> void:
-	spawn_enemy(Vector2(620, 580), REBEL_STATS, REBEL_MONKEY, Enemy.Behavior.MELEE, Vector2(0.105, 0.105))
-	spawn_enemy(Vector2(920, 610), SNAKE_STATS, SNAKE, Enemy.Behavior.MELEE, Vector2(0.075, 0.075))
-	spawn_enemy(Vector2(1480, 570), REBEL_STATS, REBEL_MONKEY, Enemy.Behavior.MELEE, Vector2(0.105, 0.105))
-	spawn_enemy(Vector2(1950, 550), EAGLE_STATS, EAGLE, Enemy.Behavior.FLYING, Vector2(0.09, 0.09))
-	spawn_enemy(Vector2(2700, 560), BOAR_STATS, BOAR, Enemy.Behavior.CHARGE, Vector2(0.105, 0.105))
-	spawn_enemy(Vector2(3250, 550), EAGLE_STATS, EAGLE, Enemy.Behavior.FLYING, Vector2(0.09, 0.09))
-	spawn_enemy(Vector2(3650, 535), AXE_BULL_STATS, AXE_BULL, Enemy.Behavior.BOSS, Vector2(0.13, 0.13))
-	var boss := spawn_enemy(Vector2(4650, 515), DEMON_KING_STATS, DEMON_KING, Enemy.Behavior.BOSS, Vector2(0.145, 0.145))
+	spawn_enemy(Vector2(620, 580), REBEL_STATS, 0, Enemy.Behavior.MELEE, Vector2.ONE)
+	spawn_enemy(Vector2(920, 610), SNAKE_STATS, 1, Enemy.Behavior.MELEE, Vector2(0.86, 0.86))
+	spawn_enemy(Vector2(1480, 570), REBEL_STATS, 0, Enemy.Behavior.MELEE, Vector2.ONE)
+	spawn_enemy(Vector2(1950, 550), EAGLE_STATS, 3, Enemy.Behavior.FLYING, Vector2.ONE)
+	spawn_enemy(Vector2(2700, 560), BOAR_STATS, 2, Enemy.Behavior.CHARGE, Vector2(1.08, 1.08))
+	spawn_enemy(Vector2(3250, 550), EAGLE_STATS, 3, Enemy.Behavior.FLYING, Vector2.ONE)
+	spawn_enemy(Vector2(3650, 535), AXE_BULL_STATS, 4, Enemy.Behavior.BOSS, Vector2(1.25, 1.25))
+	var boss := spawn_enemy(Vector2(4650, 515), DEMON_KING_STATS, 5, Enemy.Behavior.BOSS, Vector2(1.4, 1.4))
 	boss.defeated.connect(complete_level)
 
 
-func spawn_enemy(position_value: Vector2, stats_value: EnemyStats, texture_value: Texture2D, behavior_value: Enemy.Behavior, scale_value: Vector2) -> Enemy:
+func spawn_enemy(position_value: Vector2, stats_value: EnemyStats, atlas_row_value: int, behavior_value: Enemy.Behavior, scale_value: Vector2) -> Enemy:
 	var enemy := ENEMY_SCENE.instantiate() as Enemy
 	enemy.position = position_value
 	enemy.stats = stats_value
-	enemy.visual_texture = texture_value
+	enemy.animation_atlas = ENEMY_ANIMATION_ATLAS
+	enemy.atlas_row = atlas_row_value
 	enemy.visual_scale = scale_value
 	enemy.behavior = behavior_value
 	enemy.defeated.connect(add_spirit_stones)

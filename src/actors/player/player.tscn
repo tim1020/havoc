@@ -1,8 +1,9 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://src/actors/player/player.gd" id="1"]
 [ext_resource type="Resource" path="res://resources/stats/player_empty_hand.tres" id="2"]
 [ext_resource type="SpriteFrames" path="res://resources/animations/player_empty_hand_frames.tres" id="3"]
+[ext_resource type="SpriteFrames" path="res://resources/animations/melee_arc_frames.tres" id="4"]
 
 [sub_resource type="CapsuleShape2D" id="BodyShape"]
 radius = 26.0
@@ -39,6 +40,14 @@ monitoring = true
 
 [node name="Shape" type="CollisionShape2D" parent="AttackArea"]
 shape = SubResource("AttackShape")
+
+[node name="AttackEffect" type="AnimatedSprite2D" parent="."]
+unique_name_in_owner = true
+position = Vector2(68, -54)
+z_index = 2
+sprite_frames = ExtResource("4")
+animation = &"attack"
+visible = false
 
 [node name="Camera" type="Camera2D" parent="."]
 position = Vector2(0, -120)

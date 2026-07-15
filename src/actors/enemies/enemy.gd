@@ -12,13 +12,18 @@ enum Behavior {
 	BOSS,
 }
 
+const FRAME_SIZE := Vector2(128.0, 128.0)
+const MELEE_EFFECT_ATLAS := preload("res://assets/vector/effects/melee_arc_frames.svg")
+
 @export var stats: EnemyStats
 @export var behavior: Behavior = Behavior.MELEE
 @export_range(0.0, 1200.0, 1.0) var patrol_distance: float = 220.0
-@export var visual_texture: Texture2D
-@export var visual_scale: Vector2 = Vector2(0.1, 0.1)
+@export var animation_atlas: Texture2D
+@export_range(0, 5, 1) var atlas_row: int = 0
+@export var visual_scale: Vector2 = Vector2.ONE
 
-@onready var sprite: Sprite2D = %Sprite
+@onready var sprite: AnimatedSprite2D = %Sprite
+@onready var attack_effect: AnimatedSprite2D = %AttackEffect
 
 var health: float
 var spawn_position: Vector2
@@ -33,22 +38,20 @@ var flight_time: float = 0.0
 var visual_time: float = 0.0
 var attack_animation_until: int = 0
 var hit_reaction_until: int = 0
-var base_sprite_position: Vector2
-var base_visual_scale: Vector2
 
 
 func _ready() -> void:
 	assert(stats != null, "EnemyStats is required")
-	assert(visual_texture != null, "Enemy visual texture is required")
+	assert(animation_atlas != null, "Enemy animation atlas is required")
 	add_to_group("enemies")
 	if stats.is_boss:
 		add_to_group("bosses")
 	health = stats.max_health
 	spawn_position = global_position
-	sprite.texture = visual_texture
+	setup_character_frames()
+	setup_attack_effect_frames()
 	sprite.scale = visual_scale
-	base_sprite_position = sprite.position
-	base_visual_scale = visual_scale
+	sprite.play("idle")
 	health_changed.emit(health, stats.max_health)
 
 
@@ -126,6 +129,10 @@ func try_attack(player: Player) -> void:
 		return
 	next_attack_at = Time.get_ticks_msec() + (700 if phase_two else 1100)
 	attack_animation_until = Time.get_ticks_msec() + 260
+	attack_effect.flip_h = sprite.flip_h
+	attack_effect.position.x = -58.0 if sprite.flip_h else 58.0
+	attack_effect.visible = true
+	attack_effect.play("attack")
 	player.take_damage(stats.contact_damage * (1.5 if phase_two else 1.0), global_position)
 
 
@@ -154,40 +161,68 @@ func take_damage(damage: float, source_position: Vector2) -> void:
 
 func update_visual_animation() -> void:
 	var now := Time.get_ticks_msec()
-	var facing := patrol_direction if not is_zero_approx(patrol_direction) else -1.0
-	var animation_scale := base_visual_scale
-	var animation_position := base_sprite_position
-	var animation_rotation := 0.0
 	var flash_amount := 0.0
+	var next_animation := &"idle"
 
 	if now < hit_reaction_until:
 		var pulse := sin(float(hit_reaction_until - now) * 0.045)
-		animation_scale *= Vector2(0.92, 1.08)
-		animation_position.x -= facing * 8.0
-		animation_rotation = -facing * 0.09
-		flash_amount = clampf(absf(pulse), 0.35, 1.0)
+		flash_amount = clampf(absf(pulse), 0.25, 0.62)
+		next_animation = &"hurt"
 	elif now < frozen_until:
-		animation_scale *= Vector2(1.02, 0.98)
+		next_animation = sprite.animation
 	elif now < attack_animation_until:
-		animation_scale *= Vector2(1.1, 0.94)
-		animation_position.x += facing * 12.0
-		animation_rotation = facing * 0.07
+		next_animation = &"attack"
 	elif absf(velocity.x) > 8.0 or behavior == Behavior.FLYING:
-		var stride := sin(visual_time * (12.0 if phase_two else 9.0))
-		animation_position.y -= absf(stride) * 5.0
-		animation_rotation = stride * 0.035
-		animation_scale *= Vector2(1.0 + absf(stride) * 0.025, 1.0 - absf(stride) * 0.025)
-	else:
-		var breath := sin(visual_time * 2.8)
-		animation_position.y += breath * 2.5
-		animation_scale *= Vector2(1.0 - breath * 0.012, 1.0 + breath * 0.018)
-
-	sprite.position = animation_position
-	sprite.scale = animation_scale
-	sprite.rotation = animation_rotation
+		next_animation = &"walk"
+	if sprite.animation != next_animation:
+		sprite.play(next_animation)
+	sprite.speed_scale = 0.0 if now < frozen_until else (1.35 if phase_two else 1.0)
 	var shader_material := sprite.material as ShaderMaterial
 	if shader_material != null:
 		shader_material.set_shader_parameter("flash_amount", flash_amount)
+
+
+func setup_character_frames() -> void:
+	var frames := SpriteFrames.new()
+	frames.remove_animation(&"default")
+	var definitions := {
+		&"idle": [0, 1, 3.0, true],
+		&"walk": [2, 3, 8.0, true],
+		&"attack": [4, 5, 9.0, false],
+		&"hurt": [6, 7, 10.0, false],
+		&"death": [8, 9, 6.0, false],
+	}
+	for animation: StringName in definitions:
+		var definition: Array = definitions[animation]
+		frames.add_animation(animation)
+		frames.set_animation_speed(animation, definition[2])
+		frames.set_animation_loop(animation, definition[3])
+		for column in range(definition[0], definition[1] + 1):
+			frames.add_frame(animation, create_atlas_frame(animation_atlas, column, atlas_row))
+	sprite.sprite_frames = frames
+
+
+func setup_attack_effect_frames() -> void:
+	var frames := SpriteFrames.new()
+	frames.remove_animation(&"default")
+	frames.add_animation(&"attack")
+	frames.set_animation_speed(&"attack", 14.0)
+	frames.set_animation_loop(&"attack", false)
+	for column in 4:
+		frames.add_frame(&"attack", create_atlas_frame(MELEE_EFFECT_ATLAS, column, 0))
+	attack_effect.sprite_frames = frames
+	attack_effect.visible = false
+	attack_effect.animation_finished.connect(func() -> void:
+		attack_effect.stop()
+		attack_effect.visible = false
+	)
+
+
+func create_atlas_frame(atlas: Texture2D, column: int, row: int) -> AtlasTexture:
+	var frame := AtlasTexture.new()
+	frame.atlas = atlas
+	frame.region = Rect2(Vector2(column, row) * FRAME_SIZE, FRAME_SIZE)
+	return frame
 
 
 func freeze_for(seconds: float) -> void:
@@ -202,9 +237,10 @@ func die() -> void:
 	dead = true
 	set_physics_process(false)
 	defeated.emit(stats.spirit_stones)
+	sprite.play("death")
+	await sprite.animation_finished
 	var tween := create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(sprite, "modulate:a", 0.0, 0.35)
-	tween.tween_property(sprite, "scale", sprite.scale * 0.7, 0.35)
 	await tween.finished
 	queue_free()

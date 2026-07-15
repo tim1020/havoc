@@ -36,57 +36,57 @@ region = Rect2(1329, 443, 443, 443)
 
 [resource]
 animations = [{
-"frames": [{"duration": 1.0, "texture": SubResource("Idle")}],
+"frames": [{"duration": 1.0, "texture": SubResource("Idle")}, {"duration": 1.0, "texture": SubResource("Respawn")}],
 "loop": true,
 "name": &"idle",
 "speed": 2.0
 }, {
-"frames": [{"duration": 1.0, "texture": SubResource("Run")}],
+"frames": [{"duration": 1.0, "texture": SubResource("Run")}, {"duration": 1.0, "texture": SubResource("Jump")}],
 "loop": true,
 "name": &"run",
 "speed": 6.0
 }, {
-"frames": [{"duration": 1.0, "texture": SubResource("Idle")}],
+"frames": [{"duration": 1.0, "texture": SubResource("Idle")}, {"duration": 1.0, "texture": SubResource("Hurt")}],
 "loop": true,
 "name": &"crouch",
 "speed": 1.0
 }, {
-"frames": [{"duration": 1.0, "texture": SubResource("Jump")}],
+"frames": [{"duration": 1.0, "texture": SubResource("Jump")}, {"duration": 1.0, "texture": SubResource("Run")}],
 "loop": false,
 "name": &"jump",
 "speed": 1.0
 }, {
-"frames": [{"duration": 1.0, "texture": SubResource("Attack1")}],
+"frames": [{"duration": 1.0, "texture": SubResource("Attack1")}, {"duration": 1.0, "texture": SubResource("Attack2")}],
 "loop": false,
 "name": &"attack_1",
 "speed": 8.0
 }, {
-"frames": [{"duration": 1.0, "texture": SubResource("Attack2")}],
+"frames": [{"duration": 1.0, "texture": SubResource("Attack2")}, {"duration": 1.0, "texture": SubResource("Attack3")}],
 "loop": false,
 "name": &"attack_2",
 "speed": 8.0
 }, {
-"frames": [{"duration": 1.0, "texture": SubResource("Attack3")}],
+"frames": [{"duration": 1.0, "texture": SubResource("Attack3")}, {"duration": 1.0, "texture": SubResource("Attack1")}],
 "loop": false,
 "name": &"attack_3",
 "speed": 8.0
 }, {
-"frames": [{"duration": 1.0, "texture": SubResource("Hurt")}],
+"frames": [{"duration": 1.0, "texture": SubResource("Hurt")}, {"duration": 1.0, "texture": SubResource("Respawn")}],
 "loop": false,
 "name": &"hurt",
 "speed": 1.0
 }, {
-"frames": [{"duration": 1.0, "texture": SubResource("Hurt")}],
+"frames": [{"duration": 1.0, "texture": SubResource("Hurt")}, {"duration": 1.0, "texture": SubResource("Idle")}],
 "loop": false,
 "name": &"death",
 "speed": 1.0
 }, {
-"frames": [{"duration": 1.0, "texture": SubResource("Respawn")}],
+"frames": [{"duration": 1.0, "texture": SubResource("Respawn")}, {"duration": 1.0, "texture": SubResource("Idle")}],
 "loop": false,
 "name": &"respawn",
 "speed": 1.0
 }, {
-"frames": [{"duration": 1.0, "texture": SubResource("Respawn")}],
+"frames": [{"duration": 1.0, "texture": SubResource("Respawn")}, {"duration": 1.0, "texture": SubResource("Attack1")}],
 "loop": false,
 "name": &"spell",
 "speed": 1.0

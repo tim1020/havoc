@@ -10,6 +10,7 @@ signal respawned
 @onready var sprite: AnimatedSprite2D = %Sprite
 @onready var standing_shape: CollisionShape2D = %StandingShape
 @onready var attack_area: Area2D = %AttackArea
+@onready var attack_effect: AnimatedSprite2D = %AttackEffect
 
 var health: float
 var jumps_left: int
@@ -31,6 +32,10 @@ func _ready() -> void:
 	jumps_left = stats.jump_count
 	respawn_position = global_position
 	attack_area.monitoring = true
+	attack_effect.animation_finished.connect(func() -> void:
+		attack_effect.stop()
+		attack_effect.visible = false
+	)
 	base_sprite_scale = sprite.scale
 	health_changed.emit(health, stats.max_health)
 
@@ -125,6 +130,11 @@ func perform_attack(damage_override: float = -1.0) -> void:
 		combo_expires_at = now + int(stats.combo_reset_seconds * 1000.0)
 		play_if_available("attack_%d" % (combo_index if combo_index > 0 else 3))
 	attack_area.position.x = absf(attack_area.position.x) * facing
+	attack_effect.flip_h = facing < 0.0
+	attack_effect.position.x = absf(attack_effect.position.x) * facing
+	attack_effect.scale = Vector2(1.25, 1.25) if damage_override >= 0.0 else Vector2.ONE
+	attack_effect.visible = true
+	attack_effect.play("attack")
 	await get_tree().physics_frame
 	for body in attack_area.get_overlapping_bodies():
 		if body.has_method("take_damage"):
