@@ -5,6 +5,7 @@ extends Node2D
 @export var speed: float = 760.0
 
 var target: Enemy
+# 受击击退与伤害方向使用释放瞬间的玩家位置，不随投射物轨迹变化。
 var source_position: Vector2
 
 
@@ -18,6 +19,7 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	# 目标死亡或失效时直接回收；追踪棒不会改为寻找新的目标。
 	if not is_instance_valid(target) or target.dead:
 		queue_free()
 		return

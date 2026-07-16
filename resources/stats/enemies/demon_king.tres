@@ -19,3 +19,4 @@ projectile_damage = 20.0
 projectile_speed = 500.0
 projectile_cooldown = 2.2
 projectile_color = Color(0.82, 0.18, 0.12, 1)
+projectile_style = "axe"

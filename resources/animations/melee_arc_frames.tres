@@ -1,6 +1,6 @@
-[gd_resource type="SpriteFrames" load_steps=6 format=3]
+[gd_resource type="SpriteFrames" format=3 uid="uid://bjacf11800ahn"]
 
-[ext_resource type="Texture2D" path="res://assets/vector/effects/melee_arc_frames.svg" id="1"]
+[ext_resource type="Texture2D" uid="uid://dmqxb15p5c5j0" path="res://assets/vector/effects/melee_arc_frames.svg" id="1"]
 
 [sub_resource type="AtlasTexture" id="Frame0"]
 atlas = ExtResource("1")
@@ -20,7 +20,19 @@ region = Rect2(384, 0, 128, 128)
 
 [resource]
 animations = [{
-"frames": [{"duration": 1.0, "texture": SubResource("Frame0")}, {"duration": 1.0, "texture": SubResource("Frame1")}, {"duration": 1.0, "texture": SubResource("Frame2")}, {"duration": 1.0, "texture": SubResource("Frame3")}],
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("Frame0")
+}, {
+"duration": 1.0,
+"texture": SubResource("Frame1")
+}, {
+"duration": 1.0,
+"texture": SubResource("Frame2")
+}, {
+"duration": 1.0,
+"texture": SubResource("Frame3")
+}],
 "loop": false,
 "name": &"attack",
 "speed": 14.0

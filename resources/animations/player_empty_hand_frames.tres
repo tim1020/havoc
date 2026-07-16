@@ -1,18 +1,6 @@
-[gd_resource type="SpriteFrames" load_steps=10 format=3]
+[gd_resource type="SpriteFrames" format=3 uid="uid://cav2dvlmp7gfm"]
 
-[ext_resource type="Texture2D" path="res://assets/generated/characters/player/player_empty_hand_atlas.png" id="1"]
-
-[sub_resource type="AtlasTexture" id="Idle"]
-atlas = ExtResource("1")
-region = Rect2(0, 0, 443, 443)
-
-[sub_resource type="AtlasTexture" id="Run"]
-atlas = ExtResource("1")
-region = Rect2(443, 0, 443, 443)
-
-[sub_resource type="AtlasTexture" id="Jump"]
-atlas = ExtResource("1")
-region = Rect2(886, 0, 443, 443)
+[ext_resource type="Texture2D" uid="uid://dcgtxmkxcye4b" path="res://assets/generated/characters/player/player_empty_hand_atlas.png" id="1"]
 
 [sub_resource type="AtlasTexture" id="Attack1"]
 atlas = ExtResource("1")
@@ -26,6 +14,10 @@ region = Rect2(0, 443, 443, 443)
 atlas = ExtResource("1")
 region = Rect2(443, 443, 443, 443)
 
+[sub_resource type="AtlasTexture" id="Idle"]
+atlas = ExtResource("1")
+region = Rect2(0, 0, 443, 443)
+
 [sub_resource type="AtlasTexture" id="Hurt"]
 atlas = ExtResource("1")
 region = Rect2(886, 443, 443, 443)
@@ -34,59 +26,133 @@ region = Rect2(886, 443, 443, 443)
 atlas = ExtResource("1")
 region = Rect2(1329, 443, 443, 443)
 
+[sub_resource type="AtlasTexture" id="Jump"]
+atlas = ExtResource("1")
+region = Rect2(886, 0, 443, 443)
+
+[sub_resource type="AtlasTexture" id="Run"]
+atlas = ExtResource("1")
+region = Rect2(443, 0, 443, 443)
+
 [resource]
 animations = [{
-"frames": [{"duration": 1.0, "texture": SubResource("Idle")}, {"duration": 1.0, "texture": SubResource("Respawn")}],
-"loop": true,
-"name": &"idle",
-"speed": 2.0
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("Attack1")
 }, {
-"frames": [{"duration": 1.0, "texture": SubResource("Run")}, {"duration": 1.0, "texture": SubResource("Jump")}],
-"loop": true,
-"name": &"run",
-"speed": 6.0
-}, {
-"frames": [{"duration": 1.0, "texture": SubResource("Idle")}, {"duration": 1.0, "texture": SubResource("Hurt")}],
-"loop": true,
-"name": &"crouch",
-"speed": 1.0
-}, {
-"frames": [{"duration": 1.0, "texture": SubResource("Jump")}, {"duration": 1.0, "texture": SubResource("Run")}],
-"loop": false,
-"name": &"jump",
-"speed": 1.0
-}, {
-"frames": [{"duration": 1.0, "texture": SubResource("Attack1")}, {"duration": 1.0, "texture": SubResource("Attack2")}],
+"duration": 1.0,
+"texture": SubResource("Attack2")
+}],
 "loop": false,
 "name": &"attack_1",
 "speed": 8.0
 }, {
-"frames": [{"duration": 1.0, "texture": SubResource("Attack2")}, {"duration": 1.0, "texture": SubResource("Attack3")}],
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("Attack2")
+}, {
+"duration": 1.0,
+"texture": SubResource("Attack3")
+}],
 "loop": false,
 "name": &"attack_2",
 "speed": 8.0
 }, {
-"frames": [{"duration": 1.0, "texture": SubResource("Attack3")}, {"duration": 1.0, "texture": SubResource("Attack1")}],
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("Attack3")
+}, {
+"duration": 1.0,
+"texture": SubResource("Attack1")
+}],
 "loop": false,
 "name": &"attack_3",
 "speed": 8.0
 }, {
-"frames": [{"duration": 1.0, "texture": SubResource("Hurt")}, {"duration": 1.0, "texture": SubResource("Respawn")}],
-"loop": false,
-"name": &"hurt",
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("Idle")
+}, {
+"duration": 1.0,
+"texture": SubResource("Hurt")
+}],
+"loop": true,
+"name": &"crouch",
 "speed": 1.0
 }, {
-"frames": [{"duration": 1.0, "texture": SubResource("Hurt")}, {"duration": 1.0, "texture": SubResource("Idle")}],
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("Hurt")
+}, {
+"duration": 1.0,
+"texture": SubResource("Idle")
+}],
 "loop": false,
 "name": &"death",
 "speed": 1.0
 }, {
-"frames": [{"duration": 1.0, "texture": SubResource("Respawn")}, {"duration": 1.0, "texture": SubResource("Idle")}],
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("Hurt")
+}, {
+"duration": 1.0,
+"texture": SubResource("Respawn")
+}],
+"loop": false,
+"name": &"hurt",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("Idle")
+}, {
+"duration": 1.0,
+"texture": SubResource("Idle")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 2.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("Jump")
+}, {
+"duration": 1.0,
+"texture": SubResource("Run")
+}],
+"loop": false,
+"name": &"jump",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("Respawn")
+}, {
+"duration": 1.0,
+"texture": SubResource("Idle")
+}],
 "loop": false,
 "name": &"respawn",
 "speed": 1.0
 }, {
-"frames": [{"duration": 1.0, "texture": SubResource("Respawn")}, {"duration": 1.0, "texture": SubResource("Attack1")}],
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("Run")
+}, {
+"duration": 1.0,
+"texture": SubResource("Jump")
+}],
+"loop": true,
+"name": &"run",
+"speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("Respawn")
+}, {
+"duration": 1.0,
+"texture": SubResource("Attack1")
+}],
 "loop": false,
 "name": &"spell",
 "speed": 1.0

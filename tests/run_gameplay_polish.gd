@@ -27,17 +27,17 @@ func run_checks() -> void:
 	for _frame in 6:
 		await get_tree().physics_frame
 	var player := level.player as Player
-	var lives_before_test := GameState.lives
-	GameState.infinite_lives = true
-	check(GameState.consume_life() and GameState.lives == lives_before_test and level.hud.lives_label.text.contains("∞"), "debug测试模式救命毫毛无限且HUD明确显示")
-	GameState.infinite_lives = false
+	GameState.lives = 3
+	check(GameState.consume_life() and GameState.lives == 2, "debug测试模式也会消耗救命毫毛")
+	level.hud.update_lives(GameState.lives)
+	check(level.hud.lives_label.text == "毫毛  × 2", "HUD显示实际救命毫毛数量")
 	for enemy_node in get_tree().get_nodes_in_group("enemies"):
 		(enemy_node as Enemy).set_physics_process(false)
 
 	player.begin_attack_charge()
 	player.attack_pressed_at = Time.get_ticks_msec() - int(player.stats.charge_seconds * 1000.0)
 	player.update_charge_feedback()
-	check(player.charge_bar.visible and player.charge_bar.value >= 0.99, "蓄力时显示明确进度条")
+	check(player.sprite.animation == &"respawn" and not player.attack_effect.visible and not player.has_node("ChargeBar"), "空手蓄力使用周身怒火且无独立进度条")
 	player.cancel_attack_charge()
 
 	GameState.artifacts = [&"fire_spear", &"peach"]
@@ -59,6 +59,8 @@ func run_checks() -> void:
 	player.use_current_artifact()
 	var artifact_projectiles := get_tree().get_nodes_in_group("artifact_projectiles")
 	check(artifact_projectiles.size() == 1, "投掷法宝生成独立可见运动节点")
+	var artifact_sprite := (artifact_projectiles[0] as Node).get("sprite") as AnimatedSprite2D
+	check(artifact_sprite != null and artifact_sprite.sprite_frames.get_frame_count(&"fly") == 4, "投掷法宝使用四帧位图动画")
 	var projectile_start := (artifact_projectiles[0] as Node2D).global_position
 	for _frame in 8:
 		await get_tree().physics_frame
@@ -78,6 +80,7 @@ func run_checks() -> void:
 		var button := button_node as Button
 		product_icons_ok = product_icons_ok and button.icon != null and button.icon.get_size().x >= 48
 	check(product_icons_ok and shop.products.get_child_count() == 11, "商店11件商品均显示独立图片")
+	check(GameState.MAX_ARTIFACTS == 5 and level.hud.artifact_labels.size() == 5, "HUD与商店使用五格物品栏")
 	GameState.artifacts = [&"cosmic_ring"]
 	GameState.stones = 1000
 	player.health = 25.0
@@ -92,7 +95,12 @@ func run_checks() -> void:
 	player.global_position = Vector2(300, 580)
 	demon.next_projectile_at = 0
 	check(demon.try_ranged_attack(player), "Boss可主动释放远程技能")
-	check(get_tree().get_nodes_in_group("enemy_projectiles").size() == 1, "Boss远程技能生成可见投射物")
+	var enemy_projectiles := get_tree().get_nodes_in_group("enemy_projectiles")
+	check(enemy_projectiles.size() == 1, "Boss远程技能生成可见投射物")
+	var enemy_projectile_sprite := (enemy_projectiles[0] as Node).get("sprite") as AnimatedSprite2D
+	check(enemy_projectile_sprite != null and enemy_projectile_sprite.sprite_frames.get_frame_count(&"fly") == 4, "Boss远程兵器使用四帧位图动画")
+	var demon_idle := demon.sprite.sprite_frames.get_frame_texture(&"idle", 0) as AtlasTexture
+	check(demon_idle.atlas.resource_path.ends_with("level_01_enemy_frames.png"), "敌兵与Boss运行时使用PNG角色帧图集")
 	demon.phase_two = true
 	demon.next_projectile_at = 0
 	demon.try_ranged_attack(player)

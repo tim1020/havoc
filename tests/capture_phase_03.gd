@@ -60,7 +60,6 @@ func capture_level_03() -> bool:
 	camera.position_smoothing_enabled = false
 	camera.reset_smoothing()
 	level.player.begin_attack_charge()
-	level.player.attack_started_on_floor = true
 	level.player.attack_pressed_at = Time.get_ticks_msec() - int(level.player.stats.charge_seconds * 1000.0)
 	level.player.update_charge_feedback()
 	await settle(6)

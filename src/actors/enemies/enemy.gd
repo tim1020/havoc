@@ -157,6 +157,7 @@ func try_ranged_attack(player: Player) -> bool:
 		projectile.speed = stats.projectile_speed
 		projectile.damage = stats.projectile_damage * (stats.phase_damage_multiplier if phase_two else 1.0)
 		projectile.color = stats.projectile_color
+		projectile.style = stats.projectile_style
 		projectile.source_position = global_position
 		projectile.global_position = global_position + Vector2(0, -52)
 		get_tree().current_scene.add_child(projectile)

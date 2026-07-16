@@ -1,6 +1,9 @@
 class_name ArtifactProjectile
 extends Node2D
 
+const ARTIFACT_ATLAS := preload("res://assets/generated/effects/artifact_frames.png")
+const FRAME_SIZE := Vector2(128, 128)
+
 var item: ItemDefinition
 var target: Enemy
 var direction: float = 1.0
@@ -8,11 +11,13 @@ var source_position: Vector2
 var speed: float = 760.0
 var elapsed: float = 0.0
 var hit_ids: Dictionary[int, bool] = {}
+var sprite: AnimatedSprite2D
 
 
 func _ready() -> void:
 	add_to_group("artifact_projectiles")
 	z_index = 6
+	setup_sprite()
 	queue_redraw()
 
 
@@ -57,6 +62,8 @@ func impact_target() -> void:
 
 
 func _draw() -> void:
+	if sprite != null and sprite.visible:
+		return
 	var color := item.color if item != null else Color.WHITE
 	if item != null and item.id == &"purple_bell":
 		draw_arc(Vector2.ZERO, 30.0, 0.0, TAU, 32, color, 5.0, true)
@@ -67,3 +74,24 @@ func _draw() -> void:
 	else:
 		draw_circle(Vector2.ZERO, 16.0, color)
 		draw_arc(Vector2.ZERO, 22.0, 0.0, TAU, 24, Color.WHITE, 3.0, true)
+
+
+func setup_sprite() -> void:
+	var row := {&"cosmic_ring": 0, &"fire_spear": 1, &"heaven_seal": 2}.get(item.id, -1) as int
+	if row < 0:
+		return
+	sprite = AnimatedSprite2D.new()
+	var frames := SpriteFrames.new()
+	frames.remove_animation(&"default")
+	frames.add_animation(&"fly")
+	frames.set_animation_speed(&"fly", 12.0)
+	frames.set_animation_loop(&"fly", true)
+	for column in 4:
+		var frame := AtlasTexture.new()
+		frame.atlas = ARTIFACT_ATLAS
+		frame.region = Rect2(Vector2(column, row) * FRAME_SIZE, FRAME_SIZE)
+		frames.add_frame(&"fly", frame)
+	sprite.sprite_frames = frames
+	sprite.scale = Vector2(0.55, 0.55)
+	add_child(sprite)
+	sprite.play(&"fly")

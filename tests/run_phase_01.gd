@@ -94,6 +94,7 @@ func run_checks() -> void:
 	attack_press.action = "attack"
 	attack_press.pressed = true
 	player._unhandled_input(attack_press)
+	player.attack_started_in_air = false
 	await get_tree().physics_frame
 	check(first_enemy.health == enemy_health_before_attack, "按下攻击键不会立即攻击")
 	var attack_release := InputEventAction.new()
@@ -103,7 +104,7 @@ func run_checks() -> void:
 	for _frame in 2:
 		await get_tree().physics_frame
 	check(first_enemy.health == enemy_health_before_attack - player.stats.combo_damage[0], "短按松开触发普通攻击")
-	check(player.attack_effect.visible, "普通攻击播放可见逐帧特效")
+	check(player.attack_effect.visible, "普通攻击保留可见逐帧弧光特效")
 	check(first_enemy.hit_reaction_until > Time.get_ticks_msec(), "敌兵受击进入可见反馈状态")
 	check(hud.enemy_panel.visible, "敌兵受击显示右上状态面板")
 	check(hud.enemy_name_label.text == first_enemy.stats.display_name, "右上状态面板显示敌兵名称")
@@ -127,13 +128,28 @@ func run_checks() -> void:
 		player.begin_attack_charge()
 		player.attack_pressed_at = Time.get_ticks_msec() - int(player.stats.charge_seconds * 1000.0) - 10
 		player.update_charge_feedback()
-		check(player.sprite.scale.x > player.base_sprite_scale.x, "长按攻击显示蓄力视觉反馈")
+		check(player.sprite.animation == &"respawn" and not player.attack_effect.visible and not player.has_node("ChargeBar"), "空手蓄力使用周身怒火且不显示独立进度条")
 		await get_tree().physics_frame
 		check(boar.health == boar_health_before_charge, "长按期间不会连续攻击")
 		player.release_attack_charge()
+		check(get_tree().get_nodes_in_group(&"roar_effects").size() == 3, "空手怒吼释放三段可见冲击效果")
 		for _frame in 2:
 			await get_tree().physics_frame
-		check(boar.health == boar_health_before_charge - player.stats.charged_attack_damage, "蓄力松开触发30点攻击")
+		check(boar.health == boar_health_before_charge - player.stats.charged_attack_damage, "空手蓄力松开以怒吼造成30点伤害")
+		boar.invulnerable_until = 0
+		boar.set_physics_process(false)
+		boar.health = boar.stats.max_health
+		boar.global_position = player.global_position + Vector2(190, 0)
+		boar.velocity = Vector2.ZERO
+		boar.patrol_direction = 1.0
+		var enemy_health_before_air_heavy := boar.health
+		player.begin_attack_charge()
+		player.attack_started_in_air = true
+		player.release_attack_charge()
+		for _frame in 3:
+			await get_tree().physics_frame
+		check(boar.health == enemy_health_before_air_heavy - player.stats.combo_damage[0] * 2.0, "空中短按重击以双倍距离造成双倍伤害")
+		boar.set_physics_process(true)
 	check(player.attack_area.monitoring, "攻击检测区保持常驻监测")
 	first_enemy.hit_reaction_until = 0
 	first_enemy.frozen_until = 0

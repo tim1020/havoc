@@ -17,4 +17,5 @@ projectile_damage = 24.0
 projectile_speed = 540.0
 projectile_cooldown = 1.8
 projectile_color = Color(0.36, 0.65, 1, 1)
+projectile_style = "dragon_orb"
 reflects_projectiles = true

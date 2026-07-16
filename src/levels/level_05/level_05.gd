@@ -10,18 +10,18 @@ const CLOUD := preload("res://resources/stats/enemies/cloud_immortal.tres")
 const GUARDIAN := preload("res://resources/stats/enemies/gate_guardian.tres")
 const PHANTOM := preload("res://resources/stats/enemies/growth_phantom.tres")
 const ILLUSION := preload("res://resources/stats/enemies/heaven_illusion.tres")
-const GUARD_FRAMES := preload("res://assets/vector/characters/campaign/gold_guard_frames.svg")
-const ARCHER_FRAMES := preload("res://assets/vector/characters/campaign/heaven_archer_frames.svg")
-const CLOUD_FRAMES := preload("res://assets/vector/characters/campaign/cloud_immortal_frames.svg")
-const GUARDIAN_FRAMES := preload("res://assets/vector/characters/campaign/gate_guardian_frames.svg")
-const PHANTOM_FRAMES := preload("res://assets/vector/characters/campaign/growth_phantom_frames.svg")
+const GUARD_FRAMES := preload("res://assets/generated/characters/campaign/gold_guard_frames.png")
+const ARCHER_FRAMES := preload("res://assets/generated/characters/campaign/heaven_archer_frames.png")
+const CLOUD_FRAMES := preload("res://assets/generated/characters/campaign/cloud_immortal_frames.png")
+const GUARDIAN_FRAMES := preload("res://assets/generated/characters/campaign/gate_guardian_frames.png")
+const PHANTOM_FRAMES := preload("res://assets/generated/characters/campaign/growth_phantom_frames.png")
 const KING_STATS := [
 	preload("res://resources/stats/enemies/dhritarashtra.tres"), preload("res://resources/stats/enemies/virudhaka.tres"),
 	preload("res://resources/stats/enemies/virupaksha.tres"), preload("res://resources/stats/enemies/vaishravana.tres"),
 ]
 const KING_FRAMES := [
-	preload("res://assets/vector/characters/campaign/dhritarashtra_frames.svg"), preload("res://assets/vector/characters/campaign/virudhaka_frames.svg"),
-	preload("res://assets/vector/characters/campaign/virupaksha_frames.svg"), preload("res://assets/vector/characters/campaign/vaishravana_frames.svg"),
+	preload("res://assets/generated/characters/campaign/dhritarashtra_frames.png"), preload("res://assets/generated/characters/campaign/virudhaka_frames.png"),
+	preload("res://assets/generated/characters/campaign/virupaksha_frames.png"), preload("res://assets/generated/characters/campaign/vaishravana_frames.png"),
 ]
 const LIGHTNING := preload("res://resources/stats/hazards/heaven_lightning.tres")
 const WIND := preload("res://resources/stats/hazards/gale_wind.tres")

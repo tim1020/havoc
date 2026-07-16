@@ -95,21 +95,35 @@ text = "C短切/长用"
 
 [node name="Artifact1" type="Label" parent="TopPanel/Margin/Rows/ArtifactRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(92, 26)
+custom_minimum_size = Vector2(82, 26)
 layout_mode = 2
 text = "空"
 horizontal_alignment = 1
 
 [node name="Artifact2" type="Label" parent="TopPanel/Margin/Rows/ArtifactRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(92, 26)
+custom_minimum_size = Vector2(82, 26)
 layout_mode = 2
 text = "空"
 horizontal_alignment = 1
 
 [node name="Artifact3" type="Label" parent="TopPanel/Margin/Rows/ArtifactRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(92, 26)
+custom_minimum_size = Vector2(82, 26)
+layout_mode = 2
+text = "空"
+horizontal_alignment = 1
+
+[node name="Artifact4" type="Label" parent="TopPanel/Margin/Rows/ArtifactRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(82, 26)
+layout_mode = 2
+text = "空"
+horizontal_alignment = 1
+
+[node name="Artifact5" type="Label" parent="TopPanel/Margin/Rows/ArtifactRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(82, 26)
 layout_mode = 2
 text = "空"
 horizontal_alignment = 1

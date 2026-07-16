@@ -7,7 +7,6 @@ var failures: Array[String] = []
 
 func _ready() -> void:
 	GameState.save_path = TEST_SAVE
-	GameState.infinite_lives = false
 	if FileAccess.file_exists(TEST_SAVE):
 		DirAccess.remove_absolute(TEST_SAVE)
 	await run_checks()
@@ -35,6 +34,16 @@ func run_checks() -> void:
 	add_child(menu)
 	await get_tree().process_frame
 	check(menu.continue_button.disabled, "无存档时主菜单禁用继续游戏")
+	var mock_actions: Array[StringName] = [&"move_left", &"move_right", &"move_left", &"move_right"]
+	for action in mock_actions:
+		var mock_event := InputEventAction.new()
+		mock_event.action = action
+		mock_event.pressed = true
+		menu._unhandled_input(mock_event)
+	check(menu.mock_panel.visible, "主菜单顺序按左右左右显示测试Mock界面")
+	GameState.configure_mock_game(100, 4)
+	check(GameState.lives == 100 and GameState.current_level == 4 and GameState.current_level_path == GameState.FOURTH_LEVEL, "Mock可设置任意非负毫毛数量和起始关卡")
+	check(GameState.has_staff, "Mock从第三关以后开始时自动解锁金箍棒")
 	menu.queue_free()
 	await get_tree().process_frame
 
@@ -46,12 +55,13 @@ func run_checks() -> void:
 	GameState.pickup_artifact(&"cosmic_ring")
 	GameState.pickup_artifact(&"fire_wheels")
 	GameState.pickup_artifact(&"purple_bell")
-	check(GameState.artifacts == [&"cosmic_ring", &"fire_wheels", &"purple_bell"], "满栏拾取法宝按FIFO顶掉最早物品")
-	check(not GameState.purchase_artifact(&"heaven_seal", 150), "满栏购买法宝必须先手动销毁")
-	check(GameState.discard_artifact(1), "可手动销毁指定法宝")
-	check(GameState.purchase_artifact(&"heaven_seal", 150), "空位可购买法宝")
+	GameState.pickup_artifact(&"monkey_hair")
+	GameState.pickup_artifact(&"binding_rope")
+	check(GameState.artifacts == [&"cosmic_ring", &"fire_wheels", &"purple_bell", &"monkey_hair", &"binding_rope"], "五格满栏拾取法宝按FIFO顶掉最早物品")
+	check(GameState.purchase_artifact_fifo(&"heaven_seal", 150), "满栏购买法宝丢弃队首并整体前移")
+	check(GameState.artifacts == [&"fire_wheels", &"purple_bell", &"monkey_hair", &"binding_rope", &"heaven_seal"], "新法宝追加到五格物品栏队尾")
 	check(GameState.stones == 550, "购买法宝正确扣除灵石")
-	check(GameState.pop_artifact() == &"cosmic_ring", "使用法宝按FIFO取出队首")
+	check(GameState.pop_artifact() == &"fire_wheels", "使用法宝按FIFO取出队首")
 	check(GameState.purchase_life(500), "本关首次购买救命毫毛成功")
 	check(GameState.lives == 3 and GameState.stones == 50, "毫毛购买更新上限与余额")
 	check(not GameState.purchase_life(500), "同关不能重复购买救命毫毛")
@@ -67,7 +77,7 @@ func run_checks() -> void:
 	GameState.settings.master_volume = 1.0
 	check(GameState.load_game(), "存档读取成功")
 	check(GameState.lives == 3 and GameState.stones == 50, "生命与灵石可恢复")
-	check(GameState.artifacts == [&"purple_bell", &"heaven_seal"], "法宝队列可恢复")
+	check(GameState.artifacts == [&"purple_bell", &"monkey_hair", &"binding_rope", &"heaven_seal"], "五格物品队列可恢复")
 	check(GameState.unlocked_level == 3 and GameState.current_level == 2, "关卡进度可恢复")
 	check(is_equal_approx(GameState.settings.master_volume, 0.42), "设置可恢复")
 	menu = menu_scene.instantiate()
@@ -99,9 +109,16 @@ func run_checks() -> void:
 			fire_spear = pickup
 	peach.on_body_entered(player)
 	check(player.health == 73.0, "拾取蟠桃立即回复33点生命")
+	player.health = player.stats.max_health
+	var stored_peach := (load("res://src/world/item_pickup.tscn") as PackedScene).instantiate() as ItemPickup
+	stored_peach.item = ItemCatalog.get_definition(&"peach")
+	level.add_child(stored_peach)
+	stored_peach.on_body_entered(player)
+	check(GameState.artifacts == [&"peach"], "满血拾取补血物品进入五格物品栏")
+	GameState.pop_artifact()
 	fire_spear.on_body_entered(player)
 	check(GameState.artifacts == [&"fire_spear"], "拾取法宝进入队列")
-	check(level.hud.artifact_labels[0].text == "▶ 火尖枪", "HUD标记当前法宝")
+	check(level.hud.artifact_labels[0].text == "▶ 火尖枪", "HUD标记当前物品")
 	var enemy: Enemy
 	for enemy_node in get_tree().get_nodes_in_group("enemies"):
 		var candidate := enemy_node as Enemy
@@ -141,18 +158,38 @@ func run_checks() -> void:
 	player.health = 40.0
 	var shop := level.shop as ShopPanel
 	shop.open_shop(player, "测试商店")
+	var right_event := InputEventAction.new()
+	right_event.action = &"move_right"
+	right_event.pressed = true
+	shop._unhandled_input(right_event)
+	check(shop.selected_index == 1, "商店使用角色右移绑定键框选商品")
+	shop.selected_index = 3
+	shop.move_selection(1)
+	check(shop.selected_index == 4, "商店右移到行尾后自动进入下一行")
+	shop.move_selection(-1)
+	check(shop.selected_index == 3, "商店左移到行首后自动回到上一行")
+	var item_event := InputEventAction.new()
+	item_event.action = &"item"
+	item_event.pressed = true
+	shop._unhandled_input(item_event)
+	check(GameState.artifacts == [&"cosmic_ring", &"fire_spear"], "商店按C将队首物品移到队尾")
+	shop._unhandled_input(item_event)
 	shop.request_purchase(ItemCatalog.get_definition(&"peach"))
 	check(GameState.stones == 1000 and player.health == 40.0, "商品选择后未确认不会扣款或生效")
-	shop.confirm_pending()
+	var attack_event := InputEventAction.new()
+	attack_event.action = &"attack"
+	attack_event.pressed = true
+	shop._unhandled_input(attack_event)
 	check(GameState.stones == 950 and player.health == 40.0 and GameState.artifacts == [&"fire_spear", &"cosmic_ring", &"peach"], "确认购买蟠桃后进入法宝栏且不立即回复")
+	GameState.pickup_artifact(&"fire_wheels")
+	GameState.pickup_artifact(&"purple_bell")
 	shop.request_purchase(ItemCatalog.get_definition(&"heaven_seal"))
 	shop.confirm_pending()
-	check(GameState.stones == 950 and GameState.artifacts.size() == 3, "满栏购买法宝失败且不扣款")
-	shop.request_discard(1)
+	check(GameState.stones == 950 and GameState.artifacts == [&"fire_spear", &"cosmic_ring", &"peach", &"fire_wheels", &"purple_bell"], "五格满栏第一次确认只提示前移且不扣款")
 	shop.confirm_pending()
-	shop.request_purchase(ItemCatalog.get_definition(&"heaven_seal"))
-	shop.confirm_pending()
-	check(GameState.stones == 800 and GameState.artifacts == [&"fire_spear", &"peach", &"heaven_seal"], "确认销毁指定法宝后可购买新法宝")
+	check(GameState.stones == 800 and GameState.artifacts == [&"cosmic_ring", &"peach", &"fire_wheels", &"purple_bell", &"heaven_seal"], "五格满栏再次确认丢弃队首、整体前移并把新法宝放到队尾")
+	GameState.rotate_artifacts()
+	check(GameState.artifacts == [&"peach", &"fire_wheels", &"purple_bell", &"heaven_seal", &"cosmic_ring"], "商店C键对应的五格FIFO轮转保持物品顺序")
 	shop.request_purchase(ItemCatalog.get_definition(&"life_hair"))
 	shop.confirm_pending()
 	check(GameState.lives == 3 and GameState.life_bought_this_level, "商店可购买本关唯一一根救命毫毛")
@@ -161,7 +198,14 @@ func run_checks() -> void:
 	shop.request_purchase(ItemCatalog.get_definition(&"life_hair"))
 	shop.confirm_pending()
 	check(GameState.lives == 2 and GameState.stones == stones_after_life, "隐藏与过关商店共享毫毛限购状态")
-	shop.close_shop()
+	shop.pending_action = ShopPanel.PendingAction.NONE
+	var jump_event := InputEventAction.new()
+	jump_event.action = &"jump"
+	jump_event.pressed = true
+	shop._unhandled_input(jump_event)
+	check(shop.visible and shop.pending_action == ShopPanel.PendingAction.LEAVE, "跳跃键第一次只询问是否离开")
+	shop._unhandled_input(jump_event)
+	check(not shop.visible and not get_tree().paused, "跳跃键第二次确认离开商店")
 	var wall := level.find_children("*", "BreakableWall", true, false)[0] as BreakableWall
 	wall.take_damage(30.0, player.global_position)
 	check(shop.visible and get_tree().paused, "击破支路石壁打开隐藏商店并暂停战斗")

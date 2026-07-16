@@ -17,5 +17,6 @@ projectile_damage = 24.0
 projectile_speed = 620.0
 projectile_cooldown = 1.7
 projectile_color = Color(1, 0.3, 0.12, 1)
+projectile_style = "divine_spear"
 phase_thresholds = PackedFloat32Array(0.5)
 phase_damage_multiplier = 1.5

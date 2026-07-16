@@ -18,7 +18,6 @@ signal respawned
 @onready var standing_shape: CollisionShape2D = %StandingShape
 @onready var attack_area: Area2D = %AttackArea
 @onready var attack_effect: AnimatedSprite2D = %AttackEffect
-@onready var charge_bar: ProgressBar = %ChargeBar
 
 var health: float
 var jumps_left: int
@@ -36,7 +35,7 @@ var speed_boost_until: int = 0
 var slowed_until: int = 0
 var rooted_until: int = 0
 var confused_until: int = 0
-var attack_started_on_floor: bool = true
+var attack_started_in_air: bool = false
 var item_held: bool = false
 var item_consumed: bool = false
 var item_pressed_at: int = 0
@@ -123,12 +122,14 @@ func begin_attack_charge() -> void:
 	attack_held = true
 	attack_consumed = false
 	attack_pressed_at = Time.get_ticks_msec()
-	attack_started_on_floor = is_on_floor()
+	attack_started_in_air = not is_on_floor()
 
 
 func cancel_attack_charge() -> void:
 	attack_held = false
 	attack_consumed = true
+	attack_effect.stop()
+	attack_effect.visible = false
 
 
 func release_attack_charge() -> void:
@@ -136,25 +137,33 @@ func release_attack_charge() -> void:
 		return
 	var held_seconds := float(Time.get_ticks_msec() - attack_pressed_at) / 1000.0
 	attack_held = false
+	attack_effect.stop()
+	attack_effect.visible = false
 	if attack_consumed:
 		attack_consumed = false
 		return
-	if held_seconds >= stats.charge_seconds and GameState.has_staff:
-		if attack_started_on_floor:
-			perform_attack(stats.charged_attack_damage)
-		else:
+	if held_seconds >= stats.charge_seconds:
+		# 满蓄力只按是否持棒分流，不再区分起跳或落地状态。
+		if GameState.has_staff:
 			launch_tracking_staffs()
-	elif held_seconds >= stats.charge_seconds:
-		perform_attack(stats.charged_attack_damage)
+		else:
+			perform_roar()
+	elif attack_started_in_air:
+		# 空中短按是前向重击：第一段普攻伤害与有效距离均加倍。
+		perform_attack(-1.0, 2.0, 2.0, true)
 	else:
 		perform_attack()
 
 
-func perform_attack(damage_override: float = -1.0) -> void:
+func perform_attack(damage_override: float = -1.0, distance_multiplier: float = 1.0, damage_multiplier: float = 1.0, aerial_heavy: bool = false) -> void:
 	AudioService.play_sfx(self, AudioService.ATTACK, -4.0)
 	var now := Time.get_ticks_msec()
 	var damage := damage_override
-	if damage_override >= 0.0:
+	if aerial_heavy:
+		combo_index = 0
+		damage = stats.combo_damage[0]
+		play_if_available("attack_3")
+	elif damage_override >= 0.0:
 		combo_index = 0
 		play_if_available("attack_3")
 	else:
@@ -164,13 +173,23 @@ func perform_attack(damage_override: float = -1.0) -> void:
 		combo_index = (combo_index + 1) % stats.combo_damage.size()
 		combo_expires_at = now + int(stats.combo_reset_seconds * 1000.0)
 		play_if_available("attack_%d" % (combo_index if combo_index > 0 else 3))
-	attack_area.position.x = absf(attack_area.position.x) * facing
+	damage *= damage_multiplier
 	attack_effect.flip_h = facing < 0.0
 	attack_effect.position.x = absf(attack_effect.position.x) * facing
-	attack_effect.scale = Vector2(1.25, 1.25) if damage_override >= 0.0 else Vector2.ONE
+	attack_effect.scale = Vector2(1.35, 1.35) if aerial_heavy else Vector2.ONE
 	attack_effect.modulate = Color.WHITE
 	attack_effect.visible = true
-	attack_effect.play("attack")
+	attack_effect.play(&"attack")
+	var attack_shape := attack_area.get_node("Shape").shape as RectangleShape2D
+	if distance_multiplier > 1.0:
+		var attack_distance := (absf(attack_area.position.x) + attack_shape.size.x * 0.5) * distance_multiplier
+		for enemy_node in get_tree().get_nodes_in_group("enemies"):
+			var enemy := enemy_node as Enemy
+			var offset := enemy.global_position - global_position
+			if offset.x * facing > 0.0 and offset.x * facing <= attack_distance and absf(offset.y) <= attack_shape.size.y:
+				enemy.take_damage(damage, global_position)
+		return
+	attack_area.position.x = absf(attack_area.position.x) * facing
 	await get_tree().physics_frame
 	for body in attack_area.get_overlapping_bodies():
 		if body.has_method("take_damage"):
@@ -179,17 +198,55 @@ func perform_attack(damage_override: float = -1.0) -> void:
 
 func update_charge_feedback() -> void:
 	if not attack_held:
-		charge_bar.visible = false
 		sprite.modulate = Color("ffc1e7") if Time.get_ticks_msec() < confused_until else Color.WHITE
 		sprite.scale = base_sprite_scale
 		return
-	var held_seconds := float(Time.get_ticks_msec() - attack_pressed_at) / 1000.0
-	var progress := clampf(held_seconds / stats.charge_seconds, 0.0, 1.0)
-	charge_bar.visible = true
-	charge_bar.value = progress
-	var pulse := 1.0 + sin(Time.get_ticks_msec() * 0.018) * 0.025 * progress
-	sprite.modulate = Color(1.0, 1.0, 1.0 - progress * 0.35)
-	sprite.scale = base_sprite_scale * (1.0 + progress * 0.08) * pulse
+	if Time.get_ticks_msec() - attack_pressed_at < 120:
+		return
+	if not GameState.has_staff:
+		# 空手蓄力复用角色图集里的周身怒火帧，避免待机常驻该效果。
+		attack_effect.stop()
+		attack_effect.visible = false
+		play_if_available(&"respawn")
+		return
+	attack_effect.flip_h = facing < 0.0
+	attack_effect.position.x = absf(attack_effect.position.x) * facing
+	attack_effect.scale = Vector2.ONE * (1.15 + sin(Time.get_ticks_msec() * 0.018) * 0.08)
+	attack_effect.modulate = Color("ffd34f")
+	if not attack_effect.visible or not attack_effect.is_playing():
+		attack_effect.visible = true
+		attack_effect.play(&"attack")
+
+
+func perform_roar() -> void:
+	AudioService.play_sfx(self, AudioService.ATTACK, -2.0)
+	play_if_available(&"spell")
+	spawn_roar_effects()
+	var attack_shape := attack_area.get_node("Shape").shape as RectangleShape2D
+	# 怒吼只命中面朝方向，水平范围为普通攻击有效距离的三倍。
+	var attack_distance := (absf(attack_area.position.x) + attack_shape.size.x * 0.5) * 3.0
+	for enemy_node in get_tree().get_nodes_in_group("enemies"):
+		var enemy := enemy_node as Enemy
+		var offset := enemy.global_position - global_position
+		if offset.x * facing > 0.0 and offset.x * facing <= attack_distance and absf(offset.y) <= attack_shape.size.y:
+			enemy.take_damage(stats.charged_attack_damage, global_position)
+
+
+func spawn_roar_effects() -> void:
+	# 三段弧光覆盖近、中、远距离，让表现范围与怒吼判定范围一致。
+	for index in 3:
+		var wave := AnimatedSprite2D.new()
+		wave.add_to_group(&"roar_effects")
+		wave.sprite_frames = attack_effect.sprite_frames
+		wave.animation = &"attack"
+		wave.position = Vector2(facing * (90.0 + index * 95.0), -54.0)
+		wave.flip_h = facing < 0.0
+		wave.scale = Vector2.ONE * (1.35 + index * 0.28)
+		wave.modulate = Color("ffd34f")
+		wave.z_index = 2
+		wave.animation_finished.connect(wave.queue_free)
+		add_child(wave)
+		wave.play()
 
 
 func cast_freeze_spell() -> void:
@@ -315,11 +372,8 @@ func nearest_enemy(enemies: Array[Node]) -> Enemy:
 
 
 func launch_tracking_staffs() -> void:
-	var enemies := get_tree().get_nodes_in_group("enemies")
-	if enemies.is_empty():
-		return
 	var targets: Array[Enemy] = []
-	for enemy_node in enemies:
+	for enemy_node in get_tree().get_nodes_in_group("enemies"):
 		var enemy := enemy_node as Enemy
 		if not enemy.dead:
 			targets.append(enemy)
@@ -330,9 +384,10 @@ func launch_tracking_staffs() -> void:
 	)
 	for index in 3:
 		var projectile := STAFF_PROJECTILE.instantiate() as StaffProjectile
-		projectile.global_position = global_position + Vector2((index - 1) * 28.0, -45.0 - index * 12.0)
+		projectile.global_position = global_position + Vector2(facing * 44.0, -30.0 - index * 30.0)
 		projectile.source_position = global_position
 		projectile.target = targets[index % targets.size()]
+		projectile.damage = stats.combo_damage[0]
 		get_tree().current_scene.add_child(projectile)
 	play_if_available("spell")
 
@@ -340,7 +395,6 @@ func launch_tracking_staffs() -> void:
 func play_victory() -> void:
 	attack_held = false
 	item_held = false
-	charge_bar.visible = false
 	restore_full_health()
 	controls_enabled = false
 	velocity = Vector2.ZERO

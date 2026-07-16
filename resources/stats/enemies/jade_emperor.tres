@@ -17,6 +17,7 @@ projectile_damage = 32.0
 projectile_speed = 560.0
 projectile_cooldown = 1.5
 projectile_color = Color(1, 0.78, 0.2, 1)
+projectile_style = "dragon_orb"
 shield_health = 600.0
 phase_thresholds = PackedFloat32Array(0.5)
 phase_damage_multiplier = 1.45

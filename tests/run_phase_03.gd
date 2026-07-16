@@ -40,15 +40,12 @@ func run_checks() -> void:
 	var dragon_checkpoint := get_tree().get_first_node_in_group("checkpoints") as Checkpoint
 	check(dragon_checkpoint != null and dragon_checkpoint.checkpoint_position == Vector2(4520, 580), "龙王战前设置独立重生检查点")
 	dragon_checkpoint.activate(level2.player)
-	var infinite_lives_before_test := GameState.infinite_lives
-	GameState.infinite_lives = false
 	GameState.lives = 2
 	level2.player.health = 1.0
 	level2.player.invulnerable_until = 0
 	level2.player.take_damage(2.0, level2.player.global_position + Vector2.RIGHT)
 	await get_tree().create_timer(1.2).timeout
 	check(absf(level2.player.global_position.x - 4520.0) < 8.0 and level2.player.global_position.y < 660.0, "龙王战死亡后从Boss前检查点重生")
-	GameState.infinite_lives = infinite_lives_before_test
 
 	var crab := find_enemy("蟹将")
 	crab.set_physics_process(false)
@@ -104,36 +101,7 @@ func run_checks() -> void:
 	var idle_texture := player.sprite.sprite_frames.get_frame_texture(&"idle", 0) as AtlasTexture
 	check(idle_texture.atlas.resource_path.ends_with("player_staff_atlas.png"), "第三关使用生成的持棒PNG角色动画")
 	player.set_physics_process(false)
-	player.global_position = Vector2(10000, 580)
-	var repeated_charge_ok := true
-	for _attempt in 3:
-		player.begin_attack_charge()
-		player.attack_started_on_floor = true
-		player.attack_pressed_at = Time.get_ticks_msec() - int(player.stats.charge_seconds * 1000.0)
-		player.release_attack_charge()
-		await get_tree().physics_frame
-		repeated_charge_ok = repeated_charge_ok and player.global_position.x == 10000.0 and not player.attack_held and player.sprite.animation == &"attack_3"
-	check(repeated_charge_ok, "地面蓄力可连续释放且不会变成自动前进")
-
-	var charged_target := find_enemy("牛头")
-	charged_target.set_physics_process(false)
-	player.set_physics_process(false)
-	player.global_position = Vector2(500, 580)
-	charged_target.global_position = Vector2(570, 580)
-	charged_target.patrol_direction = 1.0
-	charged_target.invulnerable_until = 0
-	await get_tree().physics_frame
-	var charged_target_health := charged_target.health
-	player.facing = 1.0
-	player.attack_started_on_floor = true
-	player.begin_attack_charge()
-	player.attack_started_on_floor = true
-	player.attack_pressed_at = Time.get_ticks_msec() - int(player.stats.charge_seconds * 1000.0)
-	player.release_attack_charge()
-	for _frame in 2:
-		await get_tree().physics_frame
-	check(charged_target.health == charged_target_health - player.stats.charged_attack_damage, "地面满蓄力造成40点强化攻击")
-	player.set_physics_process(true)
+	check(GameState.has_staff and not player.has_node("ChargeBar"), "持棒和空手共用蓄力且不显示独立进度条")
 
 	var targets: Array[Enemy] = []
 	var remote_index := 0
@@ -154,10 +122,12 @@ func run_checks() -> void:
 	for target in targets:
 		target_health += target.health
 	player.global_position = Vector2(620, 500)
-	player.launch_tracking_staffs()
+	player.begin_attack_charge()
+	player.attack_pressed_at = Time.get_ticks_msec() - int(player.stats.charge_seconds * 1000.0)
+	player.release_attack_charge()
 	await get_tree().process_frame
 	var projectiles := get_tree().get_nodes_in_group("staff_projectiles")
-	check(projectiles.size() == 3, "空中满蓄力生成3根追踪棒")
+	check(projectiles.size() == 3, "持棒满蓄力生成3根追踪棒且不区分地面空中")
 	if not projectiles.is_empty():
 		check((projectiles[0] as StaffProjectile).get_node("Sprite").sprite_frames.get_frame_count(&"fly") == 4, "追踪棒攻击特效包含4个图像帧")
 	for _frame in 50:
@@ -165,7 +135,7 @@ func run_checks() -> void:
 	var health_after_tracking := 0.0
 	for target in targets:
 		health_after_tracking += target.health
-	check(target_health - health_after_tracking == 45.0, "三根追踪棒分别造成15点伤害")
+	check(target_health - health_after_tracking == 45.0, "三根棒保留自动追踪并分别造成15点伤害")
 
 	var ghost := find_enemy("游魂")
 	ghost.ghost_solid = false

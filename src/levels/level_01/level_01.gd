@@ -9,7 +9,7 @@ const BREAKABLE_WALL_SCENE := preload("res://src/world/breakable_wall.tscn")
 const THORN_TEXTURE := preload("res://assets/generated/environments/level_01/thorn_spikes.png")
 const THORN_STATS := preload("res://resources/stats/hazards/thorn_spikes.tres")
 
-const ENEMY_ANIMATION_ATLAS := preload("res://assets/vector/characters/level_01_enemy_frames.svg")
+const ENEMY_ANIMATION_ATLAS := preload("res://assets/generated/characters/level_01_enemy_frames.png")
 
 const REBEL_STATS := preload("res://resources/stats/enemies/rebel_monkey.tres")
 const SNAKE_STATS := preload("res://resources/stats/enemies/snake.tres")

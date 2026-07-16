@@ -13,11 +13,11 @@ const FIFTH_LEVEL := "res://src/levels/level_05/level_05.tscn"
 const SIXTH_LEVEL := "res://src/levels/level_06/level_06.tscn"
 const SAVE_PATH := "user://havoc_save.json"
 const MAX_LIVES := 3
-const MAX_ARTIFACTS := 3
+# 物品栏是固定五格 FIFO 队列，队首也是当前使用物品。
+const MAX_ARTIFACTS := 5
 
 var current_level_path: String = FIRST_LEVEL
 var lives: int = 3
-var infinite_lives: bool = OS.is_debug_build()
 var stones: int = 0
 var artifacts: Array[StringName] = []
 var unlocked_level: int = 1
@@ -84,9 +84,29 @@ func start_new_game() -> void:
 	get_tree().change_scene_to_file(current_level_path)
 
 
+func start_mock_game(mock_lives: int, start_level: int) -> void:
+	configure_mock_game(mock_lives, start_level)
+	emit_resource_signals()
+	save_game()
+	level_requested.emit(current_level_path)
+	get_tree().change_scene_to_file(current_level_path)
+
+
+func configure_mock_game(mock_lives: int, start_level: int) -> void:
+	# Mock 接受任意非负毫毛数量；关卡仍限制在实际存在的场景范围内。
+	var level_paths := [FIRST_LEVEL, SECOND_LEVEL, THIRD_LEVEL, FOURTH_LEVEL, FIFTH_LEVEL, SIXTH_LEVEL]
+	lives = maxi(0, mock_lives)
+	stones = 0
+	artifacts.clear()
+	current_level = clampi(start_level, 1, level_paths.size())
+	unlocked_level = current_level
+	life_bought_this_level = false
+	has_staff = current_level >= 3
+	game_completed = false
+	current_level_path = level_paths[current_level - 1]
+
+
 func consume_life() -> bool:
-	if infinite_lives:
-		return true
 	if lives <= 0:
 		return false
 	lives -= 1
@@ -120,6 +140,7 @@ func spend_stones(amount: int) -> bool:
 
 
 func pickup_artifact(item_id: StringName) -> void:
+	# 场景拾取不询问：满栏时立即销毁队首，再将新物品放入队尾。
 	if artifacts.size() >= MAX_ARTIFACTS:
 		artifacts.pop_front()
 	artifacts.append(item_id)
@@ -130,6 +151,19 @@ func pickup_artifact(item_id: StringName) -> void:
 func purchase_artifact(item_id: StringName, price: int) -> bool:
 	if artifacts.size() >= MAX_ARTIFACTS or not spend_stones(price):
 		return false
+	artifacts.append(item_id)
+	artifacts_changed.emit(artifacts.duplicate())
+	save_game()
+	return true
+
+
+func purchase_artifact_fifo(item_id: StringName, price: int) -> bool:
+	# 商店已在界面层完成二次确认；这里只执行同样的 FIFO 前移规则。
+	if artifacts.size() < MAX_ARTIFACTS:
+		return purchase_artifact(item_id, price)
+	if not spend_stones(price):
+		return false
+	artifacts.pop_front()
 	artifacts.append(item_id)
 	artifacts_changed.emit(artifacts.duplicate())
 	save_game()
@@ -219,7 +253,7 @@ func load_game(path: String = "") -> bool:
 	var parsed = JSON.parse_string(file.get_as_text())
 	if not parsed is Dictionary:
 		return false
-	lives = clampi(int(parsed.get("lives", 3)), 0, MAX_LIVES)
+	lives = maxi(0, int(parsed.get("lives", 3)))
 	stones = maxi(0, int(parsed.get("stones", 0)))
 	artifacts.clear()
 	for item_id in parsed.get("artifacts", []):

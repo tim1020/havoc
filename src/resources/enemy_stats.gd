@@ -31,3 +31,4 @@ extends ActorStats
 @export_range(100.0, 1200.0, 10.0) var projectile_speed: float = 480.0
 @export_range(0.5, 10.0, 0.1) var projectile_cooldown: float = 2.4
 @export var projectile_color: Color = Color("ff7a45")
+@export_enum("axe", "dragon_orb", "divine_spear") var projectile_style: String = "dragon_orb"

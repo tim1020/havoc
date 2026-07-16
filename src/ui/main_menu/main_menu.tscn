@@ -1,7 +1,7 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3 uid="uid://cove0nam87qy5"]
 
-[ext_resource type="Script" path="res://src/ui/main_menu/main_menu.gd" id="1"]
-[ext_resource type="Texture2D" path="res://assets/generated/environments/level_01/flower_fruit_mountain_background.png" id="2"]
+[ext_resource type="Script" uid="uid://coxkwbmjchcy1" path="res://src/ui/main_menu/main_menu.gd" id="1"]
+[ext_resource type="Texture2D" uid="uid://b887ijgon7wl7" path="res://assets/generated/environments/level_01/flower_fruit_mountain_background.png" id="2"]
 
 [sub_resource type="StyleBoxFlat" id="Panel"]
 bg_color = Color(0.055, 0.043, 0.035, 0.92)
@@ -15,7 +15,19 @@ corner_radius_top_right = 18
 corner_radius_bottom_right = 18
 corner_radius_bottom_left = 18
 
-[node name="MainMenu" type="Control"]
+[sub_resource type="StyleBoxFlat" id="MockPanel"]
+bg_color = Color(0.075, 0.047, 0.025, 0.98)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.95, 0.67, 0.2, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[node name="MainMenu" type="Control" unique_id=25167656]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -24,7 +36,8 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1")
 
-[node name="Backdrop" type="TextureRect" parent="."]
+[node name="Backdrop" type="TextureRect" parent="." unique_id=1407172989]
+modulate = Color(0.42, 0.46, 0.42, 1)
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -34,9 +47,8 @@ grow_vertical = 2
 texture = ExtResource("2")
 expand_mode = 1
 stretch_mode = 6
-modulate = Color(0.42, 0.46, 0.42, 1)
 
-[node name="Panel" type="PanelContainer" parent="."]
+[node name="Panel" type="PanelContainer" parent="." unique_id=2021968664]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -51,60 +63,147 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("Panel")
 
-[node name="Margin" type="MarginContainer" parent="Panel"]
+[node name="Margin" type="MarginContainer" parent="Panel" unique_id=164715011]
 layout_mode = 2
 theme_override_constants/margin_left = 52
 theme_override_constants/margin_top = 44
 theme_override_constants/margin_right = 52
 theme_override_constants/margin_bottom = 44
 
-[node name="Content" type="VBoxContainer" parent="Panel/Margin"]
+[node name="Content" type="VBoxContainer" parent="Panel/Margin" unique_id=245685486]
 layout_mode = 2
 theme_override_constants/separation = 22
 alignment = 1
 
-[node name="Title" type="Label" parent="Panel/Margin/Content"]
+[node name="Title" type="Label" parent="Panel/Margin/Content" unique_id=494093997]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.78, 0.31, 1)
 theme_override_font_sizes/font_size = 44
-text = "大圣劫天记"
+text = "大闹天宫"
 horizontal_alignment = 1
 
-[node name="Subtitle" type="Label" parent="Panel/Margin/Content"]
+[node name="Subtitle" type="Label" parent="Panel/Margin/Content" unique_id=376349691]
+visible = false
 layout_mode = 2
 theme_override_colors/font_color = Color(0.84, 0.81, 0.72, 1)
 theme_override_font_sizes/font_size = 18
 text = "六关完整版 · 从花果山到凌霄殿"
 horizontal_alignment = 1
 
-[node name="Spacer" type="Control" parent="Panel/Margin/Content"]
+[node name="Spacer" type="Control" parent="Panel/Margin/Content" unique_id=1932917541]
 custom_minimum_size = Vector2(0, 24)
 layout_mode = 2
 
-[node name="StartButton" type="Button" parent="Panel/Margin/Content"]
+[node name="StartButton" type="Button" parent="Panel/Margin/Content" unique_id=541745480]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
 text = "开始游戏"
 
-[node name="ContinueButton" type="Button" parent="Panel/Margin/Content"]
+[node name="ContinueButton" type="Button" parent="Panel/Margin/Content" unique_id=96931246]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "继续游戏"
 
-[node name="QuitButton" type="Button" parent="Panel/Margin/Content"]
+[node name="QuitButton" type="Button" parent="Panel/Margin/Content" unique_id=2030029139]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "退出"
 
-[node name="Controls" type="Label" parent="Panel/Margin/Content"]
+[node name="Controls" type="Label" parent="Panel/Margin/Content" unique_id=1758547265]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.62, 0.61, 0.56, 1)
 theme_override_font_sizes/font_size = 14
 text = "A/D 移动 · K/空格 跳跃 · J长按蓄力 · C短按切换/长按使用 · J+K 定身"
 horizontal_alignment = 1
+
+[node name="MockPanel" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -230.0
+offset_top = -170.0
+offset_right = 230.0
+offset_bottom = 170.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("MockPanel")
+
+[node name="Margin" type="MarginContainer" parent="MockPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 28
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 28
+
+[node name="Content" type="VBoxContainer" parent="MockPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="Title" type="Label" parent="MockPanel/Margin/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.78, 0.31, 1)
+theme_override_font_sizes/font_size = 28
+text = "演练令牌"
+horizontal_alignment = 1
+
+[node name="Hint" type="Label" parent="MockPanel/Margin/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.78, 0.72, 0.62, 1)
+text = "仅用于快速测试关卡状态"
+horizontal_alignment = 1
+
+[node name="LivesRow" type="HBoxContainer" parent="MockPanel/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Label" type="Label" parent="MockPanel/Margin/Content/LivesRow"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+text = "救命毫毛数量"
+vertical_alignment = 1
+
+[node name="MockLives" type="SpinBox" parent="MockPanel/Margin/Content/LivesRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 46)
+layout_mode = 2
+max_value = 1000000.0
+value = 3.0
+allow_greater = true
+allow_lesser = false
+
+[node name="LevelRow" type="HBoxContainer" parent="MockPanel/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Label" type="Label" parent="MockPanel/Margin/Content/LevelRow"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+text = "起始关卡"
+vertical_alignment = 1
+
+[node name="MockLevel" type="SpinBox" parent="MockPanel/Margin/Content/LevelRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 46)
+layout_mode = 2
+min_value = 1.0
+max_value = 6.0
+value = 1.0
+allow_greater = false
+allow_lesser = false
+
+[node name="MockStartButton" type="Button" parent="MockPanel/Margin/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "开始演练"

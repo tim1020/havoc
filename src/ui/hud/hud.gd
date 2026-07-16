@@ -5,7 +5,7 @@ extends CanvasLayer
 @onready var health_label: Label = %HealthLabel
 @onready var lives_label: Label = %LivesLabel
 @onready var stones_label: Label = %StonesLabel
-@onready var artifact_labels: Array[Label] = [%Artifact1, %Artifact2, %Artifact3]
+@onready var artifact_labels: Array[Label] = [%Artifact1, %Artifact2, %Artifact3, %Artifact4, %Artifact5]
 @onready var section_label: Label = %SectionLabel
 @onready var victory_banner: Label = %VictoryBanner
 @onready var result_panel: Control = %ResultPanel
@@ -41,7 +41,7 @@ func update_health(current: float, maximum: float) -> void:
 
 
 func update_lives(current_lives: int) -> void:
-	lives_label.text = "毫毛  × ∞" if GameState.infinite_lives else "毫毛  × %d" % current_lives
+	lives_label.text = "毫毛  × %d" % current_lives
 
 
 func update_stones(stones: int) -> void:

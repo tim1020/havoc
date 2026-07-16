@@ -17,4 +17,5 @@ projectile_damage = 18.0
 projectile_speed = 500.0
 projectile_cooldown = 2.1
 projectile_color = Color(1, 0.38, 0.72, 1)
+projectile_style = "dragon_orb"
 contact_root_seconds = 1.5
