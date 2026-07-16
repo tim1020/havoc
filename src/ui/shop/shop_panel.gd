@@ -57,22 +57,27 @@ func open_shop(target_player: Player, shop_title: String) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not visible or not event.is_pressed() or event.is_echo():
 		return
+	var viewport := get_viewport()
 	# 商店沿用角色移动动作，玩家修改移动键绑定后无需单独配置商店按键。
 	if event.is_action_pressed(&"move_left"):
+		viewport.set_input_as_handled()
 		move_selection(-1)
 	elif event.is_action_pressed(&"move_right"):
+		viewport.set_input_as_handled()
 		move_selection(1)
 	elif event.is_action_pressed(&"attack"):
+		viewport.set_input_as_handled()
 		purchase_selected()
 	elif event.is_action_pressed(&"item"):
+		viewport.set_input_as_handled()
 		clear_pending()
 		GameState.rotate_artifacts()
 		status_label.text = "物品栏顺序已调整"
 	elif event.is_action_pressed(&"jump"):
+		viewport.set_input_as_handled()
 		request_leave()
 	else:
 		return
-	get_viewport().set_input_as_handled()
 
 
 func move_selection(direction: int) -> void:

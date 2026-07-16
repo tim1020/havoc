@@ -36,17 +36,15 @@ var reinforcement_index := 0
 
 func _ready() -> void:
 	super()
-	gate = GATE_SCRIPT.new()
-	gate.position = Vector2(3790, 650)
-	gate.destroyed.connect(start_king_battle)
-	add_child(gate)
-	reinforcement_timer = Timer.new()
-	reinforcement_timer.wait_time = 6.0
-	reinforcement_timer.timeout.connect(spawn_gate_reinforcement)
-	add_child(reinforcement_timer)
-	reinforcement_timer.start()
+
+
+func on_section_loaded(section: int) -> void:
+	if section not in [3, 4]:
+		return
 	for enemy_node in get_tree().get_nodes_in_group("enemies"):
 		var enemy := enemy_node as Enemy
+		if floori(enemy.global_position.x / SECTION_WIDTH) != section:
+			continue
 		if enemy.stats == PHANTOM:
 			enemy.health_changed.connect(check_phantom_phase)
 
@@ -68,19 +66,20 @@ func create_world() -> void:
 
 
 func ground_rects() -> Array[Rect2]:
-	return [Rect2(0, 650, 470, 120), Rect2(620, 650, 420, 120), Rect2(1160, 650, 330, 120), Rect2(2500, 650, 1060, 120), Rect2(3680, 650, 1440, 120)]
+	return campaign_ground_rects()
 
 
 func platform_rects() -> Array[Rect2]:
-	return [Rect2(360, 500, 210, 24), Rect2(560, 430, 190, 20), Rect2(850, 520, 210, 24), Rect2(1080, 440, 180, 20), Rect2(1370, 550, 230, 24), Rect2(1640, 470, 190, 20), Rect2(1880, 395, 230, 24), Rect2(2170, 330, 250, 24), Rect2(2740, 510, 300, 24), Rect2(3190, 445, 300, 24), Rect2(4130, 500, 300, 24), Rect2(4600, 440, 320, 24)]
+	return campaign_platform_rects()
 
 
 func enemy_specs() -> Array:
 	return [
-		spec(Vector2(350, 580), CLOUD, CLOUD_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(680, 580), GOLD_GUARD, GUARD_FRAMES), spec(Vector2(960, 470), ARCHER, ARCHER_FRAMES), spec(Vector2(1220, 500), CLOUD, CLOUD_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(1450, 580), GOLD_GUARD, GUARD_FRAMES),
-		spec(Vector2(1650, 420), ARCHER, ARCHER_FRAMES), spec(Vector2(1900, 345), CLOUD, CLOUD_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(2140, 580), GOLD_GUARD, GUARD_FRAMES), spec(Vector2(2390, 580), GUARDIAN, GUARDIAN_FRAMES),
-		spec(Vector2(2640, 580), GOLD_GUARD, GUARD_FRAMES), spec(Vector2(2860, 460), ARCHER, ARCHER_FRAMES), spec(Vector2(3090, 580), GUARDIAN, GUARDIAN_FRAMES), spec(Vector2(3330, 400), ARCHER, ARCHER_FRAMES), spec(Vector2(3500, 580), GOLD_GUARD, GUARD_FRAMES), spec(Vector2(3650, 580), GUARDIAN, GUARDIAN_FRAMES),
-		spec(Vector2(3380, 510), PHANTOM, PHANTOM_FRAMES, Enemy.Behavior.BOSS, Vector2(1.35, 1.35)),
+		spec(Vector2(420, 580), GOLD_GUARD, GUARD_FRAMES), spec(Vector2(980, 580), GOLD_GUARD, GUARD_FRAMES), spec(Vector2(1580, 580), GOLD_GUARD, GUARD_FRAMES), spec(Vector2(2200, 580), GOLD_GUARD, GUARD_FRAMES),
+		spec(Vector2(2920, 450), ARCHER, ARCHER_FRAMES), spec(Vector2(3540, 400), ARCHER, ARCHER_FRAMES), spec(Vector2(4160, 470), ARCHER, ARCHER_FRAMES), spec(Vector2(4780, 390), ARCHER, ARCHER_FRAMES),
+		spec(Vector2(5480, 430), CLOUD, CLOUD_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(6120, 380), CLOUD, CLOUD_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(6760, 450), CLOUD, CLOUD_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(7380, 400), CLOUD, CLOUD_FRAMES, Enemy.Behavior.FLYING),
+		spec(Vector2(7900, 580), GOLD_GUARD, GUARD_FRAMES), spec(Vector2(8320, 440), ARCHER, ARCHER_FRAMES), spec(Vector2(8750, 430), CLOUD, CLOUD_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(9180, 580), GUARDIAN, GUARDIAN_FRAMES), spec(Vector2(9600, 510), PHANTOM, PHANTOM_FRAMES, Enemy.Behavior.BOSS, Vector2(1.35, 1.35)),
+		spec(Vector2(10480, 580), GOLD_GUARD, GUARD_FRAMES), spec(Vector2(10920, 440), ARCHER, ARCHER_FRAMES), spec(Vector2(11350, 430), CLOUD, CLOUD_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(11780, 580), GUARDIAN, GUARDIAN_FRAMES), spec(Vector2(12320, 510), PHANTOM, PHANTOM_FRAMES, Enemy.Behavior.BOSS, Vector2(1.5, 1.5), true),
 	]
 
 
@@ -146,6 +145,7 @@ func spawn_enemy(position_value: Vector2, stats_value: EnemyStats, atlas: Textur
 	enemy.position = position_value
 	enemy.stats = stats_value
 	enemy.animation_atlas = atlas
+	enemy.target_player = player
 	enemy.defeated.connect(add_stones)
 	enemy.hit_received.connect(show_enemy_status)
 	enemy.add_to_group(group_name)
@@ -165,5 +165,5 @@ func next_level_path() -> String:
 	return GameState.SIXTH_LEVEL
 
 
-func spec(position_value: Vector2, stats_value: EnemyStats, atlas_value: Texture2D, behavior_value: Enemy.Behavior = Enemy.Behavior.MELEE, scale_value: Vector2 = Vector2.ONE) -> Dictionary:
-	return {"position": position_value, "stats": stats_value, "atlas": atlas_value, "behavior": behavior_value, "scale": scale_value, "final_boss": false}
+func spec(position_value: Vector2, stats_value: EnemyStats, atlas_value: Texture2D, behavior_value: Enemy.Behavior = Enemy.Behavior.MELEE, scale_value: Vector2 = Vector2.ONE, final_value: bool = false) -> Dictionary:
+	return {"position": position_value, "stats": stats_value, "atlas": atlas_value, "behavior": behavior_value, "scale": scale_value, "final_boss": final_value}

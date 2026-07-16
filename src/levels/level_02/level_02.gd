@@ -19,9 +19,14 @@ const CHECKPOINT := preload("res://src/world/checkpoint.gd")
 
 func _ready() -> void:
 	super()
+
+
+func on_section_loaded(section: int) -> void:
+	if section != 4:
+		return
 	var checkpoint = CHECKPOINT.new()
-	checkpoint.position = Vector2(4520, 650)
-	checkpoint.checkpoint_position = Vector2(4520, 580)
+	checkpoint.position = Vector2(12000, 650)
+	checkpoint.checkpoint_position = Vector2(12000, 580)
 	add_child(checkpoint)
 
 
@@ -34,21 +39,20 @@ func next_level_path() -> String:
 
 
 func ground_rects() -> Array[Rect2]:
-	return [Rect2(0, 650, 1080, 120), Rect2(1180, 650, 1120, 120), Rect2(2420, 650, 1140, 120), Rect2(3680, 650, 1440, 120)]
+	return campaign_ground_rects()
 
 
 func platform_rects() -> Array[Rect2]:
-	return [Rect2(420, 520, 240, 24), Rect2(780, 455, 220, 24), Rect2(1480, 510, 260, 24), Rect2(1980, 465, 220, 24), Rect2(2730, 500, 300, 24), Rect2(4100, 500, 300, 24), Rect2(4590, 440, 320, 24)]
+	return campaign_platform_rects()
 
 
 func enemy_specs() -> Array:
 	return [
-		spec(Vector2(430, 580), SHRIMP, SHRIMP_FRAMES), spec(Vector2(690, 580), SHRIMP, SHRIMP_FRAMES), spec(Vector2(970, 580), CRAB, CRAB_FRAMES, Enemy.Behavior.CHARGE, Vector2(1.12, 1.12)),
-		spec(Vector2(1320, 580), SHRIMP, SHRIMP_FRAMES), spec(Vector2(1570, 440), JELLY, JELLY_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(1850, 550), MAIDEN, MAIDEN_FRAMES), spec(Vector2(2110, 410), JELLY, JELLY_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(2260, 580), CRAB, CRAB_FRAMES, Enemy.Behavior.CHARGE, Vector2(1.12, 1.12)),
-		spec(Vector2(2510, 580), SHRIMP, SHRIMP_FRAMES), spec(Vector2(2770, 440), JELLY, JELLY_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(3050, 580), MAIDEN, MAIDEN_FRAMES), spec(Vector2(3310, 580), SHRIMP, SHRIMP_FRAMES), spec(Vector2(3500, 580), CRAB, CRAB_FRAMES, Enemy.Behavior.CHARGE, Vector2(1.12, 1.12)),
-		spec(Vector2(3770, 580), SHRIMP, SHRIMP_FRAMES), spec(Vector2(3990, 580), CRAB, CRAB_FRAMES, Enemy.Behavior.CHARGE, Vector2(1.12, 1.12)), spec(Vector2(4220, 440), JELLY, JELLY_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(4460, 580), MAIDEN, MAIDEN_FRAMES),
-		spec(Vector2(3360, 535), TURTLE, TURTLE_FRAMES, Enemy.Behavior.BOSS, Vector2(1.3, 1.3)),
-		spec(Vector2(4860, 510), DRAGON_KING, DRAGON_KING_FRAMES, Enemy.Behavior.BOSS, Vector2(1.5, 1.5), true),
+		spec(Vector2(430, 580), SHRIMP, SHRIMP_FRAMES), spec(Vector2(980, 580), SHRIMP, SHRIMP_FRAMES), spec(Vector2(1540, 580), SHRIMP, SHRIMP_FRAMES), spec(Vector2(2200, 580), SHRIMP, SHRIMP_FRAMES),
+		spec(Vector2(2910, 580), CRAB, CRAB_FRAMES, Enemy.Behavior.CHARGE), spec(Vector2(3520, 580), CRAB, CRAB_FRAMES, Enemy.Behavior.CHARGE), spec(Vector2(4180, 580), CRAB, CRAB_FRAMES, Enemy.Behavior.CHARGE), spec(Vector2(4780, 580), CRAB, CRAB_FRAMES, Enemy.Behavior.CHARGE),
+		spec(Vector2(5480, 430), JELLY, JELLY_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(6120, 390), JELLY, JELLY_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(6760, 450), JELLY, JELLY_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(7380, 400), JELLY, JELLY_FRAMES, Enemy.Behavior.FLYING),
+		spec(Vector2(7920, 580), SHRIMP, SHRIMP_FRAMES), spec(Vector2(8320, 580), CRAB, CRAB_FRAMES, Enemy.Behavior.CHARGE), spec(Vector2(8750, 430), JELLY, JELLY_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(9160, 550), MAIDEN, MAIDEN_FRAMES), spec(Vector2(9650, 535), TURTLE, TURTLE_FRAMES, Enemy.Behavior.BOSS, Vector2(1.3, 1.3)),
+		spec(Vector2(10500, 580), SHRIMP, SHRIMP_FRAMES), spec(Vector2(10920, 580), CRAB, CRAB_FRAMES, Enemy.Behavior.CHARGE), spec(Vector2(11350, 430), JELLY, JELLY_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(11780, 550), MAIDEN, MAIDEN_FRAMES), spec(Vector2(12350, 510), DRAGON_KING, DRAGON_KING_FRAMES, Enemy.Behavior.BOSS, Vector2(1.5, 1.5), true),
 	]
 
 

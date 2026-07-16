@@ -10,6 +10,7 @@ enum Behavior {
 	CHARGE,
 	FLYING,
 	BOSS,
+	EVADE,
 }
 
 const FRAME_SIZE := Vector2(128.0, 128.0)
@@ -46,6 +47,18 @@ var ghost_solid: bool = true
 var disguised: bool = false
 var shield_health: float = 0.0
 var next_projectile_at: int = 0
+var next_boss_reposition_at: int = 0
+var protected_by_group: StringName = &""
+var protects_group: StringName = &""
+var protected_damage_multiplier: float = 0.2
+var patrol_target_x: float
+var next_patrol_decision_at: int = 0
+var patrol_pause_until: int = 0
+var boss_target_lost_until: int = 0
+var next_boss_target_loss_at: int = 0
+var last_player_side: float = 0.0
+var engaged: bool = false
+var target_player: Player
 
 
 func _ready() -> void:
@@ -59,6 +72,8 @@ func _ready() -> void:
 	base_collision_layer = collision_layer
 	base_collision_mask = collision_mask
 	spawn_position = global_position
+	choose_patrol_target()
+	next_boss_reposition_at = Time.get_ticks_msec() + randi_range(2200, 3200)
 	disguised = stats.disguise_reveal_distance > 0.0
 	setup_character_frames()
 	setup_attack_effect_frames()
@@ -82,7 +97,19 @@ func _physics_process(delta: float) -> void:
 		velocity = Vector2.ZERO
 		return
 
-	var player := get_tree().get_first_node_in_group("player") as Player
+	if not is_instance_valid(target_player):
+		target_player = get_tree().get_first_node_in_group("player") as Player
+	var player := target_player
+	if not engaged:
+		engaged = is_inside_active_screen()
+		if not engaged:
+			velocity.x = 0.0
+			if behavior == Behavior.FLYING:
+				velocity.y = 0.0
+			elif not is_on_floor():
+				velocity.y += stats.gravity * delta
+			move_and_slide()
+			return
 	if disguised:
 		velocity = Vector2.ZERO
 		if not update_disguise(player):
@@ -93,25 +120,60 @@ func _physics_process(delta: float) -> void:
 		if not is_on_floor():
 			velocity.y += stats.gravity * delta
 		update_grounded(player)
+		stop_at_blocked_path()
 
 	move_and_slide()
+	if global_position.y > 820.0:
+		die()
+		return
 	apply_contact_damage()
+
+
+func is_inside_active_screen() -> bool:
+	var screen_position := get_viewport().get_canvas_transform() * global_position
+	return get_viewport_rect().grow(80.0).has_point(screen_position)
+
+
+func stop_at_blocked_path() -> void:
+	if absf(velocity.x) < 1.0 or not is_on_floor():
+		return
+	var direction := signf(velocity.x)
+	var ray_start := global_position + Vector2(direction * 42.0, -8.0)
+	var ray_end := ray_start + Vector2(0.0, 90.0)
+	var query := PhysicsRayQueryParameters2D.create(ray_start, ray_end, 1)
+	query.exclude = [get_rid()]
+	if get_world_2d().direct_space_state.intersect_ray(query).is_empty():
+		velocity.x = 0.0
 
 
 func update_grounded(player: Player) -> void:
 	if player == null:
-		patrol()
+		velocity.x = 0.0
+		return
+	if behavior == Behavior.BOSS and Time.get_ticks_msec() >= next_boss_reposition_at:
+		reposition_boss()
+	if not protects_group.is_empty() and update_bodyguard_position(player):
 		return
 	var distance := player.global_position - global_position
-	if absf(distance.x) > stats.detection_range:
-		patrol()
+	var detection_range := maxf(stats.detection_range, 720.0)
+	if behavior == Behavior.BOSS and update_boss_target_loss(player, distance):
 		return
+	if behavior == Behavior.BOSS and absf(distance.x) > detection_range:
+		try_ranged_attack(player)
 
 	patrol_direction = signf(distance.x)
 	sprite.flip_h = patrol_direction > 0.0
-	if behavior == Behavior.CHARGE and Time.get_ticks_msec() >= next_charge_at:
+	if behavior == Behavior.EVADE:
+		patrol_direction = -patrol_direction
+		sprite.flip_h = patrol_direction > 0.0
+		velocity.x = patrol_direction * stats.move_speed
+	elif behavior == Behavior.CHARGE and Time.get_ticks_msec() >= next_charge_at:
 		velocity.x = patrol_direction * stats.move_speed * 2.7
 		next_charge_at = Time.get_ticks_msec() + 2200
+	elif stats.projectile_damage > 0.0 and not stats.is_boss and absf(distance.x) < 280.0:
+		patrol_direction = -patrol_direction
+		velocity.x = patrol_direction * stats.move_speed * 0.8
+		try_ranged_attack(player)
 	elif absf(distance.x) > stats.attack_range and try_ranged_attack(player):
 		velocity.x = move_toward(velocity.x, 0.0, 160.0)
 	elif absf(distance.x) > stats.attack_range:
@@ -122,24 +184,100 @@ func update_grounded(player: Player) -> void:
 		try_attack(player)
 
 
+func update_boss_target_loss(player: Player, distance: Vector2) -> bool:
+	var now := Time.get_ticks_msec()
+	if now < boss_target_lost_until:
+		velocity.x = move_toward(velocity.x, 0.0, 140.0)
+		return true
+	var player_side := signf(distance.x)
+	var crossed_behind := not is_zero_approx(last_player_side) and not is_zero_approx(player_side) and player_side != last_player_side
+	var jumped_past := crossed_behind and absf(distance.x) < 320.0 and player.global_position.y < global_position.y + 30.0
+	last_player_side = player_side
+	if jumped_past and now >= next_boss_target_loss_at:
+		boss_target_lost_until = now + randi_range(600, 1000)
+		next_boss_target_loss_at = boss_target_lost_until + randi_range(1800, 2800)
+		velocity.x = move_toward(velocity.x, 0.0, 140.0)
+		return true
+	return false
+
+
+func reposition_boss() -> void:
+	next_boss_reposition_at = Time.get_ticks_msec() + randi_range(2800, 4200)
+	var section_width := 2560.0
+	var section := floori(global_position.x / section_width)
+	var minimum_x := section * section_width + 220.0
+	var maximum_x := (section + 1) * section_width - 220.0
+	var space := get_world_2d().direct_space_state
+	for attempt in 8:
+		var target_x := randf_range(minimum_x, maximum_x)
+		if absf(target_x - global_position.x) < 320.0:
+			continue
+		var query := PhysicsRayQueryParameters2D.create(Vector2(target_x, 40.0), Vector2(target_x, 690.0), 1)
+		var hit := space.intersect_ray(query)
+		if hit.is_empty() or (hit.normal as Vector2).y > -0.7:
+			continue
+		global_position = Vector2(target_x, (hit.position as Vector2).y - 70.0)
+		velocity = Vector2.ZERO
+		spawn_position = global_position
+		var tween := create_tween()
+		tween.tween_property(sprite, "modulate:a", 0.25, 0.06)
+		tween.tween_property(sprite, "modulate:a", 1.0, 0.08)
+		return
+
+
+func update_bodyguard_position(player: Player) -> bool:
+	var protected := get_tree().get_first_node_in_group(protects_group) as Enemy
+	if protected == null or protected.dead:
+		return false
+	var player_direction := signf(player.global_position.x - protected.global_position.x)
+	if is_zero_approx(player_direction):
+		player_direction = 1.0
+	var guard_position := protected.global_position.x + player_direction * 130.0
+	var distance_to_guard_position := guard_position - global_position.x
+	patrol_direction = signf(distance_to_guard_position)
+	sprite.flip_h = player.global_position.x > global_position.x
+	if absf(player.global_position.x - global_position.x) <= stats.attack_range:
+		velocity.x = move_toward(velocity.x, 0.0, 80.0)
+		try_attack(player)
+	elif absf(distance_to_guard_position) > 35.0:
+		velocity.x = patrol_direction * stats.move_speed
+	else:
+		velocity.x = move_toward(velocity.x, 0.0, 100.0)
+		try_ranged_attack(player)
+	return true
+
+
 func patrol() -> void:
-	if absf(global_position.x - spawn_position.x) >= patrol_distance:
-		patrol_direction = -signf(global_position.x - spawn_position.x)
-	velocity.x = patrol_direction * stats.move_speed * 0.45
+	var now := Time.get_ticks_msec()
+	if now < patrol_pause_until:
+		velocity.x = move_toward(velocity.x, 0.0, 100.0)
+		return
+	if now >= next_patrol_decision_at or absf(global_position.x - patrol_target_x) < 28.0:
+		if randf() < 0.35:
+			patrol_pause_until = now + randi_range(250, 850)
+		choose_patrol_target()
+	patrol_direction = signf(patrol_target_x - global_position.x)
+	velocity.x = patrol_direction * stats.move_speed * randf_range(0.35, 0.65)
 	sprite.flip_h = patrol_direction > 0.0
+
+
+func choose_patrol_target() -> void:
+	patrol_target_x = spawn_position.x + randf_range(-patrol_distance, patrol_distance)
+	next_patrol_decision_at = Time.get_ticks_msec() + randi_range(900, 2400)
 
 
 func update_flying(delta: float, player: Player) -> void:
 	flight_time += delta
-	var hover_y := spawn_position.y + sin(flight_time * 2.0) * 24.0
-	if player == null or global_position.distance_to(player.global_position) > stats.detection_range:
-		velocity.x = patrol_direction * stats.move_speed * 0.4
-		velocity.y = (hover_y - global_position.y) * 2.0
-		if absf(global_position.x - spawn_position.x) >= patrol_distance:
-			patrol_direction *= -1.0
+	if player == null:
+		velocity = Vector2.ZERO
 		return
 	var target := player.global_position + Vector2(0.0, -54.0)
-	velocity = global_position.direction_to(target) * stats.move_speed
+	if stats.projectile_damage > 0.0:
+		var flank := signf(global_position.x - player.global_position.x)
+		if is_zero_approx(flank):
+			flank = -1.0 if sprite.flip_h else 1.0
+		target = player.global_position + Vector2(flank * 150.0, -140.0)
+	velocity = Vector2.ZERO if global_position.distance_to(target) < 28.0 else global_position.direction_to(target) * stats.move_speed
 	sprite.flip_h = velocity.x > 0.0
 	try_ranged_attack(player)
 
@@ -197,6 +335,8 @@ func apply_contact_damage() -> void:
 func take_damage(damage: float, source_position: Vector2) -> void:
 	if dead or not ghost_solid or Time.get_ticks_msec() < invulnerable_until:
 		return
+	if not protected_by_group.is_empty() and not get_tree().get_nodes_in_group(protected_by_group).is_empty():
+		damage *= protected_damage_multiplier
 	AudioService.play_sfx(self, AudioService.HIT, -5.0)
 	if shield_health > 0.0:
 		shield_health = maxf(0.0, shield_health - damage)

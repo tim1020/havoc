@@ -7,6 +7,7 @@ extends CanvasLayer
 @onready var stones_label: Label = %StonesLabel
 @onready var artifact_labels: Array[Label] = [%Artifact1, %Artifact2, %Artifact3, %Artifact4, %Artifact5]
 @onready var section_label: Label = %SectionLabel
+@onready var go_label: Label = %GoLabel
 @onready var victory_banner: Label = %VictoryBanner
 @onready var result_panel: Control = %ResultPanel
 @onready var pause_panel: Control = %PausePanel
@@ -20,6 +21,7 @@ extends CanvasLayer
 @onready var reduced_motion_button: CheckButton = %ReducedMotionButton
 
 var enemy_status_expires_at: int = 0
+var go_tween: Tween
 
 
 func bind_player(player: Player) -> void:
@@ -78,6 +80,25 @@ func set_section(section_name: String) -> void:
 	tween.tween_property(section_label, "modulate:a", 0.0, 0.6)
 
 
+func show_go_prompt() -> void:
+	go_label.visible = true
+	go_label.modulate.a = 1.0
+	if GameState.settings.reduced_motion:
+		return
+	if go_tween != null:
+		go_tween.kill()
+	go_tween = create_tween().set_loops()
+	go_tween.tween_property(go_label, "modulate:a", 0.35, 0.45)
+	go_tween.tween_property(go_label, "modulate:a", 1.0, 0.45)
+
+
+func hide_go_prompt() -> void:
+	if go_tween != null:
+		go_tween.kill()
+	go_tween = null
+	go_label.visible = false
+
+
 func play_victory_animation(title: String = "关卡通过") -> void:
 	victory_banner.text = title
 	victory_banner.visible = true
@@ -99,7 +120,9 @@ func show_result(stones: int, level_title: String = "第一关") -> void:
 	result_panel.pivot_offset = result_panel.size * 0.5
 	%ResultTitle.text = "%s完成" % level_title
 	%ResultText.text = "%s挑战完成\n本关灵石：%d　总计：%d" % [level_title, stones, GameState.stones]
-	%ReturnButton.grab_focus()
+	# 结算面板会留在过关商店背后；禁止键盘焦点，避免离店的跳跃键同时触发返回主菜单。
+	%ReturnButton.focus_mode = Control.FOCUS_NONE
+	%ReturnButton.release_focus()
 	var tween := create_tween().set_parallel(true)
 	tween.tween_property(result_panel, "modulate:a", 1.0, 0.35)
 	tween.tween_property(result_panel, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_BACK)
@@ -111,6 +134,7 @@ func _ready() -> void:
 	pause_panel.visible = false
 	enemy_panel.visible = false
 	victory_banner.visible = false
+	go_label.visible = false
 	%ReturnButton.pressed.connect(GameState.return_to_menu)
 	%ResumeButton.pressed.connect(toggle_pause)
 	%RestartButton.pressed.connect(restart_level)

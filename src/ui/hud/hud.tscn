@@ -142,6 +142,21 @@ theme_override_font_sizes/font_size = 28
 text = "花果山脚"
 horizontal_alignment = 1
 
+[node name="GoLabel" type="Label" parent="."]
+unique_name_in_owner = true
+offset_left = 930.0
+offset_top = 300.0
+offset_right = 1160.0
+offset_bottom = 390.0
+theme_override_colors/font_color = Color(1, 0.72, 0.16, 1)
+theme_override_colors/font_shadow_color = Color(0.12, 0.04, 0, 0.9)
+theme_override_constants/shadow_offset_x = 4
+theme_override_constants/shadow_offset_y = 4
+theme_override_font_sizes/font_size = 54
+text = "GO  →"
+horizontal_alignment = 1
+vertical_alignment = 1
+
 [node name="EnemyPanel" type="PanelContainer" parent="."]
 unique_name_in_owner = true
 offset_left = 778.0

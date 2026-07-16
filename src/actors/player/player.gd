@@ -6,7 +6,10 @@ const STAFF_FRAMES := preload("res://resources/animations/player_staff_frames.tr
 const STAFF_PROJECTILE := preload("res://src/combat/staff_projectile.tscn")
 const ARTIFACT_PROJECTILE := preload("res://src/combat/artifact_projectile.gd")
 const MONKEY_CLONE := preload("res://src/actors/player/monkey_clone.gd")
+const CHARGE_FLAME_EFFECT := preload("res://src/combat/charge_flame_effect.gd")
+const CHARGED_FLAME_PROJECTILE := preload("res://src/combat/charged_flame_projectile.gd")
 const ITEM_HOLD_SECONDS := 0.45
+const CHARGE_START_SECONDS := 0.2
 
 signal health_changed(current: float, maximum: float)
 signal died
@@ -35,7 +38,9 @@ var speed_boost_until: int = 0
 var slowed_until: int = 0
 var rooted_until: int = 0
 var confused_until: int = 0
-var attack_started_in_air: bool = false
+var charge_pose_started: bool = false
+var charge_ready: bool = false
+var charge_aura: ChargeFlameEffect
 var item_held: bool = false
 var item_consumed: bool = false
 var item_pressed_at: int = 0
@@ -50,6 +55,7 @@ func _ready() -> void:
 	health = stats.max_health
 	jumps_left = stats.jump_count
 	respawn_position = global_position
+	invulnerable_until = Time.get_ticks_msec() + 1000
 	attack_area.monitoring = true
 	attack_effect.animation_finished.connect(func() -> void:
 		attack_effect.stop()
@@ -65,17 +71,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.echo:
 		return
 	if event.is_action_pressed("jump"):
-		if attack_held or Input.is_action_pressed("attack"):
-			cancel_attack_charge()
-			cast_freeze_spell()
-		else:
-			try_jump()
+		try_jump()
 	elif event.is_action_pressed("attack"):
-		if Input.is_action_pressed("jump"):
-			attack_consumed = true
-			cast_freeze_spell()
-		else:
-			begin_attack_charge()
+		begin_attack_charge()
 	elif event.is_action_released("attack"):
 		release_attack_charge()
 	elif event.is_action_pressed("item"):
@@ -122,14 +120,14 @@ func begin_attack_charge() -> void:
 	attack_held = true
 	attack_consumed = false
 	attack_pressed_at = Time.get_ticks_msec()
-	attack_started_in_air = not is_on_floor()
+	charge_pose_started = false
+	charge_ready = false
 
 
 func cancel_attack_charge() -> void:
 	attack_held = false
 	attack_consumed = true
-	attack_effect.stop()
-	attack_effect.visible = false
+	clear_charge_feedback()
 
 
 func release_attack_charge() -> void:
@@ -137,20 +135,13 @@ func release_attack_charge() -> void:
 		return
 	var held_seconds := float(Time.get_ticks_msec() - attack_pressed_at) / 1000.0
 	attack_held = false
-	attack_effect.stop()
-	attack_effect.visible = false
+	var was_ready := charge_ready or held_seconds >= stats.charge_seconds
+	clear_charge_feedback()
 	if attack_consumed:
 		attack_consumed = false
 		return
-	if held_seconds >= stats.charge_seconds:
-		# 满蓄力只按是否持棒分流，不再区分起跳或落地状态。
-		if GameState.has_staff:
-			launch_tracking_staffs()
-		else:
-			perform_roar()
-	elif attack_started_in_air:
-		# 空中短按是前向重击：第一段普攻伤害与有效距离均加倍。
-		perform_attack(-1.0, 2.0, 2.0, true)
+	if was_ready:
+		perform_fire_burst()
 	else:
 		perform_attack()
 
@@ -201,64 +192,43 @@ func update_charge_feedback() -> void:
 		sprite.modulate = Color("ffc1e7") if Time.get_ticks_msec() < confused_until else Color.WHITE
 		sprite.scale = base_sprite_scale
 		return
-	if Time.get_ticks_msec() - attack_pressed_at < 120:
+	var held_seconds := float(Time.get_ticks_msec() - attack_pressed_at) / 1000.0
+	if held_seconds < CHARGE_START_SECONDS:
 		return
-	if not GameState.has_staff:
-		# 空手蓄力复用角色图集里的周身怒火帧，避免待机常驻该效果。
+	if not charge_pose_started:
+		charge_pose_started = true
 		attack_effect.stop()
 		attack_effect.visible = false
-		play_if_available(&"respawn")
-		return
-	attack_effect.flip_h = facing < 0.0
-	attack_effect.position.x = absf(attack_effect.position.x) * facing
-	attack_effect.scale = Vector2.ONE * (1.15 + sin(Time.get_ticks_msec() * 0.018) * 0.08)
-	attack_effect.modulate = Color("ffd34f")
-	if not attack_effect.visible or not attack_effect.is_playing():
-		attack_effect.visible = true
-		attack_effect.play(&"attack")
+		play_if_available(&"spell")
+	if held_seconds >= stats.charge_seconds and not charge_ready:
+		charge_ready = true
+		charge_aura = CHARGE_FLAME_EFFECT.new() as ChargeFlameEffect
+		charge_aura.mode = ChargeFlameEffect.Mode.AURA
+		add_child(charge_aura)
 
 
-func perform_roar() -> void:
+func perform_fire_burst() -> void:
 	AudioService.play_sfx(self, AudioService.ATTACK, -2.0)
+	attack_effect.stop()
+	attack_effect.visible = false
 	play_if_available(&"spell")
-	spawn_roar_effects()
-	var attack_shape := attack_area.get_node("Shape").shape as RectangleShape2D
-	# 怒吼只命中面朝方向，水平范围为普通攻击有效距离的三倍。
-	var attack_distance := (absf(attack_area.position.x) + attack_shape.size.x * 0.5) * 3.0
-	for enemy_node in get_tree().get_nodes_in_group("enemies"):
-		var enemy := enemy_node as Enemy
-		var offset := enemy.global_position - global_position
-		if offset.x * facing > 0.0 and offset.x * facing <= attack_distance and absf(offset.y) <= attack_shape.size.y:
-			enemy.take_damage(stats.charged_attack_damage, global_position)
-
-
-func spawn_roar_effects() -> void:
-	# 三段弧光覆盖近、中、远距离，让表现范围与怒吼判定范围一致。
-	for index in 3:
-		var wave := AnimatedSprite2D.new()
-		wave.add_to_group(&"roar_effects")
-		wave.sprite_frames = attack_effect.sprite_frames
-		wave.animation = &"attack"
-		wave.position = Vector2(facing * (90.0 + index * 95.0), -54.0)
-		wave.flip_h = facing < 0.0
-		wave.scale = Vector2.ONE * (1.35 + index * 0.28)
-		wave.modulate = Color("ffd34f")
-		wave.z_index = 2
-		wave.animation_finished.connect(wave.queue_free)
-		add_child(wave)
-		wave.play()
-
-
-func cast_freeze_spell() -> void:
-	if health <= stats.freeze_health_cost:
+	if GameState.has_staff:
+		launch_tracking_staffs()
 		return
-	health -= stats.freeze_health_cost
-	health_changed.emit(health, stats.max_health)
-	play_if_available("spell")
-	for enemy in get_tree().get_nodes_in_group("enemies"):
-		if enemy.has_method("freeze_for"):
-			var duration := stats.freeze_boss_seconds if enemy.is_in_group("bosses") else stats.freeze_normal_seconds
-			enemy.freeze_for(duration)
+	var projectile := CHARGED_FLAME_PROJECTILE.new() as ChargedFlameProjectile
+	projectile.direction = facing
+	projectile.total_damage = stats.charged_attack_damage
+	projectile.source_position = global_position
+	projectile.global_position = global_position + Vector2(facing * 64.0, -52.0)
+	get_tree().current_scene.add_child(projectile)
+
+
+func clear_charge_feedback() -> void:
+	charge_pose_started = false
+	charge_ready = false
+	if is_instance_valid(charge_aura):
+		charge_aura.queue_free()
+	charge_aura = null
 
 
 func apply_healing_item(item: ItemDefinition) -> void:
@@ -375,7 +345,7 @@ func launch_tracking_staffs() -> void:
 	var targets: Array[Enemy] = []
 	for enemy_node in get_tree().get_nodes_in_group("enemies"):
 		var enemy := enemy_node as Enemy
-		if not enemy.dead:
+		if not enemy.dead and is_enemy_on_screen(enemy):
 			targets.append(enemy)
 	if targets.is_empty():
 		return
@@ -387,13 +357,23 @@ func launch_tracking_staffs() -> void:
 		projectile.global_position = global_position + Vector2(facing * 44.0, -30.0 - index * 30.0)
 		projectile.source_position = global_position
 		projectile.target = targets[index % targets.size()]
-		projectile.damage = stats.combo_damage[0]
+		projectile.damage = stats.charged_attack_damage / 3.0
 		get_tree().current_scene.add_child(projectile)
 	play_if_available("spell")
 
 
+func is_enemy_on_screen(enemy: Enemy) -> bool:
+	var camera := get_viewport().get_camera_2d()
+	if camera == null:
+		return true
+	var visible_size := get_viewport_rect().size / camera.zoom
+	var visible_rect := Rect2(camera.get_screen_center_position() - visible_size * 0.5, visible_size)
+	return visible_rect.grow(48.0).has_point(enemy.global_position + Vector2(0, -48))
+
+
 func play_victory() -> void:
 	attack_held = false
+	clear_charge_feedback()
 	item_held = false
 	restore_full_health()
 	controls_enabled = false
@@ -416,6 +396,8 @@ func play_victory() -> void:
 func take_damage(damage: float, source_position: Vector2) -> void:
 	if Time.get_ticks_msec() < invulnerable_until or not controls_enabled:
 		return
+	if attack_held:
+		cancel_attack_charge()
 	health = maxf(0.0, health - damage)
 	AudioService.play_sfx(self, AudioService.HIT, -3.0)
 	invulnerable_until = Time.get_ticks_msec() + int(stats.invulnerability_seconds * 1000.0)
@@ -451,6 +433,8 @@ func set_checkpoint(checkpoint: Vector2) -> void:
 
 func update_animation(direction: float) -> void:
 	if not controls_enabled or sprite.is_playing() and sprite.animation.begins_with("attack"):
+		return
+	if attack_held and charge_pose_started:
 		return
 	if not is_on_floor():
 		play_if_available("jump")

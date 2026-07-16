@@ -20,10 +20,17 @@ const VORTEX := preload("res://resources/stats/hazards/reincarnation_vortex.tres
 
 func _ready() -> void:
 	super()
+
+
+func on_section_loaded(section: int) -> void:
+	if section != 3:
+		return
 	var ox: Enemy
 	var horse: Enemy
 	for enemy_node in get_tree().get_nodes_in_group("enemies"):
 		var enemy := enemy_node as Enemy
+		if floori(enemy.global_position.x / SECTION_WIDTH) != section:
+			continue
 		if enemy.stats == OX:
 			ox = enemy
 		elif enemy.stats == HORSE:
@@ -44,21 +51,20 @@ func next_level_path() -> String:
 
 
 func ground_rects() -> Array[Rect2]:
-	return [Rect2(0, 650, 520, 120), Rect2(610, 650, 430, 120), Rect2(1140, 650, 280, 120), Rect2(2420, 650, 1140, 120), Rect2(3680, 650, 1440, 120)]
+	return campaign_ground_rects()
 
 
 func platform_rects() -> Array[Rect2]:
-	return [Rect2(380, 515, 230, 24), Rect2(1450, 540, 210, 24), Rect2(1740, 470, 190, 24), Rect2(2020, 535, 210, 24), Rect2(2710, 500, 300, 24), Rect2(3160, 455, 260, 24), Rect2(4080, 500, 280, 24), Rect2(4580, 445, 320, 24)]
+	return campaign_platform_rects()
 
 
 func enemy_specs() -> Array:
 	return [
-		spec(Vector2(350, 520), SOUL, SOUL_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(670, 580), SKELETON, SKELETON_FRAMES), spec(Vector2(910, 500), SOUL, SOUL_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(1190, 580), SKELETON, SKELETON_FRAMES), spec(Vector2(1390, 500), SOUL, SOUL_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(1570, 490), SOUL, SOUL_FRAMES, Enemy.Behavior.FLYING),
-		spec(Vector2(1800, 420), REAPER, REAPER_FRAMES), spec(Vector2(2080, 485), ATTENDANT, ATTENDANT_FRAMES), spec(Vector2(2320, 500), REAPER, REAPER_FRAMES),
-		spec(Vector2(2520, 580), SKELETON, SKELETON_FRAMES), spec(Vector2(2700, 450), SOUL, SOUL_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(2890, 580), SKELETON, SKELETON_FRAMES), spec(Vector2(3070, 410), SOUL, SOUL_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(3260, 580), SKELETON, SKELETON_FRAMES), spec(Vector2(3460, 580), SKELETON, SKELETON_FRAMES),
-		spec(Vector2(3850, 580), REAPER, REAPER_FRAMES), spec(Vector2(4140, 450), ATTENDANT, ATTENDANT_FRAMES), spec(Vector2(4470, 580), ATTENDANT, ATTENDANT_FRAMES),
-		spec(Vector2(3260, 520), OX, OX_FRAMES, Enemy.Behavior.BOSS, Vector2(1.25, 1.25)), spec(Vector2(3450, 520), HORSE, HORSE_FRAMES, Enemy.Behavior.BOSS, Vector2(1.25, 1.25)),
-		spec(Vector2(4880, 500), YANLUO, YANLUO_FRAMES, Enemy.Behavior.BOSS, Vector2(1.5, 1.5), true),
+		spec(Vector2(420, 490), SOUL, SOUL_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(980, 440), SOUL, SOUL_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(1580, 500), SOUL, SOUL_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(2200, 450), SOUL, SOUL_FRAMES, Enemy.Behavior.FLYING),
+		spec(Vector2(2920, 580), SKELETON, SKELETON_FRAMES), spec(Vector2(3540, 580), SKELETON, SKELETON_FRAMES), spec(Vector2(4160, 580), SKELETON, SKELETON_FRAMES), spec(Vector2(4780, 580), SKELETON, SKELETON_FRAMES),
+		spec(Vector2(5480, 500), REAPER, REAPER_FRAMES), spec(Vector2(6120, 500), REAPER, REAPER_FRAMES), spec(Vector2(6760, 500), REAPER, REAPER_FRAMES), spec(Vector2(7380, 500), REAPER, REAPER_FRAMES),
+		spec(Vector2(7900, 490), SOUL, SOUL_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(8300, 580), SKELETON, SKELETON_FRAMES), spec(Vector2(8740, 500), REAPER, REAPER_FRAMES), spec(Vector2(9140, 500), ATTENDANT, ATTENDANT_FRAMES), spec(Vector2(9480, 520), OX, OX_FRAMES, Enemy.Behavior.BOSS, Vector2(1.25, 1.25)), spec(Vector2(9760, 520), HORSE, HORSE_FRAMES, Enemy.Behavior.BOSS, Vector2(1.25, 1.25)),
+		spec(Vector2(10450, 490), SOUL, SOUL_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(10880, 580), SKELETON, SKELETON_FRAMES), spec(Vector2(11320, 500), REAPER, REAPER_FRAMES), spec(Vector2(11740, 500), ATTENDANT, ATTENDANT_FRAMES), spec(Vector2(12320, 500), YANLUO, YANLUO_FRAMES, Enemy.Behavior.BOSS, Vector2(1.5, 1.5), true),
 	]
 
 

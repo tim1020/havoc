@@ -148,12 +148,12 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": SubResource("Respawn")
+"texture": SubResource("Attack1")
 }, {
 "duration": 1.0,
 "texture": SubResource("Attack1")
 }],
 "loop": false,
 "name": &"spell",
-"speed": 1.0
+"speed": 2.0
 }]

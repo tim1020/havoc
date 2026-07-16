@@ -11,6 +11,11 @@ const HOUND := preload("res://resources/stats/enemies/heaven_hound.tres")
 const NEZHA := preload("res://resources/stats/enemies/nezha.tres")
 const ERLANG := preload("res://resources/stats/enemies/erlang.tres")
 const EMPEROR := preload("res://resources/stats/enemies/jade_emperor.tres")
+const LI_JING := preload("res://resources/stats/enemies/li_jing.tres")
+const KING_STATS := [
+	preload("res://resources/stats/enemies/dhritarashtra.tres"), preload("res://resources/stats/enemies/virudhaka.tres"),
+	preload("res://resources/stats/enemies/virupaksha.tres"), preload("res://resources/stats/enemies/vaishravana.tres"),
+]
 const YELLOW_FRAMES := preload("res://assets/generated/characters/campaign/yellow_turban_frames.png")
 const CURTAIN_FRAMES := preload("res://assets/generated/characters/campaign/curtain_general_frames.png")
 const ROYAL_FRAMES := preload("res://assets/generated/characters/campaign/royal_guard_frames.png")
@@ -18,6 +23,10 @@ const HOUND_FRAMES := preload("res://assets/generated/characters/campaign/heaven
 const NEZHA_FRAMES := preload("res://assets/generated/characters/campaign/nezha_frames.png")
 const ERLANG_FRAMES := preload("res://assets/generated/characters/campaign/erlang_frames.png")
 const EMPEROR_FRAMES := preload("res://assets/generated/characters/campaign/jade_emperor_frames.png")
+const KING_FRAMES := [
+	preload("res://assets/generated/characters/campaign/dhritarashtra_frames.png"), preload("res://assets/generated/characters/campaign/virudhaka_frames.png"),
+	preload("res://assets/generated/characters/campaign/virupaksha_frames.png"), preload("res://assets/generated/characters/campaign/vaishravana_frames.png"),
+]
 const GOLD_ARRAY := preload("res://resources/stats/hazards/golden_array.tres")
 const DRAGON_FIRE := preload("res://resources/stats/hazards/dragon_fire.tres")
 
@@ -29,38 +38,53 @@ var emperor_reinforcement_timer: Timer
 
 func _ready() -> void:
 	super()
-	for x in [520.0, 1080.0, 1760.0, 2290.0]:
-		var pillar = PILLAR_SCRIPT.new()
-		pillar.position = Vector2(x, 650)
-		add_child(pillar)
-	var seal = SEAL_SCRIPT.new()
-	seal.position = Vector2(-120, 360)
-	seal.visible = false
-	add_child(seal)
-	for enemy_node in get_tree().get_nodes_in_group("enemies"):
-		var enemy := enemy_node as Enemy
-		if enemy.stats == NEZHA:
-			enemy.defeated.connect(spawn_erlang, CONNECT_ONE_SHOT)
 	emperor_reinforcement_timer = Timer.new()
 	emperor_reinforcement_timer.wait_time = 6.0
 	emperor_reinforcement_timer.timeout.connect(spawn_emperor_reinforcement)
 	add_child(emperor_reinforcement_timer)
 
 
+func on_section_loaded(section: int) -> void:
+	var pillar = PILLAR_SCRIPT.new()
+	pillar.position = Vector2([520.0, 3080.0, 5640.0, 8200.0, 10760.0][section], 650)
+	add_child(pillar)
+	if section == 0:
+		var seal = SEAL_SCRIPT.new()
+		seal.position = Vector2(-120, 360)
+		seal.visible = false
+		add_child(seal)
+	if section != 4:
+		return
+	for enemy_node in get_tree().get_nodes_in_group("enemies"):
+		var enemy := enemy_node as Enemy
+		if floori(enemy.global_position.x / SECTION_WIDTH) != section:
+			continue
+		if enemy.stats in [NEZHA, ERLANG, LI_JING]:
+			enemy.add_to_group("emperor_protectors")
+			enemy.protects_group = &"jade_emperor"
+		if enemy.stats == EMPEROR:
+			enemy.add_to_group("jade_emperor")
+			enemy.behavior = Enemy.Behavior.EVADE
+			enemy.protected_by_group = &"emperor_protectors"
+			enemy.defeated.connect(complete_main_story, CONNECT_ONE_SHOT)
+
+
 func ground_rects() -> Array[Rect2]:
-	return [Rect2(0, 650, 1160, 120), Rect2(1280, 650, 1120, 120), Rect2(2500, 650, 1060, 120), Rect2(3680, 650, 1440, 120)]
+	return campaign_ground_rects()
 
 
 func platform_rects() -> Array[Rect2]:
-	return [Rect2(300, 540, 220, 24), Rect2(680, 470, 230, 24), Rect2(1020, 405, 210, 24), Rect2(1450, 520, 250, 24), Rect2(1840, 460, 240, 24), Rect2(2180, 520, 220, 24), Rect2(2700, 510, 260, 24), Rect2(3160, 450, 260, 24), Rect2(4080, 500, 300, 24), Rect2(4600, 430, 320, 24)]
+	return campaign_platform_rects()
 
 
 func enemy_specs() -> Array:
 	return [
-		spec(Vector2(350, 580), YELLOW, YELLOW_FRAMES), spec(Vector2(650, 580), YELLOW, YELLOW_FRAMES), spec(Vector2(930, 580), CURTAIN, CURTAIN_FRAMES), spec(Vector2(1180, 580), ROYAL, ROYAL_FRAMES),
-		spec(Vector2(1430, 580), YELLOW, YELLOW_FRAMES), spec(Vector2(1680, 580), CURTAIN, CURTAIN_FRAMES), spec(Vector2(1940, 580), ROYAL, ROYAL_FRAMES), spec(Vector2(2200, 580), YELLOW, YELLOW_FRAMES),
-		spec(Vector2(2520, 580), HOUND, HOUND_FRAMES, Enemy.Behavior.CHARGE), spec(Vector2(2780, 580), ROYAL, ROYAL_FRAMES), spec(Vector2(3030, 580), CURTAIN, CURTAIN_FRAMES), spec(Vector2(3300, 580), HOUND, HOUND_FRAMES, Enemy.Behavior.CHARGE), spec(Vector2(3500, 580), HOUND, HOUND_FRAMES, Enemy.Behavior.CHARGE),
-		spec(Vector2(3380, 510), NEZHA, NEZHA_FRAMES, Enemy.Behavior.BOSS, Vector2(1.4, 1.4)),
+		spec(Vector2(520, 580), YELLOW, YELLOW_FRAMES), spec(Vector2(1120, 580), YELLOW, YELLOW_FRAMES), spec(Vector2(1760, 580), YELLOW, YELLOW_FRAMES), spec(Vector2(2260, 510), KING_STATS[0], KING_FRAMES[0], Enemy.Behavior.BOSS, Vector2(1.5, 1.5)),
+		spec(Vector2(3060, 580), CURTAIN, CURTAIN_FRAMES), spec(Vector2(3700, 580), CURTAIN, CURTAIN_FRAMES), spec(Vector2(4320, 580), CURTAIN, CURTAIN_FRAMES), spec(Vector2(4820, 510), KING_STATS[1], KING_FRAMES[1], Enemy.Behavior.BOSS, Vector2(1.5, 1.5)),
+		spec(Vector2(5620, 580), HOUND, HOUND_FRAMES, Enemy.Behavior.CHARGE), spec(Vector2(6260, 580), HOUND, HOUND_FRAMES, Enemy.Behavior.CHARGE), spec(Vector2(6880, 580), HOUND, HOUND_FRAMES, Enemy.Behavior.CHARGE), spec(Vector2(7380, 510), KING_STATS[2], KING_FRAMES[2], Enemy.Behavior.BOSS, Vector2(1.5, 1.5)),
+		spec(Vector2(8180, 580), ROYAL, ROYAL_FRAMES), spec(Vector2(8820, 580), ROYAL, ROYAL_FRAMES), spec(Vector2(9440, 580), ROYAL, ROYAL_FRAMES), spec(Vector2(9940, 510), KING_STATS[3], KING_FRAMES[3], Enemy.Behavior.BOSS, Vector2(1.5, 1.5)),
+		spec(Vector2(10380, 580), YELLOW, YELLOW_FRAMES), spec(Vector2(10680, 580), CURTAIN, CURTAIN_FRAMES), spec(Vector2(10980, 580), ROYAL, ROYAL_FRAMES), spec(Vector2(11280, 580), HOUND, HOUND_FRAMES, Enemy.Behavior.CHARGE),
+		spec(Vector2(11700, 510), NEZHA, NEZHA_FRAMES, Enemy.Behavior.BOSS, Vector2(1.4, 1.4)), spec(Vector2(12000, 510), ERLANG, ERLANG_FRAMES, Enemy.Behavior.BOSS, Vector2(1.4, 1.4)), spec(Vector2(12220, 510), LI_JING, ROYAL_FRAMES, Enemy.Behavior.BOSS, Vector2(1.4, 1.4)), spec(Vector2(12500, 500), EMPEROR, EMPEROR_FRAMES, Enemy.Behavior.EVADE, Vector2(1.3, 1.3)),
 	]
 
 
@@ -155,6 +179,7 @@ func spawn_enemy(position_value: Vector2, stats_value: EnemyStats, atlas: Textur
 	enemy.animation_atlas = atlas
 	enemy.behavior = behavior_value
 	enemy.visual_scale = Vector2(1.5, 1.5) if behavior_value == Enemy.Behavior.BOSS else Vector2.ONE
+	enemy.target_player = player
 	enemy.defeated.connect(add_stones)
 	enemy.hit_received.connect(show_enemy_status)
 	enemy.add_to_group(group_name)

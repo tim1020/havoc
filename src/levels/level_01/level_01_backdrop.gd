@@ -1,8 +1,8 @@
 class_name Level01Backdrop
 extends Node2D
 
-const SECTION_WIDTH := 1280.0
-const LEVEL_WIDTH := SECTION_WIDTH * 4.0
+const SECTION_WIDTH := 2560.0
+const LEVEL_WIDTH := SECTION_WIDTH * 5.0
 
 
 func _ready() -> void:
@@ -15,6 +15,7 @@ func _draw() -> void:
 	draw_rect(Rect2(SECTION_WIDTH, 0, SECTION_WIDTH, 720), Color("c9dfc1"))
 	draw_rect(Rect2(SECTION_WIDTH * 2, 0, SECTION_WIDTH, 720), Color("b8ccc1"))
 	draw_rect(Rect2(SECTION_WIDTH * 3, 0, SECTION_WIDTH, 720), Color("1d2930"))
+	draw_rect(Rect2(SECTION_WIDTH * 4, 0, SECTION_WIDTH, 720), Color("172229"))
 	draw_foothill()
 	draw_vine_grove()
 	draw_cave_entrance()

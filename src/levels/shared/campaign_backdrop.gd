@@ -1,7 +1,7 @@
 class_name CampaignBackdrop
 extends Node2D
 
-const SECTION_WIDTH := 1280.0
+const SECTION_WIDTH := 2560.0
 
 var level_number: int
 
@@ -25,8 +25,8 @@ func _draw() -> void:
 
 
 func draw_dragon_palace() -> void:
-	var colors := [Color("163f55"), Color("17374f"), Color("24485e"), Color("4d493c")]
-	for section in 4:
+	var colors := [Color("163f55"), Color("17374f"), Color("24485e"), Color("345163"), Color("4d493c")]
+	for section in 5:
 		draw_rect(Rect2(section * SECTION_WIDTH, 0, SECTION_WIDTH, 720), colors[section])
 	# 2-1 珊瑚走廊
 	for x in [120.0, 360.0, 690.0, 1020.0]:
@@ -57,8 +57,8 @@ func draw_dragon_palace() -> void:
 
 
 func draw_underworld() -> void:
-	var colors := [Color("2b1c3c"), Color("21172f"), Color("302038"), Color("1b1726")]
-	for section in 4:
+	var colors := [Color("2b1c3c"), Color("21172f"), Color("302038"), Color("281b31"), Color("1b1726")]
+	for section in 5:
 		draw_rect(Rect2(section * SECTION_WIDTH, 0, SECTION_WIDTH, 720), colors[section])
 	# 3-1 奈何桥
 	for x in range(0, 1281, 120):
@@ -93,8 +93,8 @@ func draw_underworld() -> void:
 
 
 func draw_peach_garden() -> void:
-	var colors := [Color("5f815d"), Color("427f83"), Color("896c8b"), Color("4f704f")]
-	for section in 4:
+	var colors := [Color("5f815d"), Color("427f83"), Color("896c8b"), Color("6f7480"), Color("4f704f")]
+	for section in 5:
 		draw_rect(Rect2(section * SECTION_WIDTH, 0, SECTION_WIDTH, 720), colors[section])
 	# 4-1 桃林小径
 	for x in [120.0, 360.0, 650.0, 940.0, 1160.0]:
@@ -132,8 +132,8 @@ func draw_bezier(points: PackedVector2Array, color: Color, width: float) -> void
 
 
 func draw_heaven_gate() -> void:
-	var colors := [Color("6fa9ca"), Color("5d93bd"), Color("527fa9"), Color("456f98")]
-	for section in 4:
+	var colors := [Color("6fa9ca"), Color("5d93bd"), Color("527fa9"), Color("4b779f"), Color("456f98")]
+	for section in 5:
 		draw_rect(Rect2(section * SECTION_WIDTH, 0, SECTION_WIDTH, 720), colors[section])
 	# 5-1 云海浮台
 	for x in range(80, 1260, 180):
@@ -161,8 +161,8 @@ func draw_heaven_gate() -> void:
 
 
 func draw_celestial_palace() -> void:
-	var colors := [Color("5b4965"), Color("664354"), Color("50394c"), Color("3c2633")]
-	for section in 4:
+	var colors := [Color("5b4965"), Color("664354"), Color("50394c"), Color("473041"), Color("3c2633")]
+	for section in 5:
 		draw_rect(Rect2(section * SECTION_WIDTH, 0, SECTION_WIDTH, 720), colors[section])
 	# 6-1 殿前长阶
 	for index in 9:

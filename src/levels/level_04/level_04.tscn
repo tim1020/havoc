@@ -5,4 +5,4 @@
 [node name="Level04" type="Node2D"]
 script = ExtResource("1")
 level_number = 4
-section_names = PackedStringArray("桃林小径", "瑶池木桥", "七彩瑶台", "巨蟠桃树")
+section_names = PackedStringArray("桃妖林", "花仙径", "桃童瑶台", "仙子幻境", "巨蟠桃树")

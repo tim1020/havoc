@@ -28,12 +28,20 @@ var land_phase_spawned := false
 
 func _ready() -> void:
 	super()
-	var checkpoint = CHECKPOINT.new()
-	checkpoint.position = Vector2(2680, 650)
-	checkpoint.checkpoint_position = Vector2(2680, 580)
-	add_child(checkpoint)
+
+
+func on_section_loaded(section: int) -> void:
+	if section == 1:
+		var checkpoint = CHECKPOINT.new()
+		checkpoint.position = Vector2(2680, 650)
+		checkpoint.checkpoint_position = Vector2(2680, 580)
+		add_child(checkpoint)
+	if section not in [3, 4]:
+		return
 	for enemy_node in get_tree().get_nodes_in_group("enemies"):
 		var enemy := enemy_node as Enemy
+		if floori(enemy.global_position.x / SECTION_WIDTH) != section:
+			continue
 		if enemy.stats == FAIRY_LEADER:
 			enemy.health_changed.connect(check_fairy_phase)
 		elif enemy.stats == LAND_GOD:
@@ -66,21 +74,20 @@ func next_level_path() -> String:
 
 
 func ground_rects() -> Array[Rect2]:
-	return [Rect2(0, 650, 1180, 120), Rect2(1280, 690, 1280, 80), Rect2(2560, 650, 1000, 120), Rect2(3680, 650, 1440, 120)]
+	return campaign_ground_rects()
 
 
 func platform_rects() -> Array[Rect2]:
-	return [Rect2(360, 520, 220, 24), Rect2(760, 465, 250, 24), Rect2(1350, 535, 240, 24), Rect2(1660, 490, 210, 24), Rect2(1960, 530, 220, 24), Rect2(2250, 470, 230, 24), Rect2(2730, 520, 560, 24), Rect2(3990, 515, 260, 24), Rect2(4380, 450, 280, 24), Rect2(4750, 520, 250, 24)]
+	return campaign_platform_rects()
 
 
 func enemy_specs() -> Array:
 	return [
-		spec(Vector2(350, 580), PEACH_DEMON, PEACH_DEMON_FRAMES), spec(Vector2(650, 580), GUARDIAN, GUARDIAN_FRAMES), spec(Vector2(920, 580), PEACH_DEMON, PEACH_DEMON_FRAMES), spec(Vector2(1150, 580), FLOWER_FAIRY, FLOWER_FAIRY_FRAMES),
-		spec(Vector2(1380, 480), PEACH_CHILD, PEACH_CHILD_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(1630, 580), FLOWER_FAIRY, FLOWER_FAIRY_FRAMES), spec(Vector2(1900, 420), PEACH_CHILD, PEACH_CHILD_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(2190, 580), FLOWER_FAIRY, FLOWER_FAIRY_FRAMES), spec(Vector2(2470, 430), PEACH_CHILD, PEACH_CHILD_FRAMES, Enemy.Behavior.FLYING),
-		spec(Vector2(2710, 580), FLOWER_FAIRY, FLOWER_FAIRY_FRAMES), spec(Vector2(3450, 580), PEACH_DEMON, PEACH_DEMON_FRAMES),
-		spec(Vector2(3820, 580), GUARDIAN, GUARDIAN_FRAMES), spec(Vector2(4250, 580), PEACH_DEMON, PEACH_DEMON_FRAMES), spec(Vector2(4560, 580), GUARDIAN, GUARDIAN_FRAMES),
-		spec(Vector2(3180, 520), FAIRY_LEADER, FAIRY_LEADER_FRAMES, Enemy.Behavior.BOSS, Vector2(1.3, 1.3)),
-		spec(Vector2(4900, 510), LAND_GOD, LAND_GOD_FRAMES, Enemy.Behavior.BOSS, Vector2(1.5, 1.5), true),
+		spec(Vector2(420, 580), PEACH_DEMON, PEACH_DEMON_FRAMES), spec(Vector2(980, 580), PEACH_DEMON, PEACH_DEMON_FRAMES), spec(Vector2(1580, 580), PEACH_DEMON, PEACH_DEMON_FRAMES), spec(Vector2(2200, 580), PEACH_DEMON, PEACH_DEMON_FRAMES),
+		spec(Vector2(2920, 580), FLOWER_FAIRY, FLOWER_FAIRY_FRAMES), spec(Vector2(3540, 580), FLOWER_FAIRY, FLOWER_FAIRY_FRAMES), spec(Vector2(4160, 580), FLOWER_FAIRY, FLOWER_FAIRY_FRAMES), spec(Vector2(4780, 580), FLOWER_FAIRY, FLOWER_FAIRY_FRAMES),
+		spec(Vector2(5480, 460), PEACH_CHILD, PEACH_CHILD_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(6120, 390), PEACH_CHILD, PEACH_CHILD_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(6760, 450), PEACH_CHILD, PEACH_CHILD_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(7380, 400), PEACH_CHILD, PEACH_CHILD_FRAMES, Enemy.Behavior.FLYING),
+		spec(Vector2(7900, 580), PEACH_DEMON, PEACH_DEMON_FRAMES), spec(Vector2(8320, 580), FLOWER_FAIRY, FLOWER_FAIRY_FRAMES), spec(Vector2(8750, 450), PEACH_CHILD, PEACH_CHILD_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(9150, 580), GUARDIAN, GUARDIAN_FRAMES), spec(Vector2(9600, 520), FAIRY_LEADER, FAIRY_LEADER_FRAMES, Enemy.Behavior.BOSS, Vector2(1.3, 1.3)),
+		spec(Vector2(10480, 580), PEACH_DEMON, PEACH_DEMON_FRAMES), spec(Vector2(10920, 580), FLOWER_FAIRY, FLOWER_FAIRY_FRAMES), spec(Vector2(11350, 450), PEACH_CHILD, PEACH_CHILD_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(11750, 580), GUARDIAN, GUARDIAN_FRAMES), spec(Vector2(12320, 510), LAND_GOD, LAND_GOD_FRAMES, Enemy.Behavior.BOSS, Vector2(1.5, 1.5), true),
 	]
 
 
@@ -106,16 +113,16 @@ func check_fairy_phase(current: float, maximum: float) -> void:
 	if not fairy_clones_spawned and current <= maximum * 0.5:
 		fairy_clones_spawned = true
 		for offset in [-150.0, 0.0, 150.0]:
-			spawn_extra_enemy(Vector2(3180 + offset, 520), FAIRY_ILLUSION, FAIRY_LEADER_FRAMES, &"fairy_illusions")
+			spawn_extra_enemy(Vector2(9600 + offset, 520), FAIRY_ILLUSION, FAIRY_LEADER_FRAMES, &"fairy_illusions")
 
 
 func check_land_phase(current: float, maximum: float) -> void:
 	if land_phase_spawned or current > maximum * 0.5:
 		return
 	land_phase_spawned = true
-	spawn_extra_enemy(Vector2(4620, 580), PEACH_DEMON, PEACH_DEMON_FRAMES)
-	spawn_extra_enemy(Vector2(4780, 580), PEACH_DEMON, PEACH_DEMON_FRAMES)
-	for x in [4520.0, 4750.0, 4990.0]:
+	spawn_extra_enemy(Vector2(11920, 580), PEACH_DEMON, PEACH_DEMON_FRAMES)
+	spawn_extra_enemy(Vector2(12120, 580), PEACH_DEMON, PEACH_DEMON_FRAMES)
+	for x in [11820.0, 12100.0, 12420.0]:
 		spawn_vine(Vector2(x, 600))
 
 
@@ -125,6 +132,7 @@ func spawn_extra_enemy(position_value: Vector2, stats_value: EnemyStats, atlas: 
 	enemy.stats = stats_value
 	enemy.animation_atlas = atlas
 	enemy.behavior = Enemy.Behavior.MELEE
+	enemy.target_player = player
 	enemy.defeated.connect(add_stones)
 	enemy.hit_received.connect(show_enemy_status)
 	if not group_name.is_empty():
