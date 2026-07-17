@@ -6,6 +6,7 @@ extends ActorStats
 @export_range(0.0, 2000.0, 1.0) var gravity: float = 2400.0
 @export_range(0.0, 2000.0, 1.0) var detection_range: float = 420.0
 @export_range(0.0, 1000.0, 1.0) var attack_range: float = 90.0
+@export var faces_right_by_default: bool = false
 
 @export_group("Rewards")
 @export_range(0, 10000, 1) var spirit_stones: int = 0
@@ -32,3 +33,4 @@ extends ActorStats
 @export_range(0.5, 10.0, 0.1) var projectile_cooldown: float = 2.4
 @export var projectile_color: Color = Color("ff7a45")
 @export_enum("axe", "dragon_orb", "divine_spear") var projectile_style: String = "dragon_orb"
+@export_enum("stone", "fang", "tusk", "spear", "shell", "pearl", "bone", "talisman", "petal", "seed", "hammer", "arrow") var ground_projectile_style: String = "stone"

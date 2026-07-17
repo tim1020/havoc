@@ -12,3 +12,4 @@ gravity = 2400.0
 detection_range = 560.0
 attack_range = 120.0
 spirit_stones = 25
+ground_projectile_style = "spear"

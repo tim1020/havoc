@@ -43,13 +43,13 @@ func on_body_entered(body: Node2D) -> void:
 	if item.category == ItemDefinition.Category.HEALING:
 		if player.health < player.stats.max_health:
 			player.apply_healing_item(item)
-		else:
-			GameState.pickup_artifact(item.id)
+		elif not GameState.pickup_artifact(item.id):
+			return
 	elif item.category == ItemDefinition.Category.LIFE:
 		if not GameState.add_life():
 			return
-	else:
-		GameState.pickup_artifact(item.id)
+	elif not GameState.pickup_artifact(item.id):
+		return
 	AudioService.play_sfx(get_tree().current_scene, AudioService.PICKUP, -3.0)
 	collected.emit(item)
 	queue_free()

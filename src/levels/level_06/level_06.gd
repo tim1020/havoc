@@ -84,7 +84,7 @@ func enemy_specs() -> Array:
 		spec(Vector2(5620, 580), HOUND, HOUND_FRAMES, Enemy.Behavior.CHARGE), spec(Vector2(6260, 580), HOUND, HOUND_FRAMES, Enemy.Behavior.CHARGE), spec(Vector2(6880, 580), HOUND, HOUND_FRAMES, Enemy.Behavior.CHARGE), spec(Vector2(7380, 510), KING_STATS[2], KING_FRAMES[2], Enemy.Behavior.BOSS, Vector2(1.5, 1.5)),
 		spec(Vector2(8180, 580), ROYAL, ROYAL_FRAMES), spec(Vector2(8820, 580), ROYAL, ROYAL_FRAMES), spec(Vector2(9440, 580), ROYAL, ROYAL_FRAMES), spec(Vector2(9940, 510), KING_STATS[3], KING_FRAMES[3], Enemy.Behavior.BOSS, Vector2(1.5, 1.5)),
 		spec(Vector2(10380, 580), YELLOW, YELLOW_FRAMES), spec(Vector2(10680, 580), CURTAIN, CURTAIN_FRAMES), spec(Vector2(10980, 580), ROYAL, ROYAL_FRAMES), spec(Vector2(11280, 580), HOUND, HOUND_FRAMES, Enemy.Behavior.CHARGE),
-		spec(Vector2(11700, 510), NEZHA, NEZHA_FRAMES, Enemy.Behavior.BOSS, Vector2(1.4, 1.4)), spec(Vector2(12000, 510), ERLANG, ERLANG_FRAMES, Enemy.Behavior.BOSS, Vector2(1.4, 1.4)), spec(Vector2(12220, 510), LI_JING, ROYAL_FRAMES, Enemy.Behavior.BOSS, Vector2(1.4, 1.4)), spec(Vector2(12500, 500), EMPEROR, EMPEROR_FRAMES, Enemy.Behavior.EVADE, Vector2(1.3, 1.3)),
+		spec(Vector2(11700, 510), NEZHA, NEZHA_FRAMES, Enemy.Behavior.BOSS, Vector2(1.4, 1.4)), spec(Vector2(12000, 510), ERLANG, ERLANG_FRAMES, Enemy.Behavior.BOSS, Vector2(1.4, 1.4)), spec(Vector2(12220, 510), LI_JING, ROYAL_FRAMES, Enemy.Behavior.BOSS, Vector2(1.4, 1.4)), spec(Vector2(12500, 500), EMPEROR, EMPEROR_FRAMES, Enemy.Behavior.EVADE, Vector2(1.3, 1.3), true),
 	]
 
 
@@ -187,5 +187,5 @@ func spawn_enemy(position_value: Vector2, stats_value: EnemyStats, atlas: Textur
 	return enemy
 
 
-func spec(position_value: Vector2, stats_value: EnemyStats, atlas_value: Texture2D, behavior_value: Enemy.Behavior = Enemy.Behavior.MELEE, scale_value: Vector2 = Vector2.ONE) -> Dictionary:
-	return {"position": position_value, "stats": stats_value, "atlas": atlas_value, "behavior": behavior_value, "scale": scale_value, "final_boss": false}
+func spec(position_value: Vector2, stats_value: EnemyStats, atlas_value: Texture2D, behavior_value: Enemy.Behavior = Enemy.Behavior.MELEE, scale_value: Vector2 = Vector2.ONE, final_value: bool = false) -> Dictionary:
+	return {"position": position_value, "stats": stats_value, "atlas": atlas_value, "behavior": behavior_value, "scale": scale_value, "final_boss": final_value}

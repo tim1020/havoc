@@ -3,17 +3,15 @@ extends CharacterBody2D
 
 const STAFF_STATS := preload("res://resources/stats/player_staff.tres")
 const STAFF_FRAMES := preload("res://resources/animations/player_staff_frames.tres")
-const STAFF_PROJECTILE := preload("res://src/combat/staff_projectile.tscn")
 const ARTIFACT_PROJECTILE := preload("res://src/combat/artifact_projectile.gd")
 const MONKEY_CLONE := preload("res://src/actors/player/monkey_clone.gd")
-const CHARGE_FLAME_EFFECT := preload("res://src/combat/charge_flame_effect.gd")
-const CHARGED_FLAME_PROJECTILE := preload("res://src/combat/charged_flame_projectile.gd")
-const ITEM_HOLD_SECONDS := 0.45
-const CHARGE_START_SECONDS := 0.2
+const THROW_PROJECTILE := preload("res://src/combat/player_throw_projectile.gd")
+const THROW_COOLDOWN_MS := 200
 
 signal health_changed(current: float, maximum: float)
 signal died
 signal respawned
+signal artifact_selection_changed(selected: bool)
 
 @export var stats: PlayerStats
 
@@ -30,23 +28,17 @@ var combo_expires_at: int = 0
 var invulnerable_until: int = 0
 var controls_enabled: bool = true
 var respawn_position: Vector2
-var attack_held: bool = false
-var attack_consumed: bool = false
-var attack_pressed_at: int = 0
-var base_sprite_scale: Vector2
 var speed_boost_until: int = 0
 var slowed_until: int = 0
 var rooted_until: int = 0
 var confused_until: int = 0
-var charge_pose_started: bool = false
-var charge_ready: bool = false
-var charge_aura: ChargeFlameEffect
-var item_held: bool = false
-var item_consumed: bool = false
-var item_pressed_at: int = 0
+var artifact_selected: bool = false
+var next_throw_at: int = 0
+var hurt_animation_until: int = 0
 
 
 func _ready() -> void:
+	add_to_group(&"player")
 	if GameState.has_staff:
 		stats = STAFF_STATS
 		sprite.sprite_frames = STAFF_FRAMES
@@ -61,7 +53,6 @@ func _ready() -> void:
 		attack_effect.stop()
 		attack_effect.visible = false
 	)
-	base_sprite_scale = sprite.scale
 	health_changed.emit(health, stats.max_health)
 
 
@@ -73,13 +64,17 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("jump"):
 		try_jump()
 	elif event.is_action_pressed("attack"):
-		begin_attack_charge()
-	elif event.is_action_released("attack"):
-		release_attack_charge()
+		if artifact_selected:
+			use_current_artifact()
+			set_artifact_selected(false)
+		elif not is_on_floor():
+			perform_aerial_throw()
+		else:
+			perform_attack()
 	elif event.is_action_pressed("item"):
-		begin_item_hold()
-	elif event.is_action_released("item"):
-		release_item_hold()
+		select_next_artifact()
+	elif event.is_action_pressed("move_left") or event.is_action_pressed("move_right") or event.is_action_pressed("crouch"):
+		set_artifact_selected(false)
 
 
 func _physics_process(delta: float) -> void:
@@ -101,9 +96,8 @@ func _physics_process(delta: float) -> void:
 		velocity.x = move_toward(velocity.x, 0.0, stats.friction * delta)
 
 	move_and_slide()
+	update_status_visual()
 	update_animation(direction)
-	update_charge_feedback()
-	update_item_hold()
 
 
 func try_jump() -> void:
@@ -111,124 +105,46 @@ func try_jump() -> void:
 		return
 	velocity.y = -stats.jump_velocity
 	jumps_left -= 1
+	AudioService.play_sfx(self, AudioService.JUMP)
 	play_if_available("jump")
 
 
-func begin_attack_charge() -> void:
-	if attack_held:
-		return
-	attack_held = true
-	attack_consumed = false
-	attack_pressed_at = Time.get_ticks_msec()
-	charge_pose_started = false
-	charge_ready = false
-
-
-func cancel_attack_charge() -> void:
-	attack_held = false
-	attack_consumed = true
-	clear_charge_feedback()
-
-
-func release_attack_charge() -> void:
-	if not attack_held:
-		return
-	var held_seconds := float(Time.get_ticks_msec() - attack_pressed_at) / 1000.0
-	attack_held = false
-	var was_ready := charge_ready or held_seconds >= stats.charge_seconds
-	clear_charge_feedback()
-	if attack_consumed:
-		attack_consumed = false
-		return
-	if was_ready:
-		perform_fire_burst()
-	else:
-		perform_attack()
-
-
-func perform_attack(damage_override: float = -1.0, distance_multiplier: float = 1.0, damage_multiplier: float = 1.0, aerial_heavy: bool = false) -> void:
-	AudioService.play_sfx(self, AudioService.ATTACK, -4.0)
+func perform_attack() -> void:
+	AudioService.play_sfx(self, AudioService.ATTACK)
 	var now := Time.get_ticks_msec()
-	var damage := damage_override
-	if aerial_heavy:
+	if now > combo_expires_at:
 		combo_index = 0
-		damage = stats.combo_damage[0]
-		play_if_available("attack_3")
-	elif damage_override >= 0.0:
-		combo_index = 0
-		play_if_available("attack_3")
-	else:
-		if now > combo_expires_at:
-			combo_index = 0
-		damage = stats.combo_damage[combo_index]
-		combo_index = (combo_index + 1) % stats.combo_damage.size()
-		combo_expires_at = now + int(stats.combo_reset_seconds * 1000.0)
-		play_if_available("attack_%d" % (combo_index if combo_index > 0 else 3))
-	damage *= damage_multiplier
+	var damage := stats.combo_damage[combo_index]
+	combo_index = (combo_index + 1) % stats.combo_damage.size()
+	combo_expires_at = now + int(stats.combo_reset_seconds * 1000.0)
+	play_if_available("attack_%d" % (combo_index if combo_index > 0 else 3))
 	attack_effect.flip_h = facing < 0.0
 	attack_effect.position.x = absf(attack_effect.position.x) * facing
-	attack_effect.scale = Vector2(1.35, 1.35) if aerial_heavy else Vector2.ONE
+	attack_effect.scale = Vector2.ONE
 	attack_effect.modulate = Color.WHITE
 	attack_effect.visible = true
 	attack_effect.play(&"attack")
-	var attack_shape := attack_area.get_node("Shape").shape as RectangleShape2D
-	if distance_multiplier > 1.0:
-		var attack_distance := (absf(attack_area.position.x) + attack_shape.size.x * 0.5) * distance_multiplier
-		for enemy_node in get_tree().get_nodes_in_group("enemies"):
-			var enemy := enemy_node as Enemy
-			var offset := enemy.global_position - global_position
-			if offset.x * facing > 0.0 and offset.x * facing <= attack_distance and absf(offset.y) <= attack_shape.size.y:
-				enemy.take_damage(damage, global_position)
-		return
 	attack_area.position.x = absf(attack_area.position.x) * facing
 	await get_tree().physics_frame
 	for body in attack_area.get_overlapping_bodies():
 		if body.has_method("take_damage"):
 			body.take_damage(damage, global_position)
 
-
-func update_charge_feedback() -> void:
-	if not attack_held:
-		sprite.modulate = Color("ffc1e7") if Time.get_ticks_msec() < confused_until else Color.WHITE
-		sprite.scale = base_sprite_scale
+func perform_aerial_throw() -> void:
+	var now := Time.get_ticks_msec()
+	if now < next_throw_at:
 		return
-	var held_seconds := float(Time.get_ticks_msec() - attack_pressed_at) / 1000.0
-	if held_seconds < CHARGE_START_SECONDS:
-		return
-	if not charge_pose_started:
-		charge_pose_started = true
-		attack_effect.stop()
-		attack_effect.visible = false
-		play_if_available(&"spell")
-	if held_seconds >= stats.charge_seconds and not charge_ready:
-		charge_ready = true
-		charge_aura = CHARGE_FLAME_EFFECT.new() as ChargeFlameEffect
-		charge_aura.mode = ChargeFlameEffect.Mode.AURA
-		add_child(charge_aura)
-
-
-func perform_fire_burst() -> void:
-	AudioService.play_sfx(self, AudioService.ATTACK, -2.0)
-	attack_effect.stop()
-	attack_effect.visible = false
-	play_if_available(&"spell")
-	if GameState.has_staff:
-		launch_tracking_staffs()
-		return
-	var projectile := CHARGED_FLAME_PROJECTILE.new() as ChargedFlameProjectile
+	next_throw_at = now + THROW_COOLDOWN_MS
+	AudioService.play_sfx(self, AudioService.THROW)
+	play_if_available(&"attack_2")
+	var projectile := THROW_PROJECTILE.new() as PlayerThrowProjectile
+	projectile.kind = PlayerThrowProjectile.Kind.STAFF if GameState.has_staff else PlayerThrowProjectile.Kind.BANANA
 	projectile.direction = facing
-	projectile.total_damage = stats.charged_attack_damage
+	projectile.damage = stats.combo_damage[0] * (1.5 if GameState.has_staff else 1.0)
 	projectile.source_position = global_position
-	projectile.global_position = global_position + Vector2(facing * 64.0, -52.0)
+	projectile.global_position = global_position + Vector2(facing * 48.0, -48.0)
+	projectile.target = nearest_forward_visible_enemy()
 	get_tree().current_scene.add_child(projectile)
-
-
-func clear_charge_feedback() -> void:
-	charge_pose_started = false
-	charge_ready = false
-	if is_instance_valid(charge_aura):
-		charge_aura.queue_free()
-	charge_aura = null
 
 
 func apply_healing_item(item: ItemDefinition) -> void:
@@ -243,27 +159,18 @@ func restore_full_health() -> void:
 	health_changed.emit(health, stats.max_health)
 
 
-func begin_item_hold() -> void:
-	if item_held:
+func select_next_artifact() -> void:
+	if GameState.artifacts.is_empty():
+		set_artifact_selected(false)
 		return
-	item_held = true
-	item_consumed = false
-	item_pressed_at = Time.get_ticks_msec()
-
-
-func update_item_hold() -> void:
-	if item_held and not item_consumed and Time.get_ticks_msec() - item_pressed_at >= int(ITEM_HOLD_SECONDS * 1000.0):
-		item_consumed = true
-		use_current_artifact()
-
-
-func release_item_hold() -> void:
-	if not item_held:
-		return
-	item_held = false
-	if not item_consumed:
+	if artifact_selected:
 		GameState.rotate_artifacts()
-	item_consumed = false
+	set_artifact_selected(true)
+
+
+func set_artifact_selected(selected: bool) -> void:
+	artifact_selected = selected and not GameState.artifacts.is_empty()
+	artifact_selection_changed.emit(artifact_selected)
 
 
 func apply_slow(seconds: float) -> void:
@@ -281,6 +188,10 @@ func apply_confusion(seconds: float) -> void:
 
 func movement_direction(raw_direction: float) -> float:
 	return -raw_direction if Time.get_ticks_msec() < confused_until else raw_direction
+
+
+func update_status_visual() -> void:
+	sprite.modulate = Color("f2a1cf") if Time.get_ticks_msec() < confused_until else Color.WHITE
 
 
 func use_current_artifact() -> void:
@@ -334,6 +245,8 @@ func nearest_enemy(enemies: Array[Node]) -> Enemy:
 	var best_distance := INF
 	for enemy_node in enemies:
 		var enemy := enemy_node as Enemy
+		if enemy == null or enemy.dead:
+			continue
 		var distance := global_position.distance_squared_to(enemy.global_position)
 		if distance < best_distance:
 			best_distance = distance
@@ -341,25 +254,21 @@ func nearest_enemy(enemies: Array[Node]) -> Enemy:
 	return result
 
 
-func launch_tracking_staffs() -> void:
-	var targets: Array[Enemy] = []
+func nearest_forward_visible_enemy() -> Enemy:
+	var result: Enemy
+	var best_distance := INF
 	for enemy_node in get_tree().get_nodes_in_group("enemies"):
 		var enemy := enemy_node as Enemy
-		if not enemy.dead and is_enemy_on_screen(enemy):
-			targets.append(enemy)
-	if targets.is_empty():
-		return
-	targets.sort_custom(func(a: Enemy, b: Enemy) -> bool:
-		return global_position.distance_squared_to(a.global_position) < global_position.distance_squared_to(b.global_position)
-	)
-	for index in 3:
-		var projectile := STAFF_PROJECTILE.instantiate() as StaffProjectile
-		projectile.global_position = global_position + Vector2(facing * 44.0, -30.0 - index * 30.0)
-		projectile.source_position = global_position
-		projectile.target = targets[index % targets.size()]
-		projectile.damage = stats.charged_attack_damage / 3.0
-		get_tree().current_scene.add_child(projectile)
-	play_if_available("spell")
+		if enemy == null or enemy.dead or not is_enemy_on_screen(enemy):
+			continue
+		var offset := enemy.global_position - global_position
+		if offset.x * facing <= 0.0:
+			continue
+		var distance := offset.length_squared()
+		if distance < best_distance:
+			best_distance = distance
+			result = enemy
+	return result
 
 
 func is_enemy_on_screen(enemy: Enemy) -> bool:
@@ -372,9 +281,7 @@ func is_enemy_on_screen(enemy: Enemy) -> bool:
 
 
 func play_victory() -> void:
-	attack_held = false
-	clear_charge_feedback()
-	item_held = false
+	set_artifact_selected(false)
 	restore_full_health()
 	controls_enabled = false
 	velocity = Vector2.ZERO
@@ -396,12 +303,11 @@ func play_victory() -> void:
 func take_damage(damage: float, source_position: Vector2) -> void:
 	if Time.get_ticks_msec() < invulnerable_until or not controls_enabled:
 		return
-	if attack_held:
-		cancel_attack_charge()
 	health = maxf(0.0, health - damage)
-	AudioService.play_sfx(self, AudioService.HIT, -3.0)
+	AudioService.play_sfx(self, AudioService.PLAYER_HURT, 6.0)
 	invulnerable_until = Time.get_ticks_msec() + int(stats.invulnerability_seconds * 1000.0)
 	velocity.x = signf(global_position.x - source_position.x) * stats.knockback_force
+	hurt_animation_until = Time.get_ticks_msec() + 450
 	play_if_available("hurt")
 	health_changed.emit(health, stats.max_health)
 	if is_zero_approx(health):
@@ -415,7 +321,13 @@ func die_and_respawn() -> void:
 	died.emit()
 	await get_tree().create_timer(0.8).timeout
 	if not GameState.consume_life():
-		GameState.restart_current_level()
+		var game_hud := get_tree().get_first_node_in_group(&"game_hud") as GameHud
+		if game_hud == null:
+			GameState.return_to_menu()
+			return
+		game_hud.show_game_over()
+		await game_hud.game_over_continue
+		GameState.call_deferred(&"return_to_menu")
 		return
 	global_position = respawn_position
 	health = stats.max_health
@@ -434,7 +346,7 @@ func set_checkpoint(checkpoint: Vector2) -> void:
 func update_animation(direction: float) -> void:
 	if not controls_enabled or sprite.is_playing() and sprite.animation.begins_with("attack"):
 		return
-	if attack_held and charge_pose_started:
+	if Time.get_ticks_msec() < hurt_animation_until:
 		return
 	if not is_on_floor():
 		play_if_available("jump")

@@ -139,13 +139,13 @@ func spend_stones(amount: int) -> bool:
 	return true
 
 
-func pickup_artifact(item_id: StringName) -> void:
-	# 场景拾取不询问：满栏时立即销毁队首，再将新物品放入队尾。
+func pickup_artifact(item_id: StringName) -> bool:
 	if artifacts.size() >= MAX_ARTIFACTS:
-		artifacts.pop_front()
+		return false
 	artifacts.append(item_id)
 	artifacts_changed.emit(artifacts.duplicate())
 	save_game()
+	return true
 
 
 func purchase_artifact(item_id: StringName, price: int) -> bool:

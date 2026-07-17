@@ -12,3 +12,4 @@ gravity = 2400.0
 detection_range = 560.0
 attack_range = 150.0
 spirit_stones = 35
+ground_projectile_style = "hammer"

@@ -1,6 +1,10 @@
 class_name GameHud
 extends CanvasLayer
 
+signal game_over_continue
+
+const INTRO_CHARACTER_SECONDS := 0.09
+
 @onready var health_bar: ProgressBar = %HealthBar
 @onready var health_label: Label = %HealthLabel
 @onready var lives_label: Label = %LivesLabel
@@ -22,6 +26,10 @@ extends CanvasLayer
 
 var enemy_status_expires_at: int = 0
 var go_tween: Tween
+var artifact_selected: bool = false
+var game_over_active: bool = false
+var game_over_ready: bool = false
+var game_over_overlay: Control
 
 
 func bind_player(player: Player) -> void:
@@ -30,6 +38,7 @@ func bind_player(player: Player) -> void:
 	GameState.lives_changed.connect(update_lives)
 	GameState.stones_changed.connect(update_stones)
 	GameState.artifacts_changed.connect(update_artifacts)
+	player.artifact_selection_changed.connect(set_artifact_selected)
 	update_health(player.health, player.stats.max_health)
 	update_lives(GameState.lives)
 	update_stones(GameState.stones)
@@ -54,11 +63,16 @@ func update_artifacts(artifacts: Array[StringName]) -> void:
 	for index in artifact_labels.size():
 		if index < artifacts.size():
 			var item := ItemCatalog.get_definition(artifacts[index])
-			artifact_labels[index].text = ("▶ " if index == 0 else "") + (item.display_name if item != null else "?")
+			artifact_labels[index].text = ("▶ " if artifact_selected and index == 0 else "") + (item.display_name if item != null else "?")
 			artifact_labels[index].modulate = item.color if item != null else Color.WHITE
 		else:
 			artifact_labels[index].text = "空"
 			artifact_labels[index].modulate = Color(0.65, 0.65, 0.65)
+
+
+func set_artifact_selected(selected: bool) -> void:
+	artifact_selected = selected and not GameState.artifacts.is_empty()
+	update_artifacts(GameState.artifacts)
 
 
 func show_enemy_status(enemy: Enemy, current: float, maximum: float) -> void:
@@ -130,6 +144,7 @@ func show_result(stones: int, level_title: String = "第一关") -> void:
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	add_to_group(&"game_hud")
 	result_panel.visible = false
 	pause_panel.visible = false
 	enemy_panel.visible = false
@@ -154,6 +169,15 @@ func _process(_delta: float) -> void:
 		enemy_panel.visible = false
 
 
+func _input(event: InputEvent) -> void:
+	if not game_over_active or not event is InputEventKey or not event.is_pressed() or event.echo:
+		return
+	get_viewport().set_input_as_handled()
+	if game_over_ready:
+		game_over_ready = false
+		game_over_continue.emit()
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("pause") and not result_panel.visible:
 		toggle_pause()
@@ -171,3 +195,74 @@ func toggle_pause() -> void:
 func restart_level() -> void:
 	get_tree().paused = false
 	GameState.restart_current_level()
+
+
+func play_level_intro(story: String) -> void:
+	var overlay := create_fullscreen_overlay(Color(0.035, 0.025, 0.02, 0.94))
+	var story_label := Label.new()
+	story_label.text = story
+	story_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	story_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	story_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	story_label.add_theme_font_size_override("font_size", 30)
+	story_label.add_theme_color_override("font_color", Color("f7e7bd"))
+	story_label.set_anchors_preset(Control.PRESET_CENTER)
+	story_label.position = Vector2(-440.0, -130.0)
+	story_label.size = Vector2(880.0, 260.0)
+	overlay.add_child(story_label)
+	if GameState.settings.reduced_motion:
+		story_label.visible_characters = -1
+	else:
+		story_label.visible_characters = 0
+		for count in story.length():
+			story_label.visible_characters = count + 1
+			await get_tree().create_timer(INTRO_CHARACTER_SECONDS, true).timeout
+	await get_tree().create_timer(1.0, true).timeout
+	overlay.queue_free()
+	get_tree().paused = false
+
+
+func show_game_over() -> void:
+	if game_over_active:
+		return
+	game_over_active = true
+	game_over_ready = false
+	get_viewport().gui_release_focus()
+	get_tree().paused = true
+	game_over_overlay = create_fullscreen_overlay(Color(0.02, 0.01, 0.01, 0.78))
+	var title := create_centered_overlay_label("Game Over", 58, -55.0)
+	title.add_theme_color_override("font_color", Color("e84b43"))
+	game_over_overlay.add_child(title)
+	var prompt := create_centered_overlay_label("按任意键继续", 24, 40.0)
+	prompt.visible = false
+	game_over_overlay.add_child(prompt)
+	await get_tree().create_timer(1.0, true).timeout
+	if not is_instance_valid(prompt):
+		return
+	prompt.visible = true
+	game_over_ready = true
+
+
+func create_fullscreen_overlay(color: Color) -> Control:
+	var overlay := Control.new()
+	overlay.process_mode = Node.PROCESS_MODE_ALWAYS
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var background := ColorRect.new()
+	background.color = color
+	background.mouse_filter = Control.MOUSE_FILTER_STOP
+	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.add_child(background)
+	add_child(overlay)
+	return overlay
+
+
+func create_centered_overlay_label(text_value: String, font_size: int, y_offset: float) -> Label:
+	var label := Label.new()
+	label.text = text_value
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", font_size)
+	label.set_anchors_preset(Control.PRESET_CENTER)
+	label.position = Vector2(-320.0, y_offset - 45.0)
+	label.size = Vector2(640.0, 90.0)
+	return label

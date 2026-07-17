@@ -30,9 +30,7 @@ func _ready() -> void:
 	GameState.artifacts = [&"fire_spear", &"monkey_hair"]
 	level.player.use_current_artifact()
 	level.player.use_current_artifact()
-	level.player.begin_attack_charge()
-	level.player.attack_pressed_at = Time.get_ticks_msec() - 650
-	level.player.update_charge_feedback()
+	level.player.perform_aerial_throw()
 	await settle(4)
 	if save_view("%s/artifact_motion_actual.png" % OUTPUT_DIR) != OK:
 		get_tree().quit(1)

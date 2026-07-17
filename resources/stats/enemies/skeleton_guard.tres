@@ -12,4 +12,5 @@ gravity = 2400.0
 detection_range = 440.0
 attack_range = 90.0
 spirit_stones = 15
+ground_projectile_style = "bone"
 front_damage_multiplier = 0.5

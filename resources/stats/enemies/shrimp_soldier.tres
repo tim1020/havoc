@@ -11,4 +11,6 @@ move_speed = 180.0
 gravity = 2400.0
 detection_range = 460.0
 attack_range = 115.0
+faces_right_by_default = true
 spirit_stones = 15
+ground_projectile_style = "spear"

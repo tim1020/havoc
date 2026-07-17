@@ -8,10 +8,20 @@ const ITEM_PICKUP_SCENE := preload("res://src/world/item_pickup.tscn")
 const SHOP_SCENE := preload("res://src/ui/shop/shop_panel.tscn")
 const LINE_HAZARD_SCENE := preload("res://src/world/line_hazard.tscn")
 const AUDIO_DIRECTOR := preload("res://src/audio/audio_director.gd")
+const SECTION_ENEMY_TRACKER := preload("res://src/levels/shared/section_enemy_tracker.gd")
 const SCREEN_WIDTH := 1280.0
 const SECTION_WIDTH := SCREEN_WIDTH * 2.0
 const SECTION_COUNT := 5
 const LEVEL_WIDTH := SECTION_WIDTH * SECTION_COUNT
+const BOSS_REINFORCEMENT_INTERVAL_MS := 8000
+const BOSS_REINFORCEMENT_COUNT := 2
+const LEVEL_STORIES := {
+	2: "悟空教训了混世魔王后，得知水帘洞瀑布下连着龙宫，龙宫有各种稀世宝物，于是决定去龙宫寻宝。",
+	3: "悟空强夺定海神针，龙王上天告状，天庭派阎王勾魂，悟空大闹地府。",
+	4: "悟空得知是阎王是受天庭旨意，于是上天报仇，对蟠桃园和蟠桃大会进行大肆破坏",
+	5: "破坏完蟠桃园，悟空一路打杀，并对南天门进行破坏。",
+	6: "悟空打进凌霄殿向玉帝问罪。",
+}
 
 @export_range(2, 6, 1) var level_number: int = 2
 @export var section_names: PackedStringArray
@@ -29,6 +39,11 @@ var loaded_sections: Dictionary = {}
 var pending_camera_section: int = -1
 var camera_left_tween: Tween
 var camera_right_tween: Tween
+var enemy_tracker = SECTION_ENEMY_TRACKER.new()
+var current_section_enemy_count: int = 0
+var section_wave_specs: Dictionary = {}
+var section_boss_reinforcement_at: Dictionary = {}
+var section_boss_reinforcement_index: Dictionary = {}
 
 
 func _ready() -> void:
@@ -47,6 +62,20 @@ func _ready() -> void:
 	shop = SHOP_SCENE.instantiate() as ShopPanel
 	add_child(shop)
 	update_section(true)
+	await play_level_intro()
+
+
+func play_level_intro() -> void:
+	var story: String = LEVEL_STORIES.get(level_number, "")
+	if story.is_empty():
+		return
+	player.controls_enabled = false
+	get_tree().paused = true
+	await hud.play_level_intro(story)
+	if get_tree().current_scene != self:
+		return
+	get_tree().paused = false
+	player.controls_enabled = true
 
 
 func _process(_delta: float) -> void:
@@ -59,6 +88,8 @@ func _process(_delta: float) -> void:
 	if pending_camera_section >= 0 and Input.get_axis("move_left", "move_right") > 0.0:
 		unlock_next_section_camera()
 	update_section(false)
+	current_section_enemy_count = enemy_tracker.count(current_section)
+	update_section_waves(current_section)
 	if current_section < SECTION_COUNT - 1 and section_gates.has(current_section):
 		refresh_section_gate(current_section)
 
@@ -145,36 +176,110 @@ func spawn_enemies(section_filter: int = -1) -> void:
 		section_specs.append(spec)
 		spawn_enemy_spec(spec, section)
 	if section_filter >= 0:
-		spawn_section_reinforcements(section_specs, section_filter)
+		var normal_specs: Array = []
+		for spec in section_specs:
+			if spec.behavior != Enemy.Behavior.BOSS:
+				normal_specs.append(spec.duplicate())
+		if not normal_specs.is_empty():
+			for index in 2:
+				var reinforcement: Dictionary = normal_specs[index % normal_specs.size()].duplicate()
+				var offset := -120.0 if index == 0 else 120.0
+				reinforcement.position.x = clampf(reinforcement.position.x + offset, section_filter * SECTION_WIDTH + 120.0, (section_filter + 1) * SECTION_WIDTH - 120.0)
+				normal_specs.append(reinforcement)
+				spawn_enemy_spec(reinforcement, section_filter)
+		section_wave_specs[section_filter] = normal_specs
+		section_boss_reinforcement_index[section_filter] = 0
+		for index in normal_specs.size():
+			var duplicate_spec: Dictionary = normal_specs[index].duplicate()
+			var offset := -90.0 if index % 2 == 0 else 90.0
+			duplicate_spec.position.x = clampf(duplicate_spec.position.x + offset, section_filter * SECTION_WIDTH + 120.0, (section_filter + 1) * SECTION_WIDTH - 120.0)
+			spawn_enemy_spec(duplicate_spec, section_filter)
 
 
-func spawn_enemy_spec(spec: Dictionary, section: int) -> void:
+func spawn_enemy_spec(spec: Dictionary, section: int) -> Enemy:
 	var enemy := ENEMY_SCENE.instantiate() as Enemy
-	enemy.position = spec.position
+	var spawn_position: Vector2 = spec.position
+	if spec.behavior != Enemy.Behavior.FLYING:
+		spawn_position.x = safe_ground_spawn_x(section, spawn_position.x)
+	enemy.position = spawn_position
 	enemy.stats = spec.stats
 	enemy.animation_atlas = spec.atlas
 	enemy.atlas_row = 0
 	enemy.behavior = spec.behavior
 	enemy.visual_scale = spec.scale
+	enemy.can_reposition = bool(spec.final_boss)
+	enemy.set_meta(&"final_boss", bool(spec.final_boss))
 	enemy.target_player = player
+	enemy.set_meta(&"section_index", section)
 	enemy.defeated.connect(add_stones)
-	enemy.defeated.connect(section_enemy_defeated.bind(section))
+	enemy.defeated.connect(section_enemy_defeated.bind(section, enemy))
 	enemy.hit_received.connect(show_enemy_status)
 	add_child(enemy)
+	enemy_tracker.track(enemy, section)
 	if spec.final_boss:
 		enemy.defeated.connect(complete_level)
+	return enemy
 
 
-func spawn_section_reinforcements(section_specs: Array, section: int) -> void:
-	var candidates := section_specs.filter(func(spec: Dictionary) -> bool: return not spec.final_boss and spec.behavior != Enemy.Behavior.BOSS)
-	if candidates.is_empty():
+func safe_ground_spawn_x(section: int, desired_x: float) -> float:
+	var section_left := section * SECTION_WIDTH
+	var section_right := (section + 1) * SECTION_WIDTH
+	var best_x := clampf(desired_x, section_left + 70.0, section_right - 70.0)
+	var best_distance := INF
+	for rect in ground_rects():
+		if clampi(floori(rect.get_center().x / SECTION_WIDTH), 0, SECTION_COUNT - 1) != section:
+			continue
+		var candidate := clampf(desired_x, rect.position.x + 70.0, rect.end.x - 70.0)
+		var distance := absf(candidate - desired_x)
+		if distance < best_distance or (is_equal_approx(distance, best_distance) and candidate > best_x):
+			best_x = candidate
+			best_distance = distance
+	return best_x
+
+
+func activate_section_waves(section: int) -> void:
+	var now := Time.get_ticks_msec()
+	if section_has_alive_final_boss(section) and not section_boss_reinforcement_at.has(section):
+		section_boss_reinforcement_at[section] = now + BOSS_REINFORCEMENT_INTERVAL_MS
+
+
+func update_section_waves(section: int) -> void:
+	if not section_wave_specs.has(section):
 		return
-	for index in 2:
-		var source: Dictionary = candidates[index % candidates.size()]
-		var reinforcement := source.duplicate()
-		var offset := -120.0 if index == 0 else 120.0
-		reinforcement.position = Vector2(clampf(source.position.x + offset, section * SECTION_WIDTH + 120.0, (section + 1) * SECTION_WIDTH - 120.0), source.position.y)
-		spawn_enemy_spec(reinforcement, section)
+	activate_section_waves(section)
+	var now := Time.get_ticks_msec()
+	if not section_has_alive_final_boss(section):
+		section_boss_reinforcement_at.erase(section)
+		return
+	if now >= int(section_boss_reinforcement_at[section]):
+		spawn_boss_reinforcement_wave(section)
+		section_boss_reinforcement_at[section] = now + BOSS_REINFORCEMENT_INTERVAL_MS
+
+func spawn_boss_reinforcement_wave(section: int) -> void:
+	var specs: Array = section_wave_specs.get(section, [])
+	if specs.is_empty():
+		return
+	var start_index := int(section_boss_reinforcement_index.get(section, 0))
+	for index in BOSS_REINFORCEMENT_COUNT:
+		var spec: Dictionary = specs[(start_index + index) % specs.size()].duplicate()
+		var side := -1.0 if index % 2 == 0 else 1.0
+		spec.position.x = clampf(player.global_position.x + side * 520.0, section * SECTION_WIDTH + 120.0, (section + 1) * SECTION_WIDTH - 120.0)
+		var enemy := spawn_enemy_spec(spec, section)
+		enemy.add_to_group("boss_reinforcements")
+	section_boss_reinforcement_index[section] = start_index + BOSS_REINFORCEMENT_COUNT
+
+
+func section_has_alive_final_boss(section: int) -> bool:
+	for enemy in enemy_tracker.alive_enemies(section):
+		if enemy.has_meta(&"final_boss") and bool(enemy.get_meta(&"final_boss")):
+			return true
+	return false
+
+
+func enemy_section(enemy: Enemy) -> int:
+	if enemy.has_meta(&"section_index"):
+		return int(enemy.get_meta(&"section_index"))
+	return clampi(floori(enemy.spawn_position.x / SECTION_WIDTH), 0, SECTION_COUNT - 1)
 
 
 func spawn_items(section_filter: int = -1) -> void:
@@ -234,6 +339,8 @@ func update_section(force: bool) -> void:
 	if not force and next_section == current_section:
 		return
 	current_section = next_section
+	current_section_enemy_count = enemy_tracker.count(current_section)
+	activate_section_waves(current_section)
 	back_wall.position.x = current_section * SECTION_WIDTH - 24.0
 	var camera := player.get_node("Camera") as Camera2D
 	var next_limit_left := int(current_section * SECTION_WIDTH)
@@ -275,20 +382,20 @@ func create_vertical_barrier(x: float) -> StaticBody2D:
 	return body
 
 
-func section_enemy_defeated(_reward: int, section: int) -> void:
+func section_enemy_defeated(_reward: int, section: int, enemy: Enemy) -> void:
+	enemy_tracker.remove(enemy, section)
+	if section == current_section:
+		current_section_enemy_count = enemy_tracker.count(section)
 	call_deferred("refresh_section_gate", section)
 
 
 func refresh_section_gate(section: int) -> void:
 	if not section_gates.has(section):
 		return
-	var final_screen_start := (section + 1) * SECTION_WIDTH - SCREEN_WIDTH * 0.5
-	if player.global_position.x < final_screen_start:
+	var alive_enemies: Array[Enemy] = enemy_tracker.alive_enemies(section)
+	if not alive_enemies.is_empty():
+		return_section_stragglers(alive_enemies, section)
 		return
-	for enemy_node in get_tree().get_nodes_in_group("enemies"):
-		var enemy := enemy_node as Enemy
-		if enemy.engaged and not enemy.dead and clampi(floori(enemy.spawn_position.x / SECTION_WIDTH), 0, SECTION_COUNT - 1) == section:
-			return
 	if section < SECTION_COUNT - 1:
 		load_section_content(section + 1)
 		pending_camera_section = section
@@ -297,6 +404,28 @@ func refresh_section_gate(section: int) -> void:
 	if is_instance_valid(gate):
 		gate.queue_free()
 	section_gates.erase(section)
+
+
+func get_current_section_enemy_snapshot() -> Array[Dictionary]:
+	return enemy_tracker.snapshot(current_section)
+
+
+func return_section_stragglers(enemies: Array[Enemy], section: int) -> void:
+	var section_end := (section + 1) * SECTION_WIDTH
+	if player.global_position.x < section_end - SCREEN_WIDTH * 0.35:
+		return
+	for enemy in enemies:
+		if absf(enemy.global_position.x - player.global_position.x) <= SCREEN_WIDTH * 0.5:
+			return
+	for index in enemies.size():
+		var enemy := enemies[index]
+		if enemy.has_meta(&"returned_to_gate"):
+			continue
+		var offset := -520.0 + index * minf(140.0, 900.0 / maxf(enemies.size() - 1, 1))
+		enemy.global_position.x = clampf(player.global_position.x + offset, section * SECTION_WIDTH + 120.0, section_end - 120.0)
+		enemy.velocity = Vector2.ZERO
+		enemy.engaged = true
+		enemy.set_meta(&"returned_to_gate", true)
 
 
 func complete_level(_reward: int) -> void:

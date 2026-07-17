@@ -14,9 +14,14 @@ func _init() -> void:
 		write_wave("%s/%s.wav" % [OUTPUT_DIR, name], 6.0, themes[name][0], themes[name][1], 0.17, true)
 	write_wave("%s/attack.wav" % OUTPUT_DIR, 0.16, 520.0, 180.0, 0.28, false)
 	write_wave("%s/hit.wav" % OUTPUT_DIR, 0.18, 150.0, 70.0, 0.32, false)
+	write_wave("%s/player_hurt.wav" % OUTPUT_DIR, 0.32, 520.0, 110.0, 0.85, false)
+	write_wave("%s/enemy_attack.wav" % OUTPUT_DIR, 0.16, 430.0, 130.0, 0.42, false)
+	write_wave("%s/enemy_throw.wav" % OUTPUT_DIR, 0.20, 900.0, 220.0, 0.38, false)
+	write_wave("%s/enemy_hurt.wav" % OUTPUT_DIR, 0.18, 210.0, 75.0, 0.48, false)
+	write_wave("%s/enemy_death.wav" % OUTPUT_DIR, 0.42, 145.0, 35.0, 0.52, false)
 	write_wave("%s/pickup.wav" % OUTPUT_DIR, 0.28, 660.0, 990.0, 0.25, false)
 	write_wave("%s/victory.wav" % OUTPUT_DIR, 0.75, 392.0, 784.0, 0.25, false)
-	print("GENERATED 11 AUDIO FILES")
+	print("GENERATED 16 AUDIO FILES")
 	quit(0)
 
 

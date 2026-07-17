@@ -6,6 +6,7 @@ const HUD_SCENE := preload("res://src/ui/hud/hud.tscn")
 const ITEM_PICKUP_SCENE := preload("res://src/world/item_pickup.tscn")
 const SHOP_SCENE := preload("res://src/ui/shop/shop_panel.tscn")
 const BREAKABLE_WALL_SCENE := preload("res://src/world/breakable_wall.tscn")
+const SECTION_ENEMY_TRACKER := preload("res://src/levels/shared/section_enemy_tracker.gd")
 const THORN_TEXTURE := preload("res://assets/generated/environments/level_01/thorn_spikes.png")
 const THORN_STATS := preload("res://resources/stats/hazards/thorn_spikes.tres")
 
@@ -21,6 +22,9 @@ const DEMON_KING_STATS := preload("res://resources/stats/enemies/demon_king.tres
 const SCREEN_WIDTH := 1280.0
 const SECTION_WIDTH := SCREEN_WIDTH * 2.0
 const LEVEL_WIDTH := SECTION_WIDTH * 5.0
+const LEVEL_STORY := "悟空学艺归来，花果山已变成一片废墟，得知是混世魔王所为，于是开始复仇之旅。"
+const BOSS_REINFORCEMENT_INTERVAL_MS := 8000
+const BOSS_REINFORCEMENT_COUNT := 2
 
 var player: Player
 var hud: GameHud
@@ -34,6 +38,12 @@ var end_wall: StaticBody2D
 var pending_camera_section: int = -1
 var camera_left_tween: Tween
 var camera_right_tween: Tween
+var enemy_tracker = SECTION_ENEMY_TRACKER.new()
+var current_section_enemy_count: int = 0
+var recording_initial_wave: bool = false
+var section_wave_specs: Dictionary = {}
+var section_boss_reinforcement_at: Dictionary = {}
+var section_boss_reinforcement_index: Dictionary = {}
 
 
 func _ready() -> void:
@@ -41,12 +51,33 @@ func _ready() -> void:
 	create_backgrounds()
 	create_world_collision()
 	spawn_player()
+	recording_initial_wave = true
 	spawn_enemies()
+	recording_initial_wave = false
+	for section in 5:
+		section_boss_reinforcement_index[section] = 0
+		var specs: Array = section_wave_specs.get(section, [])
+		for index in specs.size():
+			var duplicate_spec: Dictionary = specs[index].duplicate()
+			var offset := -90.0 if index % 2 == 0 else 90.0
+			duplicate_spec.position.x = clampf(duplicate_spec.position.x + offset, section * SECTION_WIDTH + 120.0, (section + 1) * SECTION_WIDTH - 120.0)
+			spawn_enemy_from_spec(duplicate_spec)
 	create_section_barriers()
 	spawn_items()
 	spawn_hud()
 	spawn_secret_shop()
 	update_section(true)
+	await play_level_intro()
+
+
+func play_level_intro() -> void:
+	player.controls_enabled = false
+	get_tree().paused = true
+	await hud.play_level_intro(LEVEL_STORY)
+	if get_tree().current_scene != self:
+		return
+	get_tree().paused = false
+	player.controls_enabled = true
 
 
 func _process(_delta: float) -> void:
@@ -59,6 +90,8 @@ func _process(_delta: float) -> void:
 	if pending_camera_section >= 0 and Input.get_axis("move_left", "move_right") > 0.0:
 		unlock_next_section_camera()
 	update_section(false)
+	current_section_enemy_count = enemy_tracker.count(current_section)
+	update_section_waves(current_section)
 	if current_section < 4 and section_gates.has(current_section):
 		refresh_section_gate(current_section)
 
@@ -105,7 +138,7 @@ func campaign_ground_rects() -> Array[Rect2]:
 
 func campaign_platform_rects() -> Array[Rect2]:
 	var rects: Array[Rect2] = []
-	var layouts := [[[320, 520, 260], [760, 450, 220], [1280, 530, 320], [1840, 420, 260]], [[180, 470, 260], [620, 380, 300], [1160, 510, 220], [1640, 430, 300], [2140, 350, 240]], [[260, 540, 300], [740, 440, 220], [1120, 340, 260], [1600, 470, 320], [2110, 390, 260]], [[240, 500, 320], [760, 400, 240], [1220, 520, 340], [1760, 410, 260], [2200, 500, 220]], [[180, 510, 280], [620, 420, 260], [1080, 330, 300], [1600, 450, 300], [2100, 520, 300]]]
+	var layouts := [[[320, 440, 260], [760, 450, 220], [1280, 530, 320], [1840, 420, 260]], [[180, 470, 260], [620, 380, 300], [1160, 510, 220], [1640, 430, 300], [2140, 350, 240]], [[260, 540, 300], [740, 440, 220], [1120, 340, 260], [1600, 470, 320], [2110, 390, 260]], [[240, 500, 320], [760, 400, 240], [1220, 520, 340], [1760, 410, 260], [2200, 500, 220]], [[180, 510, 280], [620, 420, 260], [1080, 330, 300], [1600, 450, 300], [2100, 520, 300]]]
 	for section in 5:
 		for platform in layouts[section]:
 			rects.append(Rect2(section * SECTION_WIDTH + platform[0], platform[1], platform[2], 24))
@@ -223,12 +256,18 @@ func spawn_enemies() -> void:
 	spawn_enemy(Vector2(10720, 580), REBEL_STATS, 0, Enemy.Behavior.MELEE, Vector2.ONE)
 	spawn_enemy(Vector2(11560, 440), EAGLE_STATS, 3, Enemy.Behavior.FLYING, Vector2.ONE)
 	var boss := spawn_enemy(Vector2(12350, 515), DEMON_KING_STATS, 5, Enemy.Behavior.BOSS, Vector2(1.4, 1.4))
+	boss.can_reposition = true
+	boss.set_meta(&"final_boss", true)
 	boss.defeated.connect(complete_level)
 
 
 func spawn_enemy(position_value: Vector2, stats_value: EnemyStats, atlas_row_value: int, behavior_value: Enemy.Behavior, scale_value: Vector2) -> Enemy:
 	var enemy := ENEMY_SCENE.instantiate() as Enemy
-	enemy.position = position_value
+	var spawn_position := position_value
+	var section := clampi(floori(position_value.x / SECTION_WIDTH), 0, 4)
+	if behavior_value != Enemy.Behavior.FLYING:
+		spawn_position.x = safe_ground_spawn_x(section, spawn_position.x)
+	enemy.position = spawn_position
 	enemy.stats = stats_value
 	enemy.animation_atlas = ENEMY_ANIMATION_ATLAS
 	enemy.atlas_row = atlas_row_value
@@ -236,11 +275,87 @@ func spawn_enemy(position_value: Vector2, stats_value: EnemyStats, atlas_row_val
 	enemy.behavior = behavior_value
 	enemy.target_player = player
 	enemy.defeated.connect(add_spirit_stones)
-	var section := clampi(floori(position_value.x / SECTION_WIDTH), 0, 4)
-	enemy.defeated.connect(section_enemy_defeated.bind(section))
+	enemy.set_meta(&"section_index", section)
+	if recording_initial_wave and behavior_value != Enemy.Behavior.BOSS:
+		var specs: Array = section_wave_specs.get(section, [])
+		specs.append({
+			"position": spawn_position,
+			"stats": stats_value,
+			"atlas_row": atlas_row_value,
+			"behavior": behavior_value,
+			"scale": scale_value,
+		})
+		section_wave_specs[section] = specs
+	enemy.defeated.connect(section_enemy_defeated.bind(section, enemy))
 	enemy.hit_received.connect(show_enemy_status)
 	add_child(enemy)
+	enemy_tracker.track(enemy, section)
 	return enemy
+
+
+func safe_ground_spawn_x(section: int, desired_x: float) -> float:
+	var section_left := section * SECTION_WIDTH
+	var section_right := (section + 1) * SECTION_WIDTH
+	var best_x := clampf(desired_x, section_left + 70.0, section_right - 70.0)
+	var best_distance := INF
+	for rect in campaign_ground_rects():
+		if clampi(floori(rect.get_center().x / SECTION_WIDTH), 0, 4) != section:
+			continue
+		var candidate := clampf(desired_x, rect.position.x + 70.0, rect.end.x - 70.0)
+		var distance := absf(candidate - desired_x)
+		if distance < best_distance or (is_equal_approx(distance, best_distance) and candidate > best_x):
+			best_x = candidate
+			best_distance = distance
+	return best_x
+
+
+func spawn_enemy_from_spec(spec: Dictionary) -> Enemy:
+	return spawn_enemy(spec.position, spec.stats, spec.atlas_row, spec.behavior, spec.scale)
+
+
+func activate_section_waves(section: int) -> void:
+	var now := Time.get_ticks_msec()
+	if section_has_alive_final_boss(section) and not section_boss_reinforcement_at.has(section):
+		section_boss_reinforcement_at[section] = now + BOSS_REINFORCEMENT_INTERVAL_MS
+
+
+func update_section_waves(section: int) -> void:
+	if not section_wave_specs.has(section):
+		return
+	activate_section_waves(section)
+	var now := Time.get_ticks_msec()
+	if not section_has_alive_final_boss(section):
+		section_boss_reinforcement_at.erase(section)
+		return
+	if now >= int(section_boss_reinforcement_at[section]):
+		spawn_boss_reinforcement_wave(section)
+		section_boss_reinforcement_at[section] = now + BOSS_REINFORCEMENT_INTERVAL_MS
+
+func spawn_boss_reinforcement_wave(section: int) -> void:
+	var specs: Array = section_wave_specs.get(section, [])
+	if specs.is_empty():
+		return
+	var start_index := int(section_boss_reinforcement_index.get(section, 0))
+	for index in BOSS_REINFORCEMENT_COUNT:
+		var spec: Dictionary = specs[(start_index + index) % specs.size()].duplicate()
+		var side := -1.0 if index % 2 == 0 else 1.0
+		spec.position.x = clampf(player.global_position.x + side * 520.0, section * SECTION_WIDTH + 120.0, (section + 1) * SECTION_WIDTH - 120.0)
+		var enemy := spawn_enemy_from_spec(spec)
+		enemy.add_to_group("boss_reinforcements")
+	section_boss_reinforcement_index[section] = start_index + BOSS_REINFORCEMENT_COUNT
+
+
+func section_has_alive_final_boss(section: int) -> bool:
+	for enemy in enemy_tracker.alive_enemies(section):
+		if enemy.has_meta(&"final_boss") and bool(enemy.get_meta(&"final_boss")):
+			return true
+	return false
+
+
+func enemy_section(enemy: Enemy) -> int:
+	if enemy.has_meta(&"section_index"):
+		return int(enemy.get_meta(&"section_index"))
+	return clampi(floori(enemy.spawn_position.x / SECTION_WIDTH), 0, 4)
 
 
 func show_enemy_status(enemy: Enemy, current: float, maximum: float) -> void:
@@ -286,6 +401,8 @@ func update_section(force: bool) -> void:
 	if not force and next_section == current_section:
 		return
 	current_section = next_section
+	current_section_enemy_count = enemy_tracker.count(current_section)
+	activate_section_waves(current_section)
 	back_wall.position.x = current_section * SECTION_WIDTH - 24.0
 	var camera := player.get_node("Camera") as Camera2D
 	var next_limit_left := int(current_section * SECTION_WIDTH)
@@ -329,26 +446,48 @@ func create_vertical_barrier(x: float) -> StaticBody2D:
 	return body
 
 
-func section_enemy_defeated(_reward: int, section: int) -> void:
+func section_enemy_defeated(_reward: int, section: int, enemy: Enemy) -> void:
+	enemy_tracker.remove(enemy, section)
+	if section == current_section:
+		current_section_enemy_count = enemy_tracker.count(section)
 	call_deferred("refresh_section_gate", section)
 
 
 func refresh_section_gate(section: int) -> void:
 	if not section_gates.has(section):
 		return
-	var final_screen_start := (section + 1) * SECTION_WIDTH - SCREEN_WIDTH * 0.5
-	if player.global_position.x < final_screen_start:
+	var alive_enemies: Array[Enemy] = enemy_tracker.alive_enemies(section)
+	if not alive_enemies.is_empty():
+		return_section_stragglers(alive_enemies, section)
 		return
-	for enemy_node in get_tree().get_nodes_in_group("enemies"):
-		var enemy := enemy_node as Enemy
-		if enemy.engaged and not enemy.dead and clampi(floori(enemy.spawn_position.x / SECTION_WIDTH), 0, 4) == section:
-			return
 	pending_camera_section = section
 	hud.show_go_prompt()
 	var gate := section_gates[section] as StaticBody2D
 	if is_instance_valid(gate):
 		gate.queue_free()
 	section_gates.erase(section)
+
+
+func get_current_section_enemy_snapshot() -> Array[Dictionary]:
+	return enemy_tracker.snapshot(current_section)
+
+
+func return_section_stragglers(enemies: Array[Enemy], section: int) -> void:
+	var section_end := (section + 1) * SECTION_WIDTH
+	if player.global_position.x < section_end - SCREEN_WIDTH * 0.35:
+		return
+	for enemy in enemies:
+		if absf(enemy.global_position.x - player.global_position.x) <= SCREEN_WIDTH * 0.5:
+			return
+	for index in enemies.size():
+		var enemy := enemies[index]
+		if enemy.has_meta(&"returned_to_gate"):
+			continue
+		var offset := -520.0 + index * minf(140.0, 900.0 / maxf(enemies.size() - 1, 1))
+		enemy.global_position.x = clampf(player.global_position.x + offset, section * SECTION_WIDTH + 120.0, section_end - 120.0)
+		enemy.velocity = Vector2.ZERO
+		enemy.engaged = true
+		enemy.set_meta(&"returned_to_gate", true)
 
 
 func complete_level(_reward: int) -> void:

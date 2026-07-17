@@ -26,6 +26,8 @@ func run_checks() -> void:
 	add_child(level)
 	for _frame in 6:
 		await get_tree().physics_frame
+	while get_tree().paused:
+		await get_tree().create_timer(0.1, true).timeout
 	var player := level.player as Player
 	GameState.lives = 3
 	check(GameState.consume_life() and GameState.lives == 2, "debug测试模式也会消耗救命毫毛")
@@ -34,21 +36,22 @@ func run_checks() -> void:
 	for enemy_node in get_tree().get_nodes_in_group("enemies"):
 		(enemy_node as Enemy).set_physics_process(false)
 
-	player.begin_attack_charge()
-	player.attack_pressed_at = Time.get_ticks_msec() - int(player.stats.charge_seconds * 1000.0)
-	player.update_charge_feedback()
-	check(player.sprite.animation == &"respawn" and not player.attack_effect.visible and not player.has_node("ChargeBar"), "空手蓄力使用周身怒火且无独立进度条")
-	player.cancel_attack_charge()
+	player.global_position = Vector2(300, 500)
+	player.facing = 1.0
+	player.perform_aerial_throw()
+	check(get_tree().get_nodes_in_group(&"player_throw_projectiles").size() == 1, "空中攻击生成香蕉投掷物")
+	player.perform_aerial_throw()
+	check(get_tree().get_nodes_in_group(&"player_throw_projectiles").size() == 1, "空中投掷间隔不少于0.2秒")
 
 	GameState.artifacts = [&"fire_spear", &"peach"]
-	player.begin_item_hold()
-	player.release_item_hold()
-	check(GameState.artifacts == [&"peach", &"fire_spear"], "短按C只切换当前法宝")
+	player.select_next_artifact()
+	check(player.artifact_selected and GameState.artifacts == [&"fire_spear", &"peach"], "首次按C选中第一个法宝")
+	player.select_next_artifact()
+	check(GameState.artifacts == [&"peach", &"fire_spear"], "再次按C循环切换法宝")
 	player.health = 20.0
-	player.begin_item_hold()
-	player.item_pressed_at = Time.get_ticks_msec() - 500
-	player.update_item_hold()
-	check(player.health == 53.0 and GameState.artifacts == [&"fire_spear"], "长按C消费当前补血物品")
+	player.use_current_artifact()
+	player.set_artifact_selected(false)
+	check(player.health == 53.0 and GameState.artifacts == [&"fire_spear"], "选中后按攻击键消费当前补血物品")
 
 	var target := find_enemy("山猪妖")
 	player.global_position = Vector2(360, 580)
@@ -121,11 +124,13 @@ func run_checks() -> void:
 	GameState.has_staff = false
 	var level3 = (load("res://src/levels/level_03/level_03.tscn") as PackedScene).instantiate()
 	add_child(level3)
+	while get_tree().paused:
+		await get_tree().create_timer(0.1, true).timeout
 	for _frame in 5:
 		await get_tree().physics_frame
 	var staff_player := level3.player as Player
 	var idle_texture := staff_player.sprite.sprite_frames.get_frame_texture(&"idle", 0) as AtlasTexture
-	check(GameState.has_staff and staff_player.stats == Player.STAFF_STATS, "第三关进入时确保金箍棒与蓄力能力已解锁")
+	check(GameState.has_staff and staff_player.stats == Player.STAFF_STATS, "第三关进入时确保金箍棒已解锁")
 	check(idle_texture.atlas.resource_path.ends_with("player_staff_atlas.png"), "第三关及后续使用生成的持棒PNG角色动画")
 	level3.queue_free()
 	await get_tree().process_frame
@@ -133,6 +138,8 @@ func run_checks() -> void:
 
 	var level4 = (load("res://src/levels/level_04/level_04.tscn") as PackedScene).instantiate()
 	add_child(level4)
+	while get_tree().paused:
+		await get_tree().create_timer(0.1, true).timeout
 	for _frame in 5:
 		await get_tree().physics_frame
 	var checkpoint := get_tree().get_first_node_in_group("checkpoints") as Checkpoint

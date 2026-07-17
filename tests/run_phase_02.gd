@@ -56,12 +56,12 @@ func run_checks() -> void:
 	GameState.pickup_artifact(&"fire_wheels")
 	GameState.pickup_artifact(&"purple_bell")
 	GameState.pickup_artifact(&"monkey_hair")
-	GameState.pickup_artifact(&"binding_rope")
-	check(GameState.artifacts == [&"cosmic_ring", &"fire_wheels", &"purple_bell", &"monkey_hair", &"binding_rope"], "五格满栏拾取法宝按FIFO顶掉最早物品")
+	check(not GameState.pickup_artifact(&"binding_rope"), "五格满栏时拒绝拾取新法宝")
+	check(GameState.artifacts == [&"fire_spear", &"cosmic_ring", &"fire_wheels", &"purple_bell", &"monkey_hair"], "五格满栏拾取法宝不会顶掉已有物品")
 	check(GameState.purchase_artifact_fifo(&"heaven_seal", 150), "满栏购买法宝丢弃队首并整体前移")
-	check(GameState.artifacts == [&"fire_wheels", &"purple_bell", &"monkey_hair", &"binding_rope", &"heaven_seal"], "新法宝追加到五格物品栏队尾")
+	check(GameState.artifacts == [&"cosmic_ring", &"fire_wheels", &"purple_bell", &"monkey_hair", &"heaven_seal"], "新法宝追加到五格物品栏队尾")
 	check(GameState.stones == 550, "购买法宝正确扣除灵石")
-	check(GameState.pop_artifact() == &"fire_wheels", "使用法宝按FIFO取出队首")
+	check(GameState.pop_artifact() == &"cosmic_ring", "使用法宝按FIFO取出队首")
 	check(GameState.purchase_life(500), "本关首次购买救命毫毛成功")
 	check(GameState.lives == 3 and GameState.stones == 50, "毫毛购买更新上限与余额")
 	check(not GameState.purchase_life(500), "同关不能重复购买救命毫毛")
@@ -77,7 +77,7 @@ func run_checks() -> void:
 	GameState.settings.master_volume = 1.0
 	check(GameState.load_game(), "存档读取成功")
 	check(GameState.lives == 3 and GameState.stones == 50, "生命与灵石可恢复")
-	check(GameState.artifacts == [&"purple_bell", &"monkey_hair", &"binding_rope", &"heaven_seal"], "五格物品队列可恢复")
+	check(GameState.artifacts == [&"fire_wheels", &"purple_bell", &"monkey_hair", &"heaven_seal"], "五格物品队列可恢复")
 	check(GameState.unlocked_level == 3 and GameState.current_level == 2, "关卡进度可恢复")
 	check(is_equal_approx(GameState.settings.master_volume, 0.42), "设置可恢复")
 	menu = menu_scene.instantiate()
@@ -95,6 +95,8 @@ func run_checks() -> void:
 	add_child(level)
 	for _frame in 5:
 		await get_tree().physics_frame
+	while get_tree().paused:
+		await get_tree().create_timer(0.1, true).timeout
 	var pickups := level.find_children("*", "ItemPickup", true, false)
 	check(pickups.size() == 6, "第一关生成6个固定拾取物")
 	var player := level.player as Player
@@ -118,7 +120,9 @@ func run_checks() -> void:
 	GameState.pop_artifact()
 	fire_spear.on_body_entered(player)
 	check(GameState.artifacts == [&"fire_spear"], "拾取法宝进入队列")
-	check(level.hud.artifact_labels[0].text == "▶ 火尖枪", "HUD标记当前物品")
+	check(level.hud.artifact_labels[0].text == "火尖枪", "HUD未选中时不标记法宝")
+	player.select_next_artifact()
+	check(level.hud.artifact_labels[0].text == "▶ 火尖枪", "按C后HUD标记当前法宝")
 	var enemy: Enemy
 	for enemy_node in get_tree().get_nodes_in_group("enemies"):
 		var candidate := enemy_node as Enemy

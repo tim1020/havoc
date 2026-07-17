@@ -34,6 +34,8 @@ func run_checks() -> void:
 
 	var level := level_scene.instantiate()
 	add_child(level)
+	while get_tree().paused:
+		await get_tree().create_timer(0.1, true).timeout
 	await get_tree().process_frame
 	for _frame in 5:
 		await get_tree().physics_frame
@@ -94,16 +96,9 @@ func run_checks() -> void:
 	attack_press.action = "attack"
 	attack_press.pressed = true
 	player._unhandled_input(attack_press)
-	player.attack_started_in_air = false
-	await get_tree().physics_frame
-	check(first_enemy.health == enemy_health_before_attack, "按下攻击键不会立即攻击")
-	var attack_release := InputEventAction.new()
-	attack_release.action = "attack"
-	attack_release.pressed = false
-	player._unhandled_input(attack_release)
 	for _frame in 2:
 		await get_tree().physics_frame
-	check(first_enemy.health == enemy_health_before_attack - player.stats.combo_damage[0], "短按松开触发普通攻击")
+	check(first_enemy.health == enemy_health_before_attack - player.stats.combo_damage[0], "按下攻击键立即触发普通攻击")
 	check(player.attack_effect.visible, "普通攻击保留可见逐帧弧光特效")
 	check(first_enemy.hit_reaction_until > Time.get_ticks_msec(), "敌兵受击进入可见反馈状态")
 	check(hud.enemy_panel.visible, "敌兵受击显示右上状态面板")
@@ -115,7 +110,7 @@ func run_checks() -> void:
 		if enemy.stats.display_name == "山猪妖":
 			boar = enemy
 			break
-	check(boar != null, "山猪妖已生成用于蓄力攻击检查")
+	check(boar != null, "山猪妖已生成用于空中投掷检查")
 	if boar != null:
 		player.global_position = Vector2(2600, 580)
 		player.facing = 1.0
@@ -124,32 +119,12 @@ func run_checks() -> void:
 		boar.invulnerable_until = 0
 		for _frame in 4:
 			await get_tree().physics_frame
-		var boar_health_before_charge := boar.health
-		player.begin_attack_charge()
-		player.attack_pressed_at = Time.get_ticks_msec() - int(player.stats.charge_seconds * 1000.0) - 10
-		player.update_charge_feedback()
-		check(player.sprite.animation == &"respawn" and not player.attack_effect.visible and not player.has_node("ChargeBar"), "空手蓄力使用周身怒火且不显示独立进度条")
-		await get_tree().physics_frame
-		check(boar.health == boar_health_before_charge, "长按期间不会连续攻击")
-		player.release_attack_charge()
-		check(get_tree().get_nodes_in_group(&"roar_effects").size() == 3, "空手怒吼释放三段可见冲击效果")
-		for _frame in 2:
+		var boar_health_before_throw := boar.health
+		player.perform_aerial_throw()
+		check(get_tree().get_nodes_in_group(&"player_throw_projectiles").size() == 1, "空手空中攻击生成追踪香蕉投掷物")
+		for _frame in 8:
 			await get_tree().physics_frame
-		check(boar.health == boar_health_before_charge - player.stats.charged_attack_damage, "空手蓄力松开以怒吼造成30点伤害")
-		boar.invulnerable_until = 0
-		boar.set_physics_process(false)
-		boar.health = boar.stats.max_health
-		boar.global_position = player.global_position + Vector2(190, 0)
-		boar.velocity = Vector2.ZERO
-		boar.patrol_direction = 1.0
-		var enemy_health_before_air_heavy := boar.health
-		player.begin_attack_charge()
-		player.attack_started_in_air = true
-		player.release_attack_charge()
-		for _frame in 3:
-			await get_tree().physics_frame
-		check(boar.health == enemy_health_before_air_heavy - player.stats.combo_damage[0] * 2.0, "空中短按重击以双倍距离造成双倍伤害")
-		boar.set_physics_process(true)
+		check(boar.health == boar_health_before_throw - player.stats.combo_damage[0], "香蕉追踪命中造成普通首段伤害")
 	check(player.attack_area.monitoring, "攻击检测区保持常驻监测")
 	first_enemy.hit_reaction_until = 0
 	first_enemy.frozen_until = 0

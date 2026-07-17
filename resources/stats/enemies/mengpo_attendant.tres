@@ -12,4 +12,5 @@ gravity = 2400.0
 detection_range = 520.0
 attack_range = 130.0
 spirit_stones = 15
+ground_projectile_style = "talisman"
 contact_slow_seconds = 2.0

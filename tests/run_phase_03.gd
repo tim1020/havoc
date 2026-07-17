@@ -27,6 +27,8 @@ func run_checks() -> void:
 	check(level2_scene != null and level3_scene != null, "第二、三关场景可加载")
 	var level2 := level2_scene.instantiate() as CampaignLevel
 	add_child(level2)
+	while get_tree().paused:
+		await get_tree().create_timer(0.1, true).timeout
 	for _frame in 6:
 		await get_tree().physics_frame
 	var level2_enemies := get_tree().get_nodes_in_group("enemies")
@@ -87,6 +89,8 @@ func run_checks() -> void:
 
 	var level3 := level3_scene.instantiate() as CampaignLevel
 	add_child(level3)
+	while get_tree().paused:
+		await get_tree().create_timer(0.1, true).timeout
 	for _frame in 6:
 		await get_tree().physics_frame
 	var level3_enemies := get_tree().get_nodes_in_group("enemies")
@@ -101,7 +105,7 @@ func run_checks() -> void:
 	var idle_texture := player.sprite.sprite_frames.get_frame_texture(&"idle", 0) as AtlasTexture
 	check(idle_texture.atlas.resource_path.ends_with("player_staff_atlas.png"), "第三关使用生成的持棒PNG角色动画")
 	player.set_physics_process(false)
-	check(GameState.has_staff and not player.has_node("ChargeBar"), "持棒和空手共用蓄力且不显示独立进度条")
+	check(GameState.has_staff and not player.has_node("ChargeBar"), "持棒状态不再显示蓄力进度条")
 
 	var targets: Array[Enemy] = []
 	var remote_index := 0
@@ -122,20 +126,17 @@ func run_checks() -> void:
 	for target in targets:
 		target_health += target.health
 	player.global_position = Vector2(620, 500)
-	player.begin_attack_charge()
-	player.attack_pressed_at = Time.get_ticks_msec() - int(player.stats.charge_seconds * 1000.0)
-	player.release_attack_charge()
+	player.facing = 1.0
+	player.perform_aerial_throw()
 	await get_tree().process_frame
-	var projectiles := get_tree().get_nodes_in_group("staff_projectiles")
-	check(projectiles.size() == 3, "持棒满蓄力生成3根追踪棒且不区分地面空中")
-	if not projectiles.is_empty():
-		check((projectiles[0] as StaffProjectile).get_node("Sprite").sprite_frames.get_frame_count(&"fly") == 4, "追踪棒攻击特效包含4个图像帧")
+	var projectiles := get_tree().get_nodes_in_group("player_throw_projectiles")
+	check(projectiles.size() == 1 and (projectiles[0] as PlayerThrowProjectile).kind == PlayerThrowProjectile.Kind.STAFF, "持棒空中攻击生成一根追踪棒")
 	for _frame in 50:
 		await get_tree().physics_frame
 	var health_after_tracking := 0.0
 	for target in targets:
 		health_after_tracking += target.health
-	check(target_health - health_after_tracking == 45.0, "三根棒保留自动追踪并分别造成15点伤害")
+	check(target_health - health_after_tracking == 22.5, "追踪棒命中前方屏幕内目标并造成强化伤害")
 
 	var ghost := find_enemy("游魂")
 	ghost.ghost_solid = false

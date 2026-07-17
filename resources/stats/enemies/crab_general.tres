@@ -12,4 +12,5 @@ gravity = 2400.0
 detection_range = 430.0
 attack_range = 90.0
 spirit_stones = 25
+ground_projectile_style = "shell"
 front_damage_multiplier = 0.5

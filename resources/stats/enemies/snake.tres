@@ -14,3 +14,4 @@ gravity = 2400.0
 detection_range = 320.0
 attack_range = 65.0
 spirit_stones = 5
+ground_projectile_style = "fang"

@@ -55,7 +55,7 @@ func run_checks() -> void:
 	fairy.try_attack(level.player)
 	check(level.player.confused_until > Time.get_ticks_msec(), "散花仙女命中使玩家方向混乱3秒")
 	check(level.player.movement_direction(1.0) == -1.0, "方向混乱期间左右输入反转")
-	level.player.update_charge_feedback()
+	level.player.update_status_visual()
 	check(level.player.sprite.modulate != Color.WHITE, "方向混乱期间玩家显示粉色状态反馈")
 
 	var pollen: LineHazard

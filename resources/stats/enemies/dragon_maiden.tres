@@ -12,4 +12,5 @@ gravity = 2400.0
 detection_range = 540.0
 attack_range = 150.0
 spirit_stones = 15
+ground_projectile_style = "pearl"
 contact_root_seconds = 2.0

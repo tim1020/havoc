@@ -59,9 +59,7 @@ func capture_level_03() -> bool:
 	var camera := level.player.get_node("Camera") as Camera2D
 	camera.position_smoothing_enabled = false
 	camera.reset_smoothing()
-	level.player.begin_attack_charge()
-	level.player.attack_pressed_at = Time.get_ticks_msec() - int(level.player.stats.charge_seconds * 1000.0)
-	level.player.update_charge_feedback()
+	level.player.perform_aerial_throw()
 	await settle(6)
 	return save_view("%s/level_03_staff_actual.png" % OUTPUT_DIR) == OK
 

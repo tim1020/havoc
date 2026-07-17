@@ -91,7 +91,7 @@ theme_override_constants/separation = 8
 
 [node name="Hint" type="Label" parent="TopPanel/Margin/Rows/ArtifactRow"]
 layout_mode = 2
-text = "C短切/长用"
+text = "C选择 · 攻击使用"
 
 [node name="Artifact1" type="Label" parent="TopPanel/Margin/Rows/ArtifactRow"]
 unique_name_in_owner = true

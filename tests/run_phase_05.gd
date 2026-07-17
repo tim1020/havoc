@@ -91,7 +91,7 @@ func run_checks() -> void:
 	king.set_physics_process(false)
 	var health_before := king.health
 	var accepted := king.take_projectile_damage(15.0, level.player.global_position)
-	check(not accepted and king.health == health_before, "多闻天王混元伞反射蓄力追踪棒")
+	check(not accepted and king.health == health_before, "多闻天王混元伞反射追踪投棒")
 	kill_enemy(king, level.player)
 	await get_tree().create_timer(1.0).timeout
 	check(count_rewards() == 4, "四天王每场胜利均掉落1个蟠桃")
