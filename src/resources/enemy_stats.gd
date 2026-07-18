@@ -34,3 +34,4 @@ extends ActorStats
 @export var projectile_color: Color = Color("ff7a45")
 @export_enum("axe", "dragon_orb", "divine_spear") var projectile_style: String = "dragon_orb"
 @export_enum("stone", "fang", "tusk", "spear", "shell", "pearl", "bone", "talisman", "petal", "seed", "hammer", "arrow") var ground_projectile_style: String = "stone"
+@export_enum("contact", "shock", "wail", "projectile") var flying_attack_style: String = "contact"

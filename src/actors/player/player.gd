@@ -7,6 +7,7 @@ const ARTIFACT_PROJECTILE := preload("res://src/combat/artifact_projectile.gd")
 const MONKEY_CLONE := preload("res://src/actors/player/monkey_clone.gd")
 const THROW_PROJECTILE := preload("res://src/combat/player_throw_projectile.gd")
 const THROW_COOLDOWN_MS := 200
+const RESPAWN_INVULNERABILITY_MS := 3000
 
 signal health_changed(current: float, maximum: float)
 signal died
@@ -25,9 +26,11 @@ var jumps_left: int
 var facing: float = 1.0
 var combo_index: int = 0
 var combo_expires_at: int = 0
+var ground_combo_protection_until: int = 0
 var invulnerable_until: int = 0
 var controls_enabled: bool = true
 var respawn_position: Vector2
+var last_safe_platform_position: Vector2
 var speed_boost_until: int = 0
 var slowed_until: int = 0
 var rooted_until: int = 0
@@ -35,6 +38,8 @@ var confused_until: int = 0
 var artifact_selected: bool = false
 var next_throw_at: int = 0
 var hurt_animation_until: int = 0
+var invulnerability_aura: Node2D
+var confusion_stars: Node2D
 
 
 func _ready() -> void:
@@ -47,8 +52,11 @@ func _ready() -> void:
 	health = stats.max_health
 	jumps_left = stats.jump_count
 	respawn_position = global_position
+	last_safe_platform_position = global_position
 	invulnerable_until = Time.get_ticks_msec() + 1000
 	attack_area.monitoring = true
+	setup_invulnerability_aura()
+	setup_confusion_stars()
 	attack_effect.animation_finished.connect(func() -> void:
 		attack_effect.stop()
 		attack_effect.visible = false
@@ -96,7 +104,10 @@ func _physics_process(delta: float) -> void:
 		velocity.x = move_toward(velocity.x, 0.0, stats.friction * delta)
 
 	move_and_slide()
+	if is_on_floor() and has_safe_floor_below(global_position):
+		last_safe_platform_position = global_position
 	update_status_visual()
+	update_invulnerability_aura()
 	update_animation(direction)
 
 
@@ -114,9 +125,11 @@ func perform_attack() -> void:
 	var now := Time.get_ticks_msec()
 	if now > combo_expires_at:
 		combo_index = 0
+	var is_final_combo_hit := combo_index == stats.combo_damage.size() - 1
 	var damage := stats.combo_damage[combo_index]
 	combo_index = (combo_index + 1) % stats.combo_damage.size()
 	combo_expires_at = now + int(stats.combo_reset_seconds * 1000.0)
+	ground_combo_protection_until = now + 280
 	play_if_available("attack_%d" % (combo_index if combo_index > 0 else 3))
 	attack_effect.flip_h = facing < 0.0
 	attack_effect.position.x = absf(attack_effect.position.x) * facing
@@ -129,6 +142,57 @@ func perform_attack() -> void:
 	for body in attack_area.get_overlapping_bodies():
 		if body.has_method("take_damage"):
 			body.take_damage(damage, global_position)
+			if is_final_combo_hit and body is Enemy:
+				body.launch_from(global_position, 760.0)
+
+
+func has_ground_combo_protection() -> bool:
+	return Time.get_ticks_msec() < ground_combo_protection_until
+
+
+func setup_invulnerability_aura() -> void:
+	invulnerability_aura = Node2D.new()
+	invulnerability_aura.position = Vector2(0.0, -48.0)
+	for ring_index in 3:
+		var aura_stream := Line2D.new()
+		var points := PackedVector2Array()
+		for index in 17:
+			var angle := TAU * index / 16.0 + ring_index * 0.8
+			var radius := 36.0 + ring_index * 8.0 + sin(angle * 3.0) * 5.0
+			points.append(Vector2(cos(angle) * radius, sin(angle) * radius * 0.45))
+		aura_stream.points = points
+		aura_stream.width = 2.4
+		aura_stream.default_color = Color("ffd85a", 0.72)
+		invulnerability_aura.add_child(aura_stream)
+	invulnerability_aura.z_index = 3
+	invulnerability_aura.visible = false
+	add_child(invulnerability_aura)
+
+
+func setup_confusion_stars() -> void:
+	confusion_stars = Node2D.new()
+	confusion_stars.position = Vector2(0.0, -146.0)
+	for offset in [Vector2(-22.0, 0.0), Vector2(5.0, -12.0), Vector2(24.0, 5.0)]:
+		var star := Label.new()
+		star.text = "✦"
+		star.position = offset
+		star.add_theme_font_size_override("font_size", 22)
+		star.add_theme_color_override("font_color", Color("ffe45c"))
+		confusion_stars.add_child(star)
+	confusion_stars.z_index = 10
+	confusion_stars.visible = false
+	add_child(confusion_stars)
+
+
+func update_invulnerability_aura() -> void:
+	if invulnerability_aura == null:
+		return
+	var active := Time.get_ticks_msec() < invulnerable_until
+	invulnerability_aura.visible = active
+	if active:
+		var pulse := 1.0 + sin(Time.get_ticks_msec() * 0.014) * 0.1
+		invulnerability_aura.scale = Vector2(pulse, pulse)
+		invulnerability_aura.rotation += 0.025
 
 func perform_aerial_throw() -> void:
 	var now := Time.get_ticks_msec()
@@ -191,7 +255,12 @@ func movement_direction(raw_direction: float) -> float:
 
 
 func update_status_visual() -> void:
-	sprite.modulate = Color("f2a1cf") if Time.get_ticks_msec() < confused_until else Color.WHITE
+	var confused := Time.get_ticks_msec() < confused_until
+	sprite.modulate = Color("f2a1cf") if confused else Color.WHITE
+	if confusion_stars != null:
+		confusion_stars.visible = confused
+		if confused:
+			confusion_stars.rotation = sin(Time.get_ticks_msec() * 0.012) * 0.12
 
 
 func use_current_artifact() -> void:
@@ -311,10 +380,16 @@ func take_damage(damage: float, source_position: Vector2) -> void:
 	play_if_available("hurt")
 	health_changed.emit(health, stats.max_health)
 	if is_zero_approx(health):
-		die_and_respawn()
+		die_and_respawn(global_position if has_safe_floor_below(global_position) else safe_respawn_position())
 
 
-func die_and_respawn() -> void:
+func fall_into_pit() -> void:
+	if not controls_enabled:
+		return
+	die_and_respawn(safe_respawn_position())
+
+
+func die_and_respawn(revive_position: Vector2) -> void:
 	controls_enabled = false
 	velocity = Vector2.ZERO
 	play_if_available("death")
@@ -329,9 +404,10 @@ func die_and_respawn() -> void:
 		await game_hud.game_over_continue
 		GameState.call_deferred(&"return_to_menu")
 		return
-	global_position = respawn_position
+	global_position = revive_position
 	health = stats.max_health
-	invulnerable_until = Time.get_ticks_msec() + int(stats.respawn_invulnerability_seconds * 1000.0)
+	invulnerable_until = Time.get_ticks_msec() + RESPAWN_INVULNERABILITY_MS
+	repel_nearby_enemies()
 	play_if_available("respawn")
 	health_changed.emit(health, stats.max_health)
 	await get_tree().create_timer(0.35).timeout
@@ -341,6 +417,26 @@ func die_and_respawn() -> void:
 
 func set_checkpoint(checkpoint: Vector2) -> void:
 	respawn_position = checkpoint
+	last_safe_platform_position = checkpoint
+
+
+func has_safe_floor_below(position_value: Vector2) -> bool:
+	for offset_x in [-24.0, 0.0, 24.0]:
+		var query := PhysicsRayQueryParameters2D.create(position_value + Vector2(offset_x, -8.0), position_value + Vector2(offset_x, 90.0), 1)
+		if get_world_2d().direct_space_state.intersect_ray(query).is_empty():
+			return false
+	return true
+
+
+func safe_respawn_position() -> Vector2:
+	return last_safe_platform_position if has_safe_floor_below(last_safe_platform_position) else respawn_position
+
+
+func repel_nearby_enemies() -> void:
+	for enemy_node in get_tree().get_nodes_in_group("enemies"):
+		var enemy := enemy_node as Enemy
+		if enemy != null and not enemy.dead and global_position.distance_to(enemy.global_position) <= 250.0:
+			enemy.launch_from(global_position, 680.0)
 
 
 func update_animation(direction: float) -> void:

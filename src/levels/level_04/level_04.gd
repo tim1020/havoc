@@ -73,6 +73,10 @@ func next_level_path() -> String:
 	return GameState.FIFTH_LEVEL
 
 
+func should_play_background_music() -> bool:
+	return false
+
+
 func ground_rects() -> Array[Rect2]:
 	return campaign_ground_rects()
 

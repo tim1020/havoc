@@ -3,7 +3,7 @@
 [resource]
 script = ExtResource("1")
 display_name = "蟹将"
-max_health = 60.0
+max_health = 40.0
 contact_damage = 18.0
 invulnerability_seconds = 0.15
 knockback_force = 250.0

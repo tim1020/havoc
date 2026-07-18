@@ -12,4 +12,5 @@ gravity = 0.0
 detection_range = 520.0
 attack_range = 130.0
 spirit_stones = 15
+flying_attack_style = "shock"
 contact_slow_seconds = 2.0

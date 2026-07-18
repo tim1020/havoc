@@ -17,5 +17,6 @@ projectile_speed = 520.0
 projectile_cooldown = 2.4
 projectile_color = Color(1, 0.38, 0.1, 1)
 projectile_style = "dragon_orb"
+flying_attack_style = "projectile"
 attack_range = 220.0
 spirit_stones = 20

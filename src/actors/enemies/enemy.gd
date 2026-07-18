@@ -20,6 +20,10 @@ const STONE_THROW_RANGE := 520.0
 const STONE_THROW_DAMAGE := 7.0
 const STONE_THROW_SPEED := 440.0
 const STONE_THROW_COOLDOWN_MS := 2600
+const PLATFORM_JUMP_VELOCITY := 620.0
+const PLATFORM_JUMP_HORIZONTAL_RANGE := 300.0
+const COMBO_STANDOFF_RANGE := 230.0
+const PLAYER_LOST_PATROL_DELAY_MS := 1400
 const MELEE_EFFECT_ATLAS := preload("res://assets/vector/effects/melee_arc_frames.svg")
 const ENEMY_PROJECTILE := preload("res://src/combat/enemy_projectile.gd")
 
@@ -66,6 +70,10 @@ var last_player_side: float = 0.0
 var engaged: bool = false
 var target_player: Player
 var can_reposition: bool = false
+var avoiding_player_combo: bool = false
+var ambush_until: int = 0
+var launched_until: int = 0
+var player_lost_since: int = 0
 
 
 func _ready() -> void:
@@ -106,6 +114,11 @@ func _physics_process(delta: float) -> void:
 	if Time.get_ticks_msec() < frozen_until:
 		velocity = Vector2.ZERO
 		return
+	if Time.get_ticks_msec() < launched_until:
+		if behavior != Behavior.FLYING:
+			velocity.y += stats.gravity * delta
+		move_and_slide()
+		return
 
 	if not is_instance_valid(target_player):
 		target_player = get_tree().get_first_node_in_group("player") as Player
@@ -120,6 +133,17 @@ func _physics_process(delta: float) -> void:
 				velocity.y += stats.gravity * delta
 			move_and_slide()
 			return
+	if should_resume_patrol(player):
+		if behavior == Behavior.FLYING:
+			velocity = Vector2.ZERO
+		else:
+			if not is_on_floor():
+				velocity.y += stats.gravity * delta
+			patrol()
+			stop_at_blocked_path()
+		update_player_body_collision(player)
+		move_and_slide()
+		return
 	if disguised:
 		velocity = Vector2.ZERO
 		if not update_disguise(player):
@@ -131,6 +155,7 @@ func _physics_process(delta: float) -> void:
 			velocity.y += stats.gravity * delta
 		update_grounded(player)
 		stop_at_blocked_path()
+	update_player_body_collision(player)
 
 	move_and_slide()
 	apply_contact_damage()
@@ -143,7 +168,22 @@ func is_pit_fall() -> bool:
 func should_engage(player: Player) -> bool:
 	if player == null:
 		return false
-	return global_position.distance_to(player.global_position) <= maxf(stats.detection_range, 360.0)
+	return can_see_player(player)
+
+
+func can_see_player(player: Player) -> bool:
+	return player != null and global_position.distance_to(player.global_position) <= maxf(stats.detection_range, 360.0) and has_clear_line_to_player(player)
+
+
+func should_resume_patrol(player: Player) -> bool:
+	if stats.is_boss or behavior == Behavior.FLYING:
+		return false
+	if can_see_player(player):
+		player_lost_since = 0
+		return false
+	if player_lost_since == 0:
+		player_lost_since = Time.get_ticks_msec()
+	return Time.get_ticks_msec() - player_lost_since >= PLAYER_LOST_PATROL_DELAY_MS
 
 
 func engage_nearby_allies() -> void:
@@ -178,7 +218,7 @@ func update_grounded(player: Player) -> void:
 	if player == null:
 		velocity.x = 0.0
 		return
-	if behavior == Behavior.BOSS and can_reposition and Time.get_ticks_msec() >= next_boss_reposition_at:
+	if behavior == Behavior.BOSS and can_reposition and Time.get_ticks_msec() >= next_boss_reposition_at and not has_clear_line_to_player(player):
 		reposition_boss()
 	if not protects_group.is_empty() and update_bodyguard_position(player):
 		return
@@ -191,6 +231,14 @@ func update_grounded(player: Player) -> void:
 
 	patrol_direction = signf(distance.x)
 	face_direction(patrol_direction)
+	if not stats.is_boss and player.has_ground_combo_protection():
+		avoid_player_combo(distance)
+		return
+	if avoiding_player_combo:
+		avoiding_player_combo = false
+		ambush_until = Time.get_ticks_msec() + 420
+	if try_jump_to_player_platform(distance):
+		return
 	if can_throw_ground_projectile_at(player, distance):
 		velocity.x = move_toward(velocity.x, 0.0, 160.0)
 		try_ranged_attack(player, true)
@@ -206,7 +254,8 @@ func update_grounded(player: Player) -> void:
 		velocity.x = move_toward(velocity.x, 0.0, 160.0)
 	elif absf(distance.x) > stats.attack_range:
 		var multiplier := 1.3 if behavior == Behavior.BOSS and phase_two else 1.0
-		velocity.x = patrol_direction * stats.move_speed * multiplier
+		var ambush_multiplier := 2.0 if Time.get_ticks_msec() < ambush_until and not stats.is_boss else 1.0
+		velocity.x = patrol_direction * stats.move_speed * multiplier * ambush_multiplier
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, 80.0)
 		try_attack(player)
@@ -300,20 +349,43 @@ func update_flying(delta: float, player: Player) -> void:
 		velocity = Vector2.ZERO
 		return
 	var target := player.global_position + Vector2(0.0, -54.0)
-	if stats.projectile_damage > 0.0:
-		var flank := signf(global_position.x - player.global_position.x)
-		if is_zero_approx(flank):
-			flank = -1.0 if sprite.flip_h else 1.0
+	var flank := signf(global_position.x - player.global_position.x)
+	if is_zero_approx(flank):
+		flank = -1.0 if sprite.flip_h else 1.0
+	if stats.flying_attack_style == "shock":
+		target = player.global_position + Vector2(flank * 80.0, -56.0)
+	elif stats.flying_attack_style == "wail":
+		target = player.global_position + Vector2(flank * 58.0, -48.0)
+	elif stats.flying_attack_style == "projectile":
 		target = player.global_position + Vector2(flank * 150.0, -140.0)
 	velocity = Vector2.ZERO if global_position.distance_to(target) < 28.0 else global_position.direction_to(target) * stats.move_speed * 0.5
 	face_direction(velocity.x)
-	try_ranged_attack(player)
+	if not has_clear_line_to_player(player):
+		return
+	if stats.flying_attack_style == "projectile":
+		try_ranged_attack(player)
+	elif global_position.distance_to(player.global_position + Vector2(0.0, -42.0)) <= stats.attack_range:
+		try_attack(player)
 
 
 func face_direction(direction: float) -> void:
 	if is_zero_approx(direction):
 		return
 	sprite.flip_h = direction < 0.0 if stats.faces_right_by_default else direction > 0.0
+
+
+func update_player_body_collision(player: Player) -> void:
+	if player == null:
+		return
+	var shares_horizontal_plane := absf(player.global_position.y - global_position.y) <= 90.0
+	var player_mask := 2 if shares_horizontal_plane else 0
+	collision_mask = (base_collision_mask & ~2) | player_mask
+	if shares_horizontal_plane:
+		remove_collision_exception_with(player)
+		player.remove_collision_exception_with(self)
+	else:
+		add_collision_exception_with(player)
+		player.add_collision_exception_with(self)
 
 
 func can_throw_ground_projectile_at(player: Player, distance: Vector2) -> bool:
@@ -337,9 +409,38 @@ func ground_path_blocked_toward_player() -> bool:
 	return get_world_2d().direct_space_state.intersect_ray(query).is_empty()
 
 
+func avoid_player_combo(distance: Vector2) -> void:
+	avoiding_player_combo = true
+	if absf(distance.x) < COMBO_STANDOFF_RANGE:
+		velocity.x = -patrol_direction * stats.move_speed * 0.8
+	else:
+		velocity.x = move_toward(velocity.x, 0.0, 180.0)
+
+
+func try_jump_to_player_platform(distance: Vector2) -> bool:
+	if stats.is_boss or not is_on_floor() or distance.y >= -70.0 or absf(distance.x) > PLATFORM_JUMP_HORIZONTAL_RANGE:
+		return false
+	if ground_path_blocked_toward_player():
+		return false
+	var landing_x := global_position.x + patrol_direction * minf(absf(distance.x), PLATFORM_JUMP_HORIZONTAL_RANGE)
+	var ray_start := Vector2(landing_x, global_position.y - 300.0)
+	var ray_end := Vector2(landing_x, global_position.y + 30.0)
+	var query := PhysicsRayQueryParameters2D.create(ray_start, ray_end, 1)
+	query.exclude = [get_rid()]
+	var hit := get_world_2d().direct_space_state.intersect_ray(query)
+	if hit.is_empty() or (hit.position as Vector2).y >= global_position.y - 45.0:
+		return false
+	var arc_query := PhysicsRayQueryParameters2D.create(global_position + Vector2(0.0, -72.0), Vector2(landing_x, global_position.y - 260.0), 1)
+	arc_query.exclude = [get_rid()]
+	if not get_world_2d().direct_space_state.intersect_ray(arc_query).is_empty():
+		return false
+	velocity.y = -PLATFORM_JUMP_VELOCITY
+	return true
+
+
 func try_ranged_attack(player: Player, force_forward_stone: bool = false) -> bool:
 	var throws_ground_projectile := force_forward_stone and not stats.is_boss
-	if player == null or (stats.projectile_damage <= 0.0 and not throws_ground_projectile) or Time.get_ticks_msec() < next_projectile_at:
+	if player == null or not has_clear_line_to_player(player) or (stats.projectile_damage <= 0.0 and not throws_ground_projectile) or Time.get_ticks_msec() < next_projectile_at:
 		return false
 	next_projectile_at = Time.get_ticks_msec() + (STONE_THROW_COOLDOWN_MS if throws_ground_projectile else int(stats.projectile_cooldown * 1000.0))
 	AudioService.play_sfx(self, AudioService.ENEMY_THROW, -1.0)
@@ -360,6 +461,12 @@ func try_ranged_attack(player: Player, force_forward_stone: bool = false) -> boo
 
 
 func try_attack(player: Player) -> void:
+	if not has_clear_line_to_player(player):
+		return
+	if behavior != Behavior.FLYING and absf(player.global_position.y - global_position.y) > 90.0:
+		return
+	if not stats.is_boss and player.has_ground_combo_protection():
+		return
 	if Time.get_ticks_msec() < next_attack_at:
 		return
 	next_attack_at = Time.get_ticks_msec() + (700 if phase_two else 1100)
@@ -388,6 +495,17 @@ func apply_contact_damage() -> void:
 		var collider := collision.get_collider()
 		if collider is Player:
 			try_attack(collider)
+
+
+func has_clear_line_to_player(player: Player) -> bool:
+	if player == null:
+		return false
+	var ray_start := global_position + Vector2(0.0, -52.0)
+	var ray_end := player.global_position + Vector2(0.0, -42.0)
+	var query := PhysicsRayQueryParameters2D.create(ray_start, ray_end, 3)
+	query.exclude = [get_rid()]
+	var hit := get_world_2d().direct_space_state.intersect_ray(query)
+	return hit.is_empty() or hit.collider == player
 
 
 func take_damage(damage: float, source_position: Vector2) -> void:
@@ -428,6 +546,15 @@ func take_projectile_damage(damage: float, source_position: Vector2) -> bool:
 		return false
 	take_damage(damage, source_position)
 	return true
+
+
+func launch_from(source_position: Vector2, force: float) -> void:
+	var direction := global_position - source_position
+	if direction.length_squared() < 1.0:
+		direction = Vector2.RIGHT
+	direction = direction.normalized()
+	velocity = Vector2(direction.x * force, -force * 0.42)
+	launched_until = Time.get_ticks_msec() + 360
 
 
 func reveal_disguise() -> void:

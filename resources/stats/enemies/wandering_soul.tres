@@ -12,5 +12,6 @@ gravity = 0.0
 detection_range = 500.0
 attack_range = 80.0
 spirit_stones = 10
+flying_attack_style = "wail"
 ghost_cycle_seconds = 3.0
 ghost_solid_seconds = 1.5

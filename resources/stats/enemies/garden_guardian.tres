@@ -3,6 +3,7 @@
 [resource]
 script = ExtResource("1")
 display_name = "护园力士"
+faces_right_by_default = true
 max_health = 80.0
 contact_damage = 25.0
 invulnerability_seconds = 0.15

@@ -71,21 +71,18 @@ func check_level_one() -> void:
 	level.player.move_and_collide(Vector2(160.0, 0.0))
 	check(level.player.global_position.x > level.SECTION_WIDTH, "第一关悟空能够实际穿过下一小节边界")
 
-	level.activate_section_waves(3)
-	level.section_boss_reinforcement_at[3] = 0
-	level.update_section_waves(3)
-	check(get_tree().get_nodes_in_group("boss_reinforcements").is_empty(), "第一关中Boss存活时不会补兵")
-	level.activate_section_waves(4)
-	level.section_boss_reinforcement_at[4] = 0
+	clear_regular_enemies(level, 4)
+	level.refresh_section_gate(4)
+	check(level.final_boss_spawned and level.section_boss_reinforcement_waves[4] == 2 and level.count_regular_enemies(4) == 2, "第一关清完首波后才出关底Boss并补第二波")
+	clear_regular_enemies(level, 4)
 	level.update_section_waves(4)
-	check(get_tree().get_nodes_in_group("boss_reinforcements").size() == 2, "第一关关底Boss存活时按间隔补充2名小兵")
-	for enemy_node in get_tree().get_nodes_in_group("enemies"):
-		var enemy := enemy_node as Enemy
-		if enemy.has_meta(&"final_boss") and bool(enemy.get_meta(&"final_boss")):
-			enemy.dead = true
-	level.section_boss_reinforcement_at[4] = 0
+	check(level.section_boss_reinforcement_waves[4] == 3 and level.count_regular_enemies(4) == 2, "第一关小兵少于2时补下一波")
+	for _wave in 2:
+		clear_regular_enemies(level, 4)
+		level.update_section_waves(4)
+	clear_regular_enemies(level, 4)
 	level.update_section_waves(4)
-	check(get_tree().get_nodes_in_group("boss_reinforcements").size() == 2, "关底Boss死亡后停止补兵")
+	check(level.section_boss_reinforcement_waves[4] == 5 and level.count_regular_enemies(4) == 0, "第一关补兵最多五波")
 	get_tree().paused = false
 	level.queue_free()
 	await get_tree().process_frame
@@ -120,16 +117,13 @@ func check_campaign_level() -> void:
 	level.player.move_and_collide(Vector2(160.0, 0.0))
 	check(level.player.global_position.x > level.SECTION_WIDTH, "共享关卡悟空能够实际穿过下一小节边界")
 
-	level.load_section_content(3)
-	level.activate_section_waves(3)
-	level.section_boss_reinforcement_at[3] = 0
-	level.update_section_waves(3)
-	check(get_tree().get_nodes_in_group("boss_reinforcements").is_empty(), "共享关卡中Boss不会补兵")
 	level.load_section_content(4)
-	level.activate_section_waves(4)
-	level.section_boss_reinforcement_at[4] = 0
+	clear_regular_enemies(level, 4)
+	level.refresh_section_gate(4)
+	check(level.section_final_boss_spawned[4] and level.section_boss_reinforcement_waves[4] == 2 and level.count_regular_enemies(4) == 2, "共享关卡清完首波后才出关底Boss并补第二波")
+	clear_regular_enemies(level, 4)
 	level.update_section_waves(4)
-	check(get_tree().get_nodes_in_group("boss_reinforcements").size() == 2, "共享关卡关底Boss按固定间隔补充2名小兵")
+	check(level.section_boss_reinforcement_waves[4] == 3 and level.count_regular_enemies(4) == 2, "共享关卡小兵少于2时补下一波")
 	get_tree().paused = false
 	level.queue_free()
 	await get_tree().process_frame
@@ -142,6 +136,12 @@ func count_section_enemies(level: Node, section: int) -> int:
 		if not enemy.dead and level.enemy_section(enemy) == section:
 			count += 1
 	return count
+
+
+func clear_regular_enemies(level: Node, section: int) -> void:
+	for enemy in level.enemy_tracker.alive_enemies(section):
+		if not (enemy.has_meta(&"final_boss") and bool(enemy.get_meta(&"final_boss"))):
+			enemy.dead = true
 
 
 func enemy_snapshot_position(snapshot: Array[Dictionary], enemy_id: int) -> Vector2:

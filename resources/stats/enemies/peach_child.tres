@@ -3,6 +3,7 @@
 [resource]
 script = ExtResource("1")
 display_name = "蟠桃童子"
+faces_right_by_default = true
 max_health = 35.0
 contact_damage = 10.0
 invulnerability_seconds = 0.15

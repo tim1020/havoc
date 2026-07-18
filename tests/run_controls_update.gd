@@ -45,9 +45,17 @@ func run_checks() -> void:
 		elif candidate.stats.is_boss:
 			final_boss = candidate
 	check(middle_boss != null and not middle_boss.can_reposition, "第四小节中Boss禁止瞬移")
-	check(final_boss != null and final_boss.can_reposition and final_boss.next_boss_reposition_at - Time.get_ticks_msec() > 6000, "最终Boss瞬移间隔增加到7至10秒")
+	check(final_boss == null, "关底Boss在首波小兵清完前不会提前出场")
+	level.spawn_final_boss()
+	await get_tree().process_frame
+	for enemy_node in get_tree().get_nodes_in_group("enemies"):
+		var candidate := enemy_node as Enemy
+		if candidate.has_meta(&"final_boss") and bool(candidate.get_meta(&"final_boss")):
+			final_boss = candidate
+	check(final_boss != null and final_boss.can_reposition and final_boss.next_boss_reposition_at - Time.get_ticks_msec() > 6000, "最终Boss出场后瞬移间隔为7至10秒")
 	check((load("res://resources/stats/enemies/shrimp_soldier.tres") as EnemyStats).faces_right_by_default, "虾兵使用原图朝右标记")
 	check((load("res://resources/stats/enemies/soul_reaper.tres") as EnemyStats).faces_right_by_default, "勾魂使者使用原图朝右标记")
+	check(not (load("res://resources/stats/enemies/peach_demon.tres") as EnemyStats).faces_right_by_default and not (load("res://resources/stats/enemies/flower_fairy.tres") as EnemyStats).faces_right_by_default and (load("res://resources/stats/enemies/peach_child.tres") as EnemyStats).faces_right_by_default and (load("res://resources/stats/enemies/garden_guardian.tres") as EnemyStats).faces_right_by_default and not (load("res://resources/stats/enemies/fairy_leader.tres") as EnemyStats).faces_right_by_default, "蟠桃园兵种朝向与素材匹配")
 	for index in enemies.size():
 		var enemy := enemies[index] as Enemy
 		enemy.set_physics_process(false)

@@ -41,7 +41,7 @@ func _physics_process(delta: float) -> void:
 		return
 	var travel := Vector2(direction, 0.0)
 	if is_instance_valid(target) and not target.dead:
-		travel = global_position.direction_to(target.global_position + Vector2(0.0, -42.0))
+		travel = navigation_direction(target.global_position + Vector2(0.0, -42.0))
 	global_position += travel * speed * delta
 	rotation = travel.angle() if kind == Kind.STAFF else rotation + delta * 12.0 * direction
 	for enemy_node in get_tree().get_nodes_in_group(&"enemies"):
@@ -60,7 +60,7 @@ func update_staff_attack(delta: float) -> bool:
 		queue_free()
 		return true
 	var target_position := target.global_position + Vector2(0.0, -42.0)
-	var travel := global_position.direction_to(target_position)
+	var travel := navigation_direction(target_position)
 	if global_position.distance_to(target_position) > STAFF_STRIKE_RANGE:
 		rotation = travel.angle()
 		global_position += travel * speed * delta
@@ -77,3 +77,13 @@ func update_staff_attack(delta: float) -> bool:
 		if staff_hits >= STAFF_STRIKE_COUNT:
 			queue_free()
 	return true
+
+
+func navigation_direction(target_position: Vector2) -> Vector2:
+	var direct := global_position.direction_to(target_position)
+	var query := PhysicsRayQueryParameters2D.create(global_position, target_position, 1)
+	var hit := get_world_2d().direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		return direct
+	var turn := -1.0 if target_position.y <= global_position.y else 1.0
+	return direct.rotated(turn * 0.9)

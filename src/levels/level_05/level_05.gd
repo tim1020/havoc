@@ -8,12 +8,14 @@ const GOLD_GUARD := preload("res://resources/stats/enemies/gold_guard.tres")
 const ARCHER := preload("res://resources/stats/enemies/heaven_archer.tres")
 const CLOUD := preload("res://resources/stats/enemies/cloud_immortal.tres")
 const GUARDIAN := preload("res://resources/stats/enemies/gate_guardian.tres")
+const GIANT := preload("res://resources/stats/enemies/giant_spirit.tres")
 const PHANTOM := preload("res://resources/stats/enemies/growth_phantom.tres")
 const ILLUSION := preload("res://resources/stats/enemies/heaven_illusion.tres")
 const GUARD_FRAMES := preload("res://assets/generated/characters/campaign/gold_guard_frames.png")
 const ARCHER_FRAMES := preload("res://assets/generated/characters/campaign/heaven_archer_frames.png")
 const CLOUD_FRAMES := preload("res://assets/generated/characters/campaign/cloud_immortal_frames.png")
 const GUARDIAN_FRAMES := preload("res://assets/generated/characters/campaign/gate_guardian_frames.png")
+const GIANT_FRAMES := preload("res://assets/generated/characters/campaign/giant_spirit_frames.png")
 const PHANTOM_FRAMES := preload("res://assets/generated/characters/campaign/growth_phantom_frames.png")
 const KING_STATS := [
 	preload("res://resources/stats/enemies/dhritarashtra.tres"), preload("res://resources/stats/enemies/virudhaka.tres"),
@@ -78,8 +80,8 @@ func enemy_specs() -> Array:
 		spec(Vector2(420, 580), GOLD_GUARD, GUARD_FRAMES), spec(Vector2(980, 580), GOLD_GUARD, GUARD_FRAMES), spec(Vector2(1580, 580), GOLD_GUARD, GUARD_FRAMES), spec(Vector2(2200, 580), GOLD_GUARD, GUARD_FRAMES),
 		spec(Vector2(2920, 450), ARCHER, ARCHER_FRAMES), spec(Vector2(3540, 400), ARCHER, ARCHER_FRAMES), spec(Vector2(4160, 470), ARCHER, ARCHER_FRAMES), spec(Vector2(4780, 390), ARCHER, ARCHER_FRAMES),
 		spec(Vector2(5480, 430), CLOUD, CLOUD_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(6120, 380), CLOUD, CLOUD_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(6760, 450), CLOUD, CLOUD_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(7380, 400), CLOUD, CLOUD_FRAMES, Enemy.Behavior.FLYING),
-		spec(Vector2(7900, 580), GOLD_GUARD, GUARD_FRAMES), spec(Vector2(8320, 440), ARCHER, ARCHER_FRAMES), spec(Vector2(8750, 430), CLOUD, CLOUD_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(9180, 580), GUARDIAN, GUARDIAN_FRAMES), spec(Vector2(9600, 510), PHANTOM, PHANTOM_FRAMES, Enemy.Behavior.BOSS, Vector2(1.35, 1.35)),
-		spec(Vector2(10480, 580), GOLD_GUARD, GUARD_FRAMES), spec(Vector2(10920, 440), ARCHER, ARCHER_FRAMES), spec(Vector2(11350, 430), CLOUD, CLOUD_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(11780, 580), GUARDIAN, GUARDIAN_FRAMES), spec(Vector2(12320, 510), PHANTOM, PHANTOM_FRAMES, Enemy.Behavior.BOSS, Vector2(1.5, 1.5), true),
+		spec(Vector2(7900, 580), GOLD_GUARD, GUARD_FRAMES), spec(Vector2(8320, 440), ARCHER, ARCHER_FRAMES), spec(Vector2(8750, 430), CLOUD, CLOUD_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(9180, 580), GUARDIAN, GUARDIAN_FRAMES), spec(Vector2(9600, 510), GIANT, GIANT_FRAMES, Enemy.Behavior.BOSS, Vector2(1.7, 1.7)),
+		spec(Vector2(10480, 580), GOLD_GUARD, GUARD_FRAMES), spec(Vector2(10920, 440), ARCHER, ARCHER_FRAMES), spec(Vector2(11350, 430), CLOUD, CLOUD_FRAMES, Enemy.Behavior.FLYING), spec(Vector2(11780, 580), GUARDIAN, GUARDIAN_FRAMES), spec(Vector2(11820, 510), KING_STATS[0], KING_FRAMES[0], Enemy.Behavior.BOSS, Vector2(1.35, 1.35), true), spec(Vector2(12100, 510), KING_STATS[1], KING_FRAMES[1], Enemy.Behavior.BOSS, Vector2(1.35, 1.35), true), spec(Vector2(12380, 510), KING_STATS[2], KING_FRAMES[2], Enemy.Behavior.BOSS, Vector2(1.35, 1.35), true), spec(Vector2(12600, 510), KING_STATS[3], KING_FRAMES[3], Enemy.Behavior.BOSS, Vector2(1.35, 1.35), true),
 	]
 
 

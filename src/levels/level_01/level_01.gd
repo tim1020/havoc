@@ -23,8 +23,9 @@ const SCREEN_WIDTH := 1280.0
 const SECTION_WIDTH := SCREEN_WIDTH * 2.0
 const LEVEL_WIDTH := SECTION_WIDTH * 5.0
 const LEVEL_STORY := "悟空学艺归来，花果山已变成一片废墟，得知是混世魔王所为，于是开始复仇之旅。"
-const BOSS_REINFORCEMENT_INTERVAL_MS := 8000
 const BOSS_REINFORCEMENT_COUNT := 2
+const FINAL_BOSS_MAX_WAVES := 5
+const INITIAL_ENEMY_MIN_X := 760.0
 
 var player: Player
 var hud: GameHud
@@ -42,8 +43,9 @@ var enemy_tracker = SECTION_ENEMY_TRACKER.new()
 var current_section_enemy_count: int = 0
 var recording_initial_wave: bool = false
 var section_wave_specs: Dictionary = {}
-var section_boss_reinforcement_at: Dictionary = {}
 var section_boss_reinforcement_index: Dictionary = {}
+var section_boss_reinforcement_waves: Dictionary = {}
+var final_boss_spawned: bool = false
 
 
 func _ready() -> void:
@@ -62,6 +64,7 @@ func _ready() -> void:
 			var offset := -90.0 if index % 2 == 0 else 90.0
 			duplicate_spec.position.x = clampf(duplicate_spec.position.x + offset, section * SECTION_WIDTH + 120.0, (section + 1) * SECTION_WIDTH - 120.0)
 			spawn_enemy_from_spec(duplicate_spec)
+	section_boss_reinforcement_waves[4] = 1
 	create_section_barriers()
 	spawn_items()
 	spawn_hud()
@@ -84,9 +87,7 @@ func _process(_delta: float) -> void:
 	if player == null or completed:
 		return
 	if player.global_position.y > 820.0:
-		player.take_damage(20.0, player.global_position + Vector2(0.0, -100.0))
-		player.global_position = player.respawn_position
-		player.velocity = Vector2.ZERO
+		player.fall_into_pit()
 	if pending_camera_section >= 0 and Input.get_axis("move_left", "move_right") > 0.0:
 		unlock_next_section_camera()
 	update_section(false)
@@ -255,16 +256,25 @@ func spawn_enemies() -> void:
 	spawn_enemy(Vector2(11780, 560), BOAR_STATS, 2, Enemy.Behavior.CHARGE, Vector2(1.08, 1.08))
 	spawn_enemy(Vector2(10720, 580), REBEL_STATS, 0, Enemy.Behavior.MELEE, Vector2.ONE)
 	spawn_enemy(Vector2(11560, 440), EAGLE_STATS, 3, Enemy.Behavior.FLYING, Vector2.ONE)
+
+
+func spawn_final_boss() -> void:
+	if final_boss_spawned:
+		return
 	var boss := spawn_enemy(Vector2(12350, 515), DEMON_KING_STATS, 5, Enemy.Behavior.BOSS, Vector2(1.4, 1.4))
 	boss.can_reposition = true
 	boss.set_meta(&"final_boss", true)
 	boss.defeated.connect(complete_level)
+	final_boss_spawned = true
+	spawn_boss_reinforcement_wave(4)
 
 
 func spawn_enemy(position_value: Vector2, stats_value: EnemyStats, atlas_row_value: int, behavior_value: Enemy.Behavior, scale_value: Vector2) -> Enemy:
 	var enemy := ENEMY_SCENE.instantiate() as Enemy
 	var spawn_position := position_value
 	var section := clampi(floori(position_value.x / SECTION_WIDTH), 0, 4)
+	if section == 0:
+		spawn_position.x = maxf(spawn_position.x, INITIAL_ENEMY_MIN_X)
 	if behavior_value != Enemy.Behavior.FLYING:
 		spawn_position.x = safe_ground_spawn_x(section, spawn_position.x)
 	enemy.position = spawn_position
@@ -314,22 +324,16 @@ func spawn_enemy_from_spec(spec: Dictionary) -> Enemy:
 
 
 func activate_section_waves(section: int) -> void:
-	var now := Time.get_ticks_msec()
-	if section_has_alive_final_boss(section) and not section_boss_reinforcement_at.has(section):
-		section_boss_reinforcement_at[section] = now + BOSS_REINFORCEMENT_INTERVAL_MS
+	pass
 
 
 func update_section_waves(section: int) -> void:
 	if not section_wave_specs.has(section):
 		return
-	activate_section_waves(section)
-	var now := Time.get_ticks_msec()
-	if not section_has_alive_final_boss(section):
-		section_boss_reinforcement_at.erase(section)
+	if not final_boss_spawned or not section_has_alive_final_boss(section):
 		return
-	if now >= int(section_boss_reinforcement_at[section]):
+	if count_regular_enemies(section) < 2 and int(section_boss_reinforcement_waves.get(section, 1)) < FINAL_BOSS_MAX_WAVES:
 		spawn_boss_reinforcement_wave(section)
-		section_boss_reinforcement_at[section] = now + BOSS_REINFORCEMENT_INTERVAL_MS
 
 func spawn_boss_reinforcement_wave(section: int) -> void:
 	var specs: Array = section_wave_specs.get(section, [])
@@ -343,6 +347,15 @@ func spawn_boss_reinforcement_wave(section: int) -> void:
 		var enemy := spawn_enemy_from_spec(spec)
 		enemy.add_to_group("boss_reinforcements")
 	section_boss_reinforcement_index[section] = start_index + BOSS_REINFORCEMENT_COUNT
+	section_boss_reinforcement_waves[section] = int(section_boss_reinforcement_waves.get(section, 1)) + 1
+
+
+func count_regular_enemies(section: int) -> int:
+	var count := 0
+	for enemy in enemy_tracker.alive_enemies(section):
+		if not (enemy.has_meta(&"final_boss") and bool(enemy.get_meta(&"final_boss"))):
+			count += 1
+	return count
 
 
 func section_has_alive_final_boss(section: int) -> bool:
@@ -454,11 +467,14 @@ func section_enemy_defeated(_reward: int, section: int, enemy: Enemy) -> void:
 
 
 func refresh_section_gate(section: int) -> void:
-	if not section_gates.has(section):
-		return
 	var alive_enemies: Array[Enemy] = enemy_tracker.alive_enemies(section)
 	if not alive_enemies.is_empty():
 		return_section_stragglers(alive_enemies, section)
+		return
+	if section == 4:
+		spawn_final_boss()
+		return
+	if not section_gates.has(section):
 		return
 	pending_camera_section = section
 	hud.show_go_prompt()

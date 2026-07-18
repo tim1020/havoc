@@ -31,6 +31,7 @@ func run_checks() -> void:
 	check(level.find_children("*", "LineHazard", true, false).size() == 5, "第四关生成树根、桃核、瑶池水和花粉陷阱")
 	var backdrop := level.find_children("*", "CampaignBackdrop", true, false)[0] as CampaignBackdrop
 	check(backdrop.level_number == 4, "第四关使用独立蟠桃园四分区线稿背景")
+	check(level.find_children("*", "AudioDirector", true, false).is_empty(), "第四关不播放背景音")
 	check(get_tree().get_nodes_in_group("standable_surfaces").size() == 14, "第四关14段可站立面均有顶边线")
 	var timed_platforms := get_tree().get_nodes_in_group("timed_platforms")
 	check(timed_platforms.size() == 4, "瑶池木桥、莲花和荷叶使用计时下沉平台")
@@ -57,6 +58,7 @@ func run_checks() -> void:
 	check(level.player.movement_direction(1.0) == -1.0, "方向混乱期间左右输入反转")
 	level.player.update_status_visual()
 	check(level.player.sprite.modulate != Color.WHITE, "方向混乱期间玩家显示粉色状态反馈")
+	check(level.player.confusion_stars.visible, "方向混乱期间悟空头顶持续冒金星")
 
 	var pollen: LineHazard
 	for hazard_node in level.find_children("*", "LineHazard", true, false):

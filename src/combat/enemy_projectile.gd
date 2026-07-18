@@ -25,6 +25,11 @@ func _process(delta: float) -> void:
 	var previous_position := global_position
 	global_position += direction * speed * delta
 	rotation = direction.angle()
+	var obstacle_query := PhysicsRayQueryParameters2D.create(previous_position, global_position, 1)
+	var obstacle_hit := get_world_2d().direct_space_state.intersect_ray(obstacle_query)
+	if not obstacle_hit.is_empty():
+		queue_free()
+		return
 	var player := get_tree().get_first_node_in_group("player") as Player
 	var player_center := player.global_position + Vector2(0, -42) if player != null else Vector2.ZERO
 	if player != null and segment_distance_to_point(previous_position, global_position, player_center) <= 38.0:

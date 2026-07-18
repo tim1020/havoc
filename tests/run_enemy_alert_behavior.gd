@@ -27,6 +27,13 @@ func _ready() -> void:
 	player.global_position = Vector2(550.0, 500.0)
 	sentry._physics_process(0.016)
 	check(sentry.engaged, "悟空进入警戒距离后敌兵开始追踪")
+	player.global_position = Vector2(-2000.0, 500.0)
+	sentry.player_lost_since = Time.get_ticks_msec() - Enemy.PLAYER_LOST_PATROL_DELAY_MS
+	sentry._physics_process(0.016)
+	check(sentry.engaged and not is_zero_approx(sentry.velocity.x), "敌兵持续丢失目标后恢复原巡逻")
+	player.global_position = Vector2(550.0, 500.0)
+	sentry._physics_process(0.016)
+	check(sentry.player_lost_since == 0 and sentry.velocity.x < 0.0, "敌兵重新发现悟空后立即恢复追踪")
 
 	attacked.invulnerable_until = 0
 	attacked.take_damage(1.0, player.global_position)

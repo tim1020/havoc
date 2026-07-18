@@ -13,8 +13,9 @@ const SCREEN_WIDTH := 1280.0
 const SECTION_WIDTH := SCREEN_WIDTH * 2.0
 const SECTION_COUNT := 5
 const LEVEL_WIDTH := SECTION_WIDTH * SECTION_COUNT
-const BOSS_REINFORCEMENT_INTERVAL_MS := 8000
 const BOSS_REINFORCEMENT_COUNT := 2
+const FINAL_BOSS_MAX_WAVES := 5
+const INITIAL_ENEMY_MIN_X := 760.0
 const LEVEL_STORIES := {
 	2: "悟空教训了混世魔王后，得知水帘洞瀑布下连着龙宫，龙宫有各种稀世宝物，于是决定去龙宫寻宝。",
 	3: "悟空强夺定海神针，龙王上天告状，天庭派阎王勾魂，悟空大闹地府。",
@@ -42,17 +43,20 @@ var camera_right_tween: Tween
 var enemy_tracker = SECTION_ENEMY_TRACKER.new()
 var current_section_enemy_count: int = 0
 var section_wave_specs: Dictionary = {}
-var section_boss_reinforcement_at: Dictionary = {}
 var section_boss_reinforcement_index: Dictionary = {}
+var section_boss_reinforcement_waves: Dictionary = {}
+var section_final_boss_specs: Dictionary = {}
+var section_final_boss_spawned: Dictionary = {}
 
 
 func _ready() -> void:
 	GameState.begin_level(level_number, get_tree().current_scene.scene_file_path)
 	if level_number >= 3 and not GameState.has_staff:
 		GameState.unlock_staff()
-	var audio = AUDIO_DIRECTOR.new()
-	audio.track_number = level_number
-	add_child(audio)
+	if should_play_background_music():
+		var audio = AUDIO_DIRECTOR.new()
+		audio.track_number = level_number
+		add_child(audio)
 	add_child(CampaignBackdrop.new(level_number))
 	create_world()
 	spawn_player()
@@ -82,9 +86,7 @@ func _process(_delta: float) -> void:
 	if player == null or completed:
 		return
 	if player.global_position.y > 820.0:
-		player.take_damage(20.0, player.global_position + Vector2.UP * 100.0)
-		player.global_position = player.respawn_position
-		player.velocity = Vector2.ZERO
+		player.fall_into_pit()
 	if pending_camera_section >= 0 and Input.get_axis("move_left", "move_right") > 0.0:
 		unlock_next_section_camera()
 	update_section(false)
@@ -174,7 +176,12 @@ func spawn_enemies(section_filter: int = -1) -> void:
 		if section_filter >= 0 and section != section_filter:
 			continue
 		section_specs.append(spec)
-		spawn_enemy_spec(spec, section)
+		if section == SECTION_COUNT - 1 and bool(spec.final_boss):
+			var final_specs: Array = section_final_boss_specs.get(section, [])
+			final_specs.append(spec.duplicate())
+			section_final_boss_specs[section] = final_specs
+		else:
+			spawn_enemy_spec(spec, section)
 	if section_filter >= 0:
 		var normal_specs: Array = []
 		for spec in section_specs:
@@ -189,6 +196,8 @@ func spawn_enemies(section_filter: int = -1) -> void:
 				spawn_enemy_spec(reinforcement, section_filter)
 		section_wave_specs[section_filter] = normal_specs
 		section_boss_reinforcement_index[section_filter] = 0
+		if section_filter == SECTION_COUNT - 1 and section_final_boss_specs.has(section_filter):
+			section_boss_reinforcement_waves[section_filter] = 1
 		for index in normal_specs.size():
 			var duplicate_spec: Dictionary = normal_specs[index].duplicate()
 			var offset := -90.0 if index % 2 == 0 else 90.0
@@ -199,6 +208,8 @@ func spawn_enemies(section_filter: int = -1) -> void:
 func spawn_enemy_spec(spec: Dictionary, section: int) -> Enemy:
 	var enemy := ENEMY_SCENE.instantiate() as Enemy
 	var spawn_position: Vector2 = spec.position
+	if section == 0:
+		spawn_position.x = maxf(spawn_position.x, INITIAL_ENEMY_MIN_X)
 	if spec.behavior != Enemy.Behavior.FLYING:
 		spawn_position.x = safe_ground_spawn_x(section, spawn_position.x)
 	enemy.position = spawn_position
@@ -211,13 +222,12 @@ func spawn_enemy_spec(spec: Dictionary, section: int) -> Enemy:
 	enemy.set_meta(&"final_boss", bool(spec.final_boss))
 	enemy.target_player = player
 	enemy.set_meta(&"section_index", section)
+	enemy.set_meta(&"level_number", level_number)
 	enemy.defeated.connect(add_stones)
 	enemy.defeated.connect(section_enemy_defeated.bind(section, enemy))
 	enemy.hit_received.connect(show_enemy_status)
 	add_child(enemy)
 	enemy_tracker.track(enemy, section)
-	if spec.final_boss:
-		enemy.defeated.connect(complete_level)
 	return enemy
 
 
@@ -238,22 +248,16 @@ func safe_ground_spawn_x(section: int, desired_x: float) -> float:
 
 
 func activate_section_waves(section: int) -> void:
-	var now := Time.get_ticks_msec()
-	if section_has_alive_final_boss(section) and not section_boss_reinforcement_at.has(section):
-		section_boss_reinforcement_at[section] = now + BOSS_REINFORCEMENT_INTERVAL_MS
+	pass
 
 
 func update_section_waves(section: int) -> void:
 	if not section_wave_specs.has(section):
 		return
-	activate_section_waves(section)
-	var now := Time.get_ticks_msec()
-	if not section_has_alive_final_boss(section):
-		section_boss_reinforcement_at.erase(section)
+	if not section_final_boss_spawned.get(section, false) or not section_has_alive_final_boss(section):
 		return
-	if now >= int(section_boss_reinforcement_at[section]):
+	if count_regular_enemies(section) < 2 and int(section_boss_reinforcement_waves.get(section, 1)) < FINAL_BOSS_MAX_WAVES:
 		spawn_boss_reinforcement_wave(section)
-		section_boss_reinforcement_at[section] = now + BOSS_REINFORCEMENT_INTERVAL_MS
 
 func spawn_boss_reinforcement_wave(section: int) -> void:
 	var specs: Array = section_wave_specs.get(section, [])
@@ -267,6 +271,24 @@ func spawn_boss_reinforcement_wave(section: int) -> void:
 		var enemy := spawn_enemy_spec(spec, section)
 		enemy.add_to_group("boss_reinforcements")
 	section_boss_reinforcement_index[section] = start_index + BOSS_REINFORCEMENT_COUNT
+	section_boss_reinforcement_waves[section] = int(section_boss_reinforcement_waves.get(section, 1)) + 1
+
+
+func spawn_final_boss(section: int) -> void:
+	if section_final_boss_spawned.get(section, false) or not section_final_boss_specs.has(section):
+		return
+	for spec: Dictionary in section_final_boss_specs[section]:
+		spawn_enemy_spec(spec, section)
+	section_final_boss_spawned[section] = true
+	spawn_boss_reinforcement_wave(section)
+
+
+func count_regular_enemies(section: int) -> int:
+	var count := 0
+	for enemy in enemy_tracker.alive_enemies(section):
+		if not (enemy.has_meta(&"final_boss") and bool(enemy.get_meta(&"final_boss"))):
+			count += 1
+	return count
 
 
 func section_has_alive_final_boss(section: int) -> bool:
@@ -384,17 +406,23 @@ func create_vertical_barrier(x: float) -> StaticBody2D:
 
 func section_enemy_defeated(_reward: int, section: int, enemy: Enemy) -> void:
 	enemy_tracker.remove(enemy, section)
+	if enemy.has_meta(&"final_boss") and bool(enemy.get_meta(&"final_boss")) and section_final_boss_spawned.get(section, false) and not section_has_alive_final_boss(section):
+		complete_final_encounter()
+		return
 	if section == current_section:
 		current_section_enemy_count = enemy_tracker.count(section)
 	call_deferred("refresh_section_gate", section)
 
 
 func refresh_section_gate(section: int) -> void:
-	if not section_gates.has(section):
-		return
 	var alive_enemies: Array[Enemy] = enemy_tracker.alive_enemies(section)
 	if not alive_enemies.is_empty():
 		return_section_stragglers(alive_enemies, section)
+		return
+	if section == SECTION_COUNT - 1:
+		spawn_final_boss(section)
+		return
+	if not section_gates.has(section):
 		return
 	if section < SECTION_COUNT - 1:
 		load_section_content(section + 1)
@@ -440,6 +468,10 @@ func complete_level(_reward: int) -> void:
 	shop.open_shop(player, "第%d关过关商店" % level_number)
 
 
+func complete_final_encounter() -> void:
+	complete_level(0)
+
+
 func advance_after_shop() -> void:
 	if get_tree().current_scene != self:
 		return
@@ -456,6 +488,10 @@ func on_level_victory() -> void:
 
 func next_level_path() -> String:
 	return ""
+
+
+func should_play_background_music() -> bool:
+	return true
 
 
 func ground_rects() -> Array[Rect2]:
