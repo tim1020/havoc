@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=2 format=3]
+[ext_resource type="Script" path="res://src/resources/enemy_stats.gd" id="1"]
+[resource]
+script = ExtResource("1")
+display_name = "玉皇大帝"
+max_health = 1200.0
+contact_damage = 0.0
+invulnerability_seconds = 0.15
+knockback_force = 450.0
+move_speed = 230.0
+gravity = 2400.0
+detection_range = 1200.0
+attack_range = 220.0
+spirit_stones = 600
+is_boss = true
+projectile_damage = 0.0
+projectile_speed = 560.0
+projectile_cooldown = 1.5
+projectile_color = Color(1, 0.78, 0.2, 1)
+projectile_style = "dragon_orb"
+shield_health = 0.0
+phase_thresholds = PackedFloat32Array(0.5)
+phase_damage_multiplier = 1.45

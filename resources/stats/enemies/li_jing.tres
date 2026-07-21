@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=2 format=3]
+[ext_resource type="Script" path="res://src/resources/enemy_stats.gd" id="1"]
+[resource]
+script = ExtResource("1")
+display_name = "托塔天王李靖"
+animation_frame_size = Vector2(256, 256)
+sprite_position_y = -72.75
+max_health = 900.0
+contact_damage = 34.0
+invulnerability_seconds = 0.14
+knockback_force = 320.0
+move_speed = 150.0
+gravity = 2400.0
+detection_range = 1000.0
+attack_range = 180.0
+spirit_stones = 300
+is_boss = true
+projectile_damage = 26.0
+projectile_speed = 520.0
+projectile_cooldown = 2.0
+projectile_color = Color(0.95, 0.75, 0.25, 1)
+projectile_style = "dragon_orb"
+shield_health = 400.0
+phase_thresholds = PackedFloat32Array(0.5)

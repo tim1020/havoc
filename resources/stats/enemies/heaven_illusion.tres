@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=2 format=3]
+[ext_resource type="Script" path="res://src/resources/enemy_stats.gd" id="1"]
+[resource]
+script = ExtResource("1")
+display_name = "天王幻影分身"
+max_health = 35.0
+contact_damage = 10.0
+invulnerability_seconds = 0.1
+knockback_force = 180.0
+move_speed = 210.0
+gravity = 2400.0
+detection_range = 700.0
+attack_range = 130.0
+spirit_stones = 0

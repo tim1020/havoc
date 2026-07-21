@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="PlayerStats" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/resources/player_stats.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+display_name = "孙悟空·金箍棒"
+max_health = 100.0
+contact_damage = 0.0
+invulnerability_seconds = 0.5
+knockback_force = 420.0
+move_speed = 360.0
+acceleration = 1800.0
+air_acceleration = 1100.0
+friction = 2200.0
+jump_velocity = 850.0
+gravity = 2400.0
+jump_count = 2
+combo_damage = PackedFloat32Array(15, 15, 15)
+combo_reset_seconds = 0.65
+freeze_health_cost = 20.0
+freeze_normal_seconds = 3.0
+freeze_boss_seconds = 1.5
+respawn_invulnerability_seconds = 2.0

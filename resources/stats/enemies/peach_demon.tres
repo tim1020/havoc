@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=2 format=3]
+[ext_resource type="Script" path="res://src/resources/enemy_stats.gd" id="1"]
+[resource]
+script = ExtResource("1")
+display_name = "桃妖"
+max_health = 50.0
+contact_damage = 15.0
+invulnerability_seconds = 0.15
+knockback_force = 190.0
+move_speed = 175.0
+gravity = 2400.0
+detection_range = 500.0
+attack_range = 105.0
+spirit_stones = 25
+ground_projectile_style = "seed"
+disguise_reveal_distance = 190.0

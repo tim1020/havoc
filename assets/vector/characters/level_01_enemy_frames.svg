@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="768" viewBox="0 0 1280 768">
+  <defs>
+    <style>
+      .outline { stroke:#251d18; stroke-width:4; stroke-linecap:round; stroke-linejoin:round }
+      .limb { fill:none; stroke:currentColor; stroke-width:13; stroke-linecap:round }
+      .body { fill:currentColor }
+      .cloth { fill:#293038 }
+      .eye { fill:#ffd45c; stroke:#251d18; stroke-width:2 }
+    </style>
+    <g id="idle-a">
+      <path class="limb" d="M46 76 L37 108 M77 77 L84 109 M42 66 L24 85 M81 65 L99 82"/>
+      <ellipse class="body outline" cx="62" cy="68" rx="25" ry="29"/>
+      <path class="cloth outline" d="M40 59 Q62 48 84 59 L79 84 Q62 91 45 83Z"/>
+      <circle class="body outline" cx="62" cy="35" r="20"/><circle class="eye" cx="69" cy="32" r="3"/>
+    </g>
+    <g id="idle-b">
+      <path class="limb" d="M47 75 L39 108 M78 76 L83 109 M43 64 L27 81 M82 64 L101 78"/>
+      <ellipse class="body outline" cx="63" cy="66" rx="26" ry="30"/>
+      <path class="cloth outline" d="M40 56 Q63 46 86 57 L80 83 Q63 90 45 82Z"/>
+      <circle class="body outline" cx="63" cy="32" r="21"/><circle class="eye" cx="71" cy="29" r="3"/>
+    </g>
+    <g id="walk-a">
+      <path class="limb" d="M50 76 L29 109 M77 76 L94 105 M45 62 L24 72 M82 63 L102 82"/>
+      <ellipse class="body outline" cx="63" cy="66" rx="26" ry="29"/>
+      <path class="cloth outline" d="M40 57 Q63 48 86 58 L80 84 Q63 89 45 82Z"/>
+      <circle class="body outline" cx="68" cy="34" r="20"/><circle class="eye" cx="76" cy="31" r="3"/>
+    </g>
+    <g id="walk-b">
+      <path class="limb" d="M49 77 L66 108 M78 75 L57 106 M44 63 L28 85 M83 61 L103 69"/>
+      <ellipse class="body outline" cx="64" cy="65" rx="26" ry="29"/>
+      <path class="cloth outline" d="M41 56 Q64 47 87 57 L81 83 Q64 88 46 81Z"/>
+      <circle class="body outline" cx="69" cy="33" r="20"/><circle class="eye" cx="77" cy="30" r="3"/>
+    </g>
+    <g id="attack-a">
+      <path class="limb" d="M45 77 L37 109 M76 76 L86 108 M45 63 L27 75 M81 60 L93 42"/>
+      <ellipse class="body outline" cx="62" cy="66" rx="25" ry="29"/>
+      <path class="cloth outline" d="M40 57 Q62 47 84 58 L79 84 Q62 89 45 82Z"/>
+      <circle class="body outline" cx="65" cy="34" r="20"/><circle class="eye" cx="73" cy="31" r="3"/>
+      <path class="outline" d="M91 45 L108 20"/>
+    </g>
+    <g id="attack-b">
+      <path class="limb" d="M52 78 L43 109 M80 75 L94 105 M47 63 L29 79 M84 62 L108 73"/>
+      <ellipse class="body outline" cx="67" cy="67" rx="27" ry="28"/>
+      <path class="cloth outline" d="M44 58 Q67 48 90 59 L84 85 Q67 90 49 83Z"/>
+      <circle class="body outline" cx="74" cy="36" r="20"/><circle class="eye" cx="83" cy="33" r="3"/>
+      <path class="outline" d="M106 72 L122 84"/>
+    </g>
+    <g id="hurt-a">
+      <path class="limb" d="M54 77 L44 109 M79 76 L86 108 M49 62 L31 48 M83 62 L99 50"/>
+      <ellipse class="body outline" cx="66" cy="66" rx="25" ry="29" transform="rotate(-8 66 66)"/>
+      <path class="cloth outline" d="M43 57 Q66 48 87 59 L81 84 Q65 89 48 81Z"/>
+      <circle class="body outline" cx="61" cy="34" r="20"/><path class="outline" d="M67 29 l7 5 m-7 0 l7-5"/>
+    </g>
+    <g id="hurt-b">
+      <path class="limb" d="M57 78 L48 109 M81 77 L91 108 M51 63 L34 52 M85 64 L101 55"/>
+      <ellipse class="body outline" cx="69" cy="68" rx="25" ry="29" transform="rotate(-13 69 68)"/>
+      <path class="cloth outline" d="M46 59 Q69 50 91 61 L84 86 Q68 91 51 83Z"/>
+      <circle class="body outline" cx="62" cy="37" r="20"/><path class="outline" d="M68 32 l7 5 m-7 0 l7-5"/>
+    </g>
+    <g id="death-a">
+      <path class="limb" d="M42 91 L24 108 M75 92 L94 108 M43 82 L23 76 M78 82 L101 75"/>
+      <ellipse class="body outline" cx="62" cy="84" rx="31" ry="22" transform="rotate(12 62 84)"/>
+      <path class="cloth outline" d="M34 75 Q62 67 89 78 L82 98 Q61 103 39 95Z"/>
+      <circle class="body outline" cx="28" cy="76" r="18"/><path class="outline" d="M21 72 l7 5 m-7 0 l7-5"/>
+    </g>
+    <g id="death-b">
+      <path class="limb" d="M48 103 L26 112 M78 103 L102 112 M45 92 L20 92 M82 92 L108 90"/>
+      <ellipse class="body outline" cx="64" cy="94" rx="34" ry="18"/>
+      <path class="cloth outline" d="M34 86 Q64 78 94 87 L86 105 Q63 110 40 103Z"/>
+      <circle class="body outline" cx="27" cy="91" r="17"/><path class="outline" d="M20 87 l7 5 m-7 0 l7-5"/>
+    </g>
+    <g id="snake-a"><path d="M22 101 Q45 70 67 99 Q90 121 109 96" fill="none" stroke="currentColor" stroke-width="18" stroke-linecap="round"/><ellipse class="body outline" cx="85" cy="55" rx="22" ry="29"/><circle class="eye" cx="94" cy="49" r="4"/></g>
+    <g id="snake-b"><path d="M18 102 Q43 119 62 96 Q85 70 112 102" fill="none" stroke="currentColor" stroke-width="18" stroke-linecap="round"/><ellipse class="body outline" cx="91" cy="53" rx="23" ry="30"/><circle class="eye" cx="101" cy="47" r="4"/></g>
+    <g id="snake-attack-a"><path d="M18 105 Q42 84 67 105" fill="none" stroke="currentColor" stroke-width="18"/><ellipse class="body outline" cx="74" cy="56" rx="23" ry="31" transform="rotate(-25 74 56)"/><circle class="eye" cx="85" cy="47" r="4"/></g>
+    <g id="snake-attack-b"><path d="M18 105 Q49 88 76 106" fill="none" stroke="currentColor" stroke-width="18"/><ellipse class="body outline" cx="101" cy="71" rx="30" ry="21" transform="rotate(24 101 71)"/><circle class="eye" cx="112" cy="67" r="4"/><path class="outline" d="M120 76 l7 3 -7 2"/></g>
+    <g id="snake-hurt-a"><path d="M18 104 Q44 119 66 97" fill="none" stroke="currentColor" stroke-width="18"/><ellipse class="body outline" cx="77" cy="64" rx="22" ry="29" transform="rotate(-32 77 64)"/><path class="outline" d="M77 53 l7 6 m-7 0 l7-6"/></g>
+    <g id="snake-hurt-b"><path d="M19 105 Q45 86 67 106" fill="none" stroke="currentColor" stroke-width="18"/><ellipse class="body outline" cx="76" cy="74" rx="28" ry="20" transform="rotate(20 76 74)"/><path class="outline" d="M82 67 l7 6 m-7 0 l7-6"/></g>
+    <g id="snake-death-a"><path d="M15 99 Q37 77 59 99 Q81 119 110 95" fill="none" stroke="currentColor" stroke-width="16"/><ellipse class="body outline" cx="105" cy="92" rx="19" ry="14"/><path class="outline" d="M105 87 l6 5 m-6 0 l6-5"/></g>
+    <g id="snake-death-b"><path d="M13 101 Q34 84 54 101 Q77 117 105 101" fill="none" stroke="currentColor" stroke-width="14"/><ellipse class="body outline" cx="110" cy="99" rx="17" ry="12"/><path class="outline" d="M109 95 l5 4 m-5 0 l5-4"/></g>
+  </defs>
+
+  <!-- 叛猴喽啰 -->
+  <g color="#8b512f"><use href="#idle-a" x="0"/><use href="#idle-b" x="128"/><use href="#walk-a" x="256"/><use href="#walk-b" x="384"/><use href="#attack-a" x="512"/><use href="#attack-b" x="640"/><use href="#hurt-a" x="768"/><use href="#hurt-b" x="896"/><use href="#death-a" x="1024"/><use href="#death-b" x="1152"/><path class="outline" fill="none" d="M78 70 q35 2 27-28"/></g>
+  <!-- 蛇妖 -->
+  <g color="#4c8c45" transform="translate(0 128)"><use href="#snake-a" x="0"/><use href="#snake-b" x="128"/><use href="#snake-b" x="256"/><use href="#snake-a" x="384"/><use href="#snake-attack-a" x="512"/><use href="#snake-attack-b" x="640"/><use href="#snake-hurt-a" x="768"/><use href="#snake-hurt-b" x="896"/><use href="#snake-death-a" x="1024"/><use href="#snake-death-b" x="1152"/></g>
+  <!-- 山猪妖 -->
+  <g color="#a45b3f" transform="translate(0 256)"><use href="#idle-a" x="0"/><use href="#idle-b" x="128"/><use href="#walk-a" x="256"/><use href="#walk-b" x="384"/><use href="#attack-a" x="512"/><use href="#attack-b" x="640"/><use href="#hurt-a" x="768"/><use href="#hurt-b" x="896"/><use href="#death-a" x="1024"/><use href="#death-b" x="1152"/><path class="outline" fill="#eee1c4" d="M75 39 l16 7 -17 5z"/></g>
+  <!-- 鹰妖 -->
+  <g color="#b58a35" transform="translate(0 384)"><use href="#idle-a" x="0"/><use href="#idle-b" x="128"/><use href="#walk-a" x="256"/><use href="#walk-b" x="384"/><use href="#attack-a" x="512"/><use href="#attack-b" x="640"/><use href="#hurt-a" x="768"/><use href="#hurt-b" x="896"/><use href="#death-a" x="1024"/><use href="#death-b" x="1152"/><path class="outline" fill="#efe4c0" d="M78 35 l19 7 -19 6z"/><path class="outline" fill="#74572a" d="M46 62 L16 42 L36 78z"/></g>
+  <!-- 牛斧头目 -->
+  <g color="#6d7889" transform="translate(0 512)"><use href="#idle-a" x="0"/><use href="#idle-b" x="128"/><use href="#walk-a" x="256"/><use href="#walk-b" x="384"/><use href="#attack-a" x="512"/><use href="#attack-b" x="640"/><use href="#hurt-a" x="768"/><use href="#hurt-b" x="896"/><use href="#death-a" x="1024"/><use href="#death-b" x="1152"/><path class="outline" fill="#e7d7a9" d="M48 22 L31 9 L43 30 M75 22 L93 9 L82 31"/></g>
+  <!-- 混世魔王 -->
+  <g color="#714879" transform="translate(0 640)"><use href="#idle-a" x="0"/><use href="#idle-b" x="128"/><use href="#walk-a" x="256"/><use href="#walk-b" x="384"/><use href="#attack-a" x="512"/><use href="#attack-b" x="640"/><use href="#hurt-a" x="768"/><use href="#hurt-b" x="896"/><use href="#death-a" x="1024"/><use href="#death-b" x="1152"/><path class="outline" fill="#d5b65e" d="M45 18 L51 2 L61 18 L70 1 L79 20z"/></g>
+</svg>

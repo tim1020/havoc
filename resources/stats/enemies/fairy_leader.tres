@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=2 format=3]
+[ext_resource type="Script" path="res://src/resources/enemy_stats.gd" id="1"]
+[resource]
+script = ExtResource("1")
+display_name = "七仙女之首"
+max_health = 350.0
+contact_damage = 20.0
+invulnerability_seconds = 0.15
+knockback_force = 300.0
+move_speed = 240.0
+gravity = 2400.0
+detection_range = 900.0
+attack_range = 170.0
+spirit_stones = 200
+is_boss = true
+projectile_damage = 18.0
+projectile_speed = 500.0
+projectile_cooldown = 2.1
+projectile_color = Color(1, 0.38, 0.72, 1)
+projectile_style = "dragon_orb"
+contact_root_seconds = 1.5

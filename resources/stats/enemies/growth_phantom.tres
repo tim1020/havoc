@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=2 format=3]
+[ext_resource type="Script" path="res://src/resources/enemy_stats.gd" id="1"]
+[resource]
+script = ExtResource("1")
+display_name = "增长天王幻影"
+max_health = 500.0
+contact_damage = 28.0
+invulnerability_seconds = 0.15
+knockback_force = 320.0
+move_speed = 185.0
+gravity = 2400.0
+detection_range = 900.0
+attack_range = 175.0
+spirit_stones = 250
+is_boss = true
+projectile_damage = 18.0
+projectile_speed = 520.0
+projectile_cooldown = 2.2
+projectile_color = Color(0.65, 0.72, 1, 1)
+projectile_style = "divine_spear"

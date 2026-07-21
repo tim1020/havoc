@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/resources/enemy_stats.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+display_name = "斧牛妖"
+max_health = 200.0
+contact_damage = 20.0
+invulnerability_seconds = 0.2
+knockback_force = 300.0
+move_speed = 180.0
+gravity = 2400.0
+detection_range = 700.0
+attack_range = 130.0
+spirit_stones = 150
+is_boss = true
+projectile_damage = 14.0
+projectile_speed = 430.0
+projectile_cooldown = 2.8
+projectile_color = Color(0.85, 0.42, 0.12, 1)
+projectile_style = "axe"

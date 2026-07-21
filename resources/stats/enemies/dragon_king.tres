@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=2 format=3]
+[ext_resource type="Script" path="res://src/resources/enemy_stats.gd" id="1"]
+[resource]
+script = ExtResource("1")
+display_name = "东海龙王"
+max_health = 1000.0
+contact_damage = 35.0
+invulnerability_seconds = 0.15
+knockback_force = 360.0
+move_speed = 190.0
+gravity = 2400.0
+detection_range = 1000.0
+attack_range = 180.0
+spirit_stones = 400
+is_boss = true
+projectile_damage = 24.0
+projectile_speed = 560.0
+projectile_cooldown = 1.9
+projectile_color = Color(0.18, 0.55, 1, 1)
+projectile_style = "dragon_orb"
+phase_thresholds = PackedFloat32Array(0.6, 0.3)
+phase_damage_multiplier = 1.2

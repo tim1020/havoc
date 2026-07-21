@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ItemDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/resources/item_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"samadhi_fire"
+display_name = "三味真火"
+category = 2
+price = 120
+duration = 5.0
+color = Color(1, 0.25, 0.06, 1)

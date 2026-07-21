@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=2 format=3]
+[ext_resource type="Script" path="res://src/resources/enemy_stats.gd" id="1"]
+[resource]
+script = ExtResource("1")
+display_name = "二郎神"
+max_health = 1500.0
+contact_damage = 40.0
+invulnerability_seconds = 0.15
+knockback_force = 420.0
+move_speed = 270.0
+gravity = 2400.0
+detection_range = 1100.0
+attack_range = 200.0
+spirit_stones = 500
+is_boss = true
+projectile_damage = 28.0
+projectile_speed = 650.0
+projectile_cooldown = 1.6
+projectile_color = Color(0.35, 0.65, 1, 1)
+projectile_style = "divine_spear"
+phase_thresholds = PackedFloat32Array(0.5)
+phase_damage_multiplier = 1.35

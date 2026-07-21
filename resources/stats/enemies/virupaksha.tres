@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=2 format=3]
+[ext_resource type="Script" path="res://src/resources/enemy_stats.gd" id="1"]
+[resource]
+script = ExtResource("1")
+display_name = "广目天王"
+sprite_position_y = -89.0
+max_health = 600.0
+contact_damage = 30.0
+invulnerability_seconds = 0.15
+knockback_force = 340.0
+move_speed = 180.0
+gravity = 2400.0
+detection_range = 1000.0
+attack_range = 200.0
+spirit_stones = 300
+is_boss = true
+projectile_damage = 22.0
+projectile_speed = 500.0
+projectile_cooldown = 1.3
+projectile_color = Color(0.95, 0.32, 0.28, 1)
+projectile_style = "dragon_orb"
+contact_slow_seconds = 2.0

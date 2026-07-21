@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=2 format=3]
+[ext_resource type="Script" path="res://src/resources/enemy_stats.gd" id="1"]
+[resource]
+script = ExtResource("1")
+display_name = "阎罗王"
+max_health = 800.0
+contact_damage = 30.0
+invulnerability_seconds = 0.15
+knockback_force = 380.0
+move_speed = 130.0
+gravity = 2400.0
+detection_range = 1000.0
+attack_range = 190.0
+spirit_stones = 350
+is_boss = true
+projectile_damage = 22.0
+projectile_speed = 520.0
+projectile_cooldown = 2.0
+projectile_color = Color(0.72, 0.12, 0.34, 1)
+projectile_style = "dragon_orb"
+phase_thresholds = PackedFloat32Array(0.5)
+phase_damage_multiplier = 1.3
