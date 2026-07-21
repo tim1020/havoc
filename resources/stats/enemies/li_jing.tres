@@ -3,6 +3,8 @@
 [resource]
 script = ExtResource("1")
 display_name = "托塔天王李靖"
+animation_frame_size = Vector2(256, 256)
+sprite_position_y = -72.75
 max_health = 900.0
 contact_damage = 34.0
 invulnerability_seconds = 0.14

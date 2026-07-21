@@ -26,6 +26,10 @@ func run_checks() -> void:
 	var level := (load("res://src/levels/level_01/level_01.tscn") as PackedScene).instantiate()
 	add_child(level)
 	await get_tree().process_frame
+	var intro_title := level.hud.find_child("LevelIntroTitle", true, false) as Label
+	var intro_story := level.hud.find_child("LevelIntroStory", true, false) as Label
+	check(intro_title != null and intro_title.text == "第一关 花果山", "关卡名称使用独立控件固定显示并包含关卡编号")
+	check(intro_story != null and intro_story.text.begins_with("悟空学艺归来\n") and not intro_story.text.contains("花果山\n"), "开场正文使用独立控件并保留指定换行")
 	while get_tree().paused:
 		await get_tree().create_timer(0.05, true).timeout
 	await get_tree().process_frame
@@ -108,13 +112,38 @@ func run_checks() -> void:
 		await get_tree().physics_frame
 	check(target.health == staff_health_before - staff_damage and get_tree().get_nodes_in_group(&"player_throw_projectiles").is_empty(), "投棒连续敲击三次但只结算一次伤害")
 	await get_tree().process_frame
+	var target_position_before := target.global_position
+	target.global_position = Vector2(-500.0, 500.0)
+	player.facing = 1.0
+	player.next_throw_at = 0
+	player.perform_aerial_throw()
+	var straight_staff := get_tree().get_nodes_in_group(&"player_throw_projectiles")[0] as PlayerThrowProjectile
+	var straight_start := straight_staff.global_position
+	straight_staff._physics_process(0.1)
+	check(is_instance_valid(straight_staff) and straight_staff.target == null and straight_staff.global_position.x > straight_start.x, "画面内没有目标时投棒仍向前直飞")
+	straight_staff.queue_free()
+	await get_tree().process_frame
+	var hostile_projectile := EnemyProjectile.new()
+	hostile_projectile.direction = Vector2.LEFT
+	hostile_projectile.global_position = player.global_position + Vector2(260.0, -48.0)
+	add_child(hostile_projectile)
+	player.next_throw_at = 0
+	player.perform_aerial_throw()
+	var counter_staff := get_tree().get_nodes_in_group(&"player_throw_projectiles")[0] as PlayerThrowProjectile
+	check(counter_staff.target == hostile_projectile, "Boss不在画面时投棒锁定画面内敌方攻击")
+	counter_staff.global_position = hostile_projectile.global_position
+	counter_staff._physics_process(0.01)
+	await get_tree().process_frame
+	check(not is_instance_valid(hostile_projectile) and not is_instance_valid(counter_staff), "悟空远程攻击可以击毁敌方投射物")
+	target.global_position = target_position_before
 
-	GameState.artifacts = [&"fire_spear", &"cosmic_ring"]
+	GameState.artifacts = [&"freeze_talisman", &"banana_fan"]
+	GameState.artifact_counts = {&"freeze_talisman": 1, &"banana_fan": 1}
 	level.hud.update_artifacts(GameState.artifacts)
 	player.select_next_artifact()
-	check(player.artifact_selected and GameState.artifacts[0] == &"fire_spear", "首次按C选中第一个法宝")
+	check(player.artifact_selected and GameState.artifacts[0] == &"freeze_talisman", "首次按C选中第一个法宝")
 	player.select_next_artifact()
-	check(GameState.artifacts[0] == &"cosmic_ring", "再次按C循环切换法宝")
+	check(GameState.artifacts[0] == &"banana_fan", "再次按C循环切换法宝")
 	var direction_event := InputEventAction.new()
 	direction_event.action = &"move_right"
 	direction_event.pressed = true
@@ -125,15 +154,16 @@ func run_checks() -> void:
 	attack_event.action = &"attack"
 	attack_event.pressed = true
 	player._unhandled_input(attack_event)
-	check(not player.artifact_selected and GameState.artifacts == [&"fire_spear"], "攻击键使用选中法宝后回到普通攻击")
+	check(not player.artifact_selected and GameState.artifacts == [&"freeze_talisman"], "攻击键使用选中法宝后回到普通攻击")
 
-	GameState.artifacts = [&"fire_spear", &"cosmic_ring", &"fire_wheels", &"purple_bell", &"monkey_hair"]
+	GameState.artifacts = [&"freeze_talisman", &"invisibility_talisman", &"samadhi_fire", &"banana_fan", &"purple_bell"]
+	GameState.artifact_counts = {&"freeze_talisman": 1, &"invisibility_talisman": 1, &"samadhi_fire": 1, &"banana_fan": 1, &"purple_bell": 1}
 	var pickup := (load("res://src/world/item_pickup.tscn") as PackedScene).instantiate() as ItemPickup
-	pickup.item = ItemCatalog.get_definition(&"binding_rope")
+	pickup.item = ItemCatalog.get_definition(&"freeze_talisman")
 	level.add_child(pickup)
 	pickup.on_body_entered(player)
 	await get_tree().process_frame
-	check(is_instance_valid(pickup) and GameState.artifacts.size() == GameState.MAX_ARTIFACTS, "法宝栏满时拾取物保留且不替换已有法宝")
+	check(not is_instance_valid(pickup) and GameState.artifacts.size() == GameState.MAX_ARTIFACTS and GameState.artifact_count(&"freeze_talisman") == 2, "满栏拾取同类法宝会累加且不占新栏位")
 
 	var continued := [false]
 	level.hud.game_over_continue.connect(func() -> void: continued[0] = true)

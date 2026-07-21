@@ -22,7 +22,8 @@ const DEMON_KING_STATS := preload("res://resources/stats/enemies/demon_king.tres
 const SCREEN_WIDTH := 1280.0
 const SECTION_WIDTH := SCREEN_WIDTH * 2.0
 const LEVEL_WIDTH := SECTION_WIDTH * 5.0
-const LEVEL_STORY := "悟空学艺归来，花果山已变成一片废墟，得知是混世魔王所为，于是开始复仇之旅。"
+const LEVEL_TITLE := "第一关 花果山"
+const LEVEL_STORY := "悟空学艺归来\n发现花果山被魔王所占\n猴子猴孙不见了踪影\n不禁怒气冲冲\n誓要教训魔王\n夺回花果山"
 const BOSS_REINFORCEMENT_COUNT := 2
 const FINAL_BOSS_MAX_WAVES := 5
 const INITIAL_ENEMY_MIN_X := 760.0
@@ -76,7 +77,7 @@ func _ready() -> void:
 func play_level_intro() -> void:
 	player.controls_enabled = false
 	get_tree().paused = true
-	await hud.play_level_intro(LEVEL_STORY)
+	await hud.play_level_intro(LEVEL_TITLE, LEVEL_STORY)
 	if get_tree().current_scene != self:
 		return
 	get_tree().paused = false
@@ -121,16 +122,16 @@ func create_world_collision() -> void:
 		create_ground_visual(rect, rect.size.y)
 	var platforms := campaign_platform_rects()
 	for rect in platforms:
-		create_static_rect(rect)
+		create_static_rect(rect, true)
 		create_ground_visual(rect, 92.0)
-	create_thorn_hazard(Vector2(1080, 620), Vector2(120, 60))
-	create_thorn_hazard(Vector2(2180, 620), Vector2(130, 60))
-	create_thorn_hazard(Vector2(3380, 620), Vector2(140, 60))
+	create_thorn_hazard(Vector2(1100, 620), Vector2(100, 60))
+	create_thorn_hazard(Vector2(6280, 620), Vector2(120, 60))
+	create_thorn_hazard(Vector2(8640, 620), Vector2(110, 60))
 
 
 func campaign_ground_rects() -> Array[Rect2]:
 	var rects: Array[Rect2] = []
-	var layouts := [[[0, 920], [1040, 760], [1920, 640]], [[0, 560], [700, 920], [1740, 820]], [[0, 780], [940, 480], [1560, 1000]], [[0, 1100], [1240, 520], [1880, 680]], [[0, 680], [800, 520], [1440, 1120]]]
+	var layouts := [[[0, 2560]], [[0, 2560]], [[0, 2560]], [[0, 2560]], [[0, 2560]]]
 	for section in 5:
 		for segment in layouts[section]:
 			rects.append(Rect2(section * SECTION_WIDTH + segment[0], 650, segment[1], 120))
@@ -139,22 +140,26 @@ func campaign_ground_rects() -> Array[Rect2]:
 
 func campaign_platform_rects() -> Array[Rect2]:
 	var rects: Array[Rect2] = []
-	var layouts := [[[320, 440, 260], [760, 450, 220], [1280, 530, 320], [1840, 420, 260]], [[180, 470, 260], [620, 380, 300], [1160, 510, 220], [1640, 430, 300], [2140, 350, 240]], [[260, 540, 300], [740, 440, 220], [1120, 340, 260], [1600, 470, 320], [2110, 390, 260]], [[240, 500, 320], [760, 400, 240], [1220, 520, 340], [1760, 410, 260], [2200, 500, 220]], [[180, 510, 280], [620, 420, 260], [1080, 330, 300], [1600, 450, 300], [2100, 520, 300]]]
+	var layouts := [[[850, 555, 300], [1130, 460, 560], [1980, 480, 340], [2180, 425, 360]], [[700, 500, 470], [1340, 340, 565], [1510, 520, 700]], [[760, 600, 350], [1150, 535, 320], [1500, 465, 320], [1790, 395, 320], [2050, 340, 320]], [[630, 570, 420], [1030, 520, 360], [1670, 485, 420], [2080, 440, 320]], []]
 	for section in 5:
 		for platform in layouts[section]:
 			rects.append(Rect2(section * SECTION_WIDTH + platform[0], platform[1], platform[2], 24))
 	return rects
 
 
-func create_static_rect(rect: Rect2) -> void:
+func create_static_rect(rect: Rect2, one_way: bool = false) -> void:
 	var body := StaticBody2D.new()
 	body.collision_layer = 1
 	body.collision_mask = 0
+	if one_way:
+		body.add_to_group(&"drop_through_platforms")
 	body.position = rect.position + rect.size * 0.5
 	var shape_node := CollisionShape2D.new()
 	var shape := RectangleShape2D.new()
 	shape.size = rect.size
 	shape_node.shape = shape
+	shape_node.one_way_collision = one_way
+	shape_node.one_way_collision_margin = 12.0
 	body.add_child(shape_node)
 	add_child(body)
 
@@ -385,11 +390,11 @@ func add_spirit_stones(amount: int) -> void:
 
 func spawn_items() -> void:
 	spawn_pickup(Vector2(850, 475), &"peach")
-	spawn_pickup(Vector2(1160, 590), &"fire_spear")
+	spawn_pickup(Vector2(1160, 590), &"samadhi_fire")
 	spawn_pickup(Vector2(1770, 455), &"peach")
-	spawn_pickup(Vector2(2240, 590), &"cosmic_ring")
+	spawn_pickup(Vector2(2240, 590), &"banana_fan")
 	spawn_pickup(Vector2(4100, 590), &"peach")
-	spawn_pickup(Vector2(4380, 455), &"fire_wheels")
+	spawn_pickup(Vector2(4380, 455), &"invisibility_talisman")
 
 
 func spawn_pickup(position_value: Vector2, item_id: StringName) -> ItemPickup:

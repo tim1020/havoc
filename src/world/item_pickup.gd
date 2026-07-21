@@ -43,8 +43,8 @@ func on_body_entered(body: Node2D) -> void:
 	if item.category == ItemDefinition.Category.HEALING:
 		if player.health < player.stats.max_health:
 			player.apply_healing_item(item)
-		elif not GameState.pickup_artifact(item.id):
-			return
+		else:
+			GameState.add_stones(item.price)
 	elif item.category == ItemDefinition.Category.LIFE:
 		if not GameState.add_life():
 			return

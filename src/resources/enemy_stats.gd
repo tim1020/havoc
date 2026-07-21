@@ -7,6 +7,9 @@ extends ActorStats
 @export_range(0.0, 2000.0, 1.0) var detection_range: float = 420.0
 @export_range(0.0, 1000.0, 1.0) var attack_range: float = 90.0
 @export var faces_right_by_default: bool = false
+@export var attack_frames_face_opposite: bool = false
+@export var animation_frame_size: Vector2 = Vector2(128.0, 128.0)
+@export var sprite_position_y: float = -62.0
 
 @export_group("Rewards")
 @export_range(0, 10000, 1) var spirit_stones: int = 0

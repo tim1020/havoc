@@ -5,6 +5,8 @@
 [resource]
 script = ExtResource("1")
 display_name = "巨灵神"
+animation_frame_size = Vector2(256, 256)
+sprite_position_y = -176.0
 max_health = 520.0
 contact_damage = 28.0
 invulnerability_seconds = 0.15

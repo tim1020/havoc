@@ -63,7 +63,7 @@ func update_artifacts(artifacts: Array[StringName]) -> void:
 	for index in artifact_labels.size():
 		if index < artifacts.size():
 			var item := ItemCatalog.get_definition(artifacts[index])
-			artifact_labels[index].text = ("▶ " if artifact_selected and index == 0 else "") + (item.display_name if item != null else "?")
+			artifact_labels[index].text = ("▶ " if artifact_selected and index == 0 else "") + ("%s ×%d" % [item.display_name, GameState.artifact_count(artifacts[index])] if item != null else "?")
 			artifact_labels[index].modulate = item.color if item != null else Color.WHITE
 		else:
 			artifact_labels[index].text = "空"
@@ -197,9 +197,21 @@ func restart_level() -> void:
 	GameState.restart_current_level()
 
 
-func play_level_intro(story: String) -> void:
+func play_level_intro(title: String, story: String) -> void:
 	var overlay := create_fullscreen_overlay(Color(0.035, 0.025, 0.02, 0.94))
+	var title_label := Label.new()
+	title_label.name = "LevelIntroTitle"
+	title_label.text = title
+	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	title_label.add_theme_font_size_override("font_size", 38)
+	title_label.add_theme_color_override("font_color", Color("f7e7bd"))
+	title_label.set_anchors_preset(Control.PRESET_CENTER)
+	title_label.position = Vector2(-440.0, -190.0)
+	title_label.size = Vector2(880.0, 60.0)
+	overlay.add_child(title_label)
 	var story_label := Label.new()
+	story_label.name = "LevelIntroStory"
 	story_label.text = story
 	story_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	story_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -207,7 +219,7 @@ func play_level_intro(story: String) -> void:
 	story_label.add_theme_font_size_override("font_size", 30)
 	story_label.add_theme_color_override("font_color", Color("f7e7bd"))
 	story_label.set_anchors_preset(Control.PRESET_CENTER)
-	story_label.position = Vector2(-440.0, -130.0)
+	story_label.position = Vector2(-440.0, -120.0)
 	story_label.size = Vector2(880.0, 260.0)
 	overlay.add_child(story_label)
 	if GameState.settings.reduced_motion:

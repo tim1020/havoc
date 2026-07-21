@@ -3,9 +3,10 @@ extends CharacterBody2D
 
 const STAFF_STATS := preload("res://resources/stats/player_staff.tres")
 const STAFF_FRAMES := preload("res://resources/animations/player_staff_frames.tres")
-const ARTIFACT_PROJECTILE := preload("res://src/combat/artifact_projectile.gd")
-const MONKEY_CLONE := preload("res://src/actors/player/monkey_clone.gd")
 const THROW_PROJECTILE := preload("res://src/combat/player_throw_projectile.gd")
+const ARTIFACT_CAST_EFFECT := preload("res://src/combat/artifact_cast_effect.gd")
+const ARTIFACT_FIRE_PATCH := preload("res://src/combat/artifact_fire_patch.gd")
+const ARTIFACT_CAST_SHEET := preload("res://assets/generated/effects/wukong_artifact_cast_sheet.png")
 const THROW_COOLDOWN_MS := 200
 const RESPAWN_INVULNERABILITY_MS := 3000
 
@@ -35,11 +36,14 @@ var speed_boost_until: int = 0
 var slowed_until: int = 0
 var rooted_until: int = 0
 var confused_until: int = 0
+var invisible_until: int = 0
 var artifact_selected: bool = false
 var next_throw_at: int = 0
 var hurt_animation_until: int = 0
 var invulnerability_aura: Node2D
 var confusion_stars: Node2D
+var artifact_cast_sprite: AnimatedSprite2D
+var one_way_floor: StaticBody2D
 
 
 func _ready() -> void:
@@ -57,6 +61,7 @@ func _ready() -> void:
 	attack_area.monitoring = true
 	setup_invulnerability_aura()
 	setup_confusion_stars()
+	setup_artifact_cast_sprite()
 	attack_effect.animation_finished.connect(func() -> void:
 		attack_effect.stop()
 		attack_effect.visible = false
@@ -104,6 +109,7 @@ func _physics_process(delta: float) -> void:
 		velocity.x = move_toward(velocity.x, 0.0, stats.friction * delta)
 
 	move_and_slide()
+	remember_one_way_floor()
 	if is_on_floor() and has_safe_floor_below(global_position):
 		last_safe_platform_position = global_position
 	update_status_visual()
@@ -112,12 +118,43 @@ func _physics_process(delta: float) -> void:
 
 
 func try_jump() -> void:
+	if Input.is_action_pressed("crouch") and is_on_floor() and drop_through_one_way_floor():
+		return
 	if jumps_left <= 0:
 		return
 	velocity.y = -stats.jump_velocity
 	jumps_left -= 1
 	AudioService.play_sfx(self, AudioService.JUMP)
 	play_if_available("jump")
+
+
+func remember_one_way_floor() -> void:
+	one_way_floor = null
+	for collision_index in get_slide_collision_count():
+		var collision := get_slide_collision(collision_index)
+		if collision.get_normal().y > -0.7:
+			continue
+		var collider := collision.get_collider() as StaticBody2D
+		if collider != null and collider.is_in_group(&"drop_through_platforms"):
+			one_way_floor = collider
+			return
+
+
+func drop_through_one_way_floor() -> bool:
+	if one_way_floor == null or not is_instance_valid(one_way_floor):
+		return false
+	var shape_node := one_way_floor.get_child(0) as CollisionShape2D
+	if shape_node == null:
+		return false
+	shape_node.set_deferred("disabled", true)
+	global_position.y += 8.0
+	velocity.y = maxf(velocity.y, 80.0)
+	one_way_floor = null
+	get_tree().create_timer(0.18).timeout.connect(func() -> void:
+		if is_instance_valid(shape_node):
+			shape_node.set_deferred("disabled", false)
+	)
+	return true
 
 
 func perform_attack() -> void:
@@ -207,7 +244,7 @@ func perform_aerial_throw() -> void:
 	projectile.damage = stats.combo_damage[0] * (1.5 if GameState.has_staff else 1.0)
 	projectile.source_position = global_position
 	projectile.global_position = global_position + Vector2(facing * 48.0, -48.0)
-	projectile.target = nearest_forward_visible_enemy()
+	projectile.target = nearest_forward_attack_target()
 	get_tree().current_scene.add_child(projectile)
 
 
@@ -256,7 +293,9 @@ func movement_direction(raw_direction: float) -> float:
 
 func update_status_visual() -> void:
 	var confused := Time.get_ticks_msec() < confused_until
-	sprite.modulate = Color("f2a1cf") if confused else Color.WHITE
+	var tint := Color("f2a1cf") if confused else Color.WHITE
+	tint.a = 0.42 if is_physically_invisible() else 1.0
+	sprite.modulate = tint
 	if confusion_stars != null:
 		confusion_stars.visible = confused
 		if confused:
@@ -274,22 +313,31 @@ func use_current_artifact() -> void:
 		apply_healing_item(item)
 		show_artifact_flash(item)
 		return
-	play_if_available("spell")
-	show_artifact_flash(item)
+	play_artifact_cast_animation()
+	show_artifact_cast_effect(item)
 	var enemies := get_tree().get_nodes_in_group("enemies")
-	if item.id == &"monkey_hair":
-		spawn_monkey_clones(item)
+	if item.id == &"freeze_talisman":
+		for enemy_node in enemies:
+			var enemy := enemy_node as Enemy
+			if enemy != null and not enemy.dead:
+				enemy.freeze_for(item.duration)
 		return
-	var target := nearest_enemy(enemies)
-	if target == null and item.id != &"purple_bell" and item.id != &"fire_spear":
+	if item.id == &"invisibility_talisman":
+		invisible_until = Time.get_ticks_msec() + int(item.duration * 1000.0)
+		update_status_visual()
 		return
-	var projectile = ARTIFACT_PROJECTILE.new()
-	projectile.item = item
-	projectile.target = target
-	projectile.direction = facing
-	projectile.source_position = global_position
-	projectile.global_position = global_position + Vector2(facing * 45.0, -55.0)
-	get_tree().current_scene.add_child(projectile)
+	if item.id == &"samadhi_fire":
+		spawn_samadhi_fire(item)
+		return
+	if item.id == &"banana_fan":
+		clear_visible_minions()
+		return
+	if item.id == &"purple_bell":
+		for enemy_node in enemies:
+			var enemy := enemy_node as Enemy
+			if enemy != null and not enemy.dead:
+				enemy.hallucinate_for(item.duration)
+		return
 
 
 func show_artifact_flash(item: ItemDefinition) -> void:
@@ -301,12 +349,69 @@ func show_artifact_flash(item: ItemDefinition) -> void:
 	attack_effect.play("attack")
 
 
-func spawn_monkey_clones(item: ItemDefinition) -> void:
-	for offset in [-65.0, 0.0, 65.0]:
-		var clone = MONKEY_CLONE.new()
-		clone.damage = item.power
-		clone.global_position = global_position + Vector2(offset, 0)
-		get_tree().current_scene.add_child(clone)
+func show_artifact_cast_effect(item: ItemDefinition) -> void:
+	var effect = ARTIFACT_CAST_EFFECT.new()
+	effect.color = item.color
+	effect.style = &"fan" if item.id == &"banana_fan" else (&"fire" if item.id == &"samadhi_fire" else &"ring")
+	effect.global_position = global_position + Vector2(0.0, -52.0)
+	get_tree().current_scene.add_child(effect)
+
+
+func setup_artifact_cast_sprite() -> void:
+	artifact_cast_sprite = AnimatedSprite2D.new()
+	var frames := SpriteFrames.new()
+	frames.add_animation(&"cast")
+	var cell_size := Vector2(ARTIFACT_CAST_SHEET.get_size()) / Vector2(4.0, 2.0)
+	for frame_index in 8:
+		var atlas := AtlasTexture.new()
+		atlas.atlas = ARTIFACT_CAST_SHEET
+		var column := frame_index % 4
+		var row := frame_index / 4
+		atlas.region = Rect2(Vector2(column, row) * cell_size + Vector2(4.0, 4.0), cell_size - Vector2(8.0, 8.0))
+		frames.add_frame(&"cast", atlas)
+	frames.set_animation_speed(&"cast", 12.0)
+	frames.set_animation_loop(&"cast", false)
+	artifact_cast_sprite.sprite_frames = frames
+	artifact_cast_sprite.scale = Vector2(0.34, 0.34)
+	artifact_cast_sprite.position = Vector2(0.0, -78.0)
+	artifact_cast_sprite.z_index = 8
+	artifact_cast_sprite.visible = false
+	add_child(artifact_cast_sprite)
+
+
+func play_artifact_cast_animation() -> void:
+	artifact_cast_sprite.flip_h = facing < 0.0
+	artifact_cast_sprite.visible = true
+	artifact_cast_sprite.play(&"cast")
+	sprite.visible = false
+	await get_tree().create_timer(0.68).timeout
+	if is_instance_valid(artifact_cast_sprite):
+		artifact_cast_sprite.visible = false
+		sprite.visible = true
+
+
+func spawn_samadhi_fire(item: ItemDefinition) -> void:
+	for enemy_node in get_tree().get_nodes_in_group("enemies"):
+		var enemy := enemy_node as Enemy
+		if enemy == null or enemy.dead or not is_enemy_on_screen(enemy):
+			continue
+		var flame = ARTIFACT_FIRE_PATCH.new()
+		flame.target = enemy
+		flame.damage = stats.combo_damage[0]
+		flame.duration = item.duration
+		flame.global_position = enemy.global_position + Vector2(0.0, -342.0)
+		get_tree().current_scene.add_child(flame)
+
+
+func clear_visible_minions() -> void:
+	for enemy_node in get_tree().get_nodes_in_group("enemies"):
+		var enemy := enemy_node as Enemy
+		if enemy != null and not enemy.dead and not enemy.stats.is_boss and is_enemy_on_screen(enemy):
+			enemy.launch_from(global_position, 1500.0)
+
+
+func is_physically_invisible() -> bool:
+	return Time.get_ticks_msec() < invisible_until
 
 
 func nearest_enemy(enemies: Array[Node]) -> Enemy:
@@ -340,13 +445,37 @@ func nearest_forward_visible_enemy() -> Enemy:
 	return result
 
 
+func nearest_forward_attack_target() -> Node2D:
+	var enemy := nearest_forward_visible_enemy()
+	if enemy != null:
+		return enemy
+	var result: Node2D
+	var best_distance := INF
+	for projectile_node in get_tree().get_nodes_in_group(&"enemy_projectiles"):
+		var enemy_projectile := projectile_node as Node2D
+		if enemy_projectile == null or enemy_projectile.is_queued_for_deletion() or not is_position_on_screen(enemy_projectile.global_position):
+			continue
+		var offset := enemy_projectile.global_position - global_position
+		if offset.x * facing <= 0.0:
+			continue
+		var distance := offset.length_squared()
+		if distance < best_distance:
+			best_distance = distance
+			result = enemy_projectile
+	return result
+
+
 func is_enemy_on_screen(enemy: Enemy) -> bool:
+	return is_position_on_screen(enemy.global_position + Vector2(0, -48))
+
+
+func is_position_on_screen(position_value: Vector2) -> bool:
 	var camera := get_viewport().get_camera_2d()
 	if camera == null:
 		return true
 	var visible_size := get_viewport_rect().size / camera.zoom
 	var visible_rect := Rect2(camera.get_screen_center_position() - visible_size * 0.5, visible_size)
-	return visible_rect.grow(48.0).has_point(enemy.global_position + Vector2(0, -48))
+	return visible_rect.grow(48.0).has_point(position_value)
 
 
 func play_victory() -> void:

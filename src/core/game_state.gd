@@ -20,6 +20,7 @@ var current_level_path: String = FIRST_LEVEL
 var lives: int = 3
 var stones: int = 0
 var artifacts: Array[StringName] = []
+var artifact_counts: Dictionary[StringName, int] = {}
 var unlocked_level: int = 1
 var current_level: int = 1
 var life_bought_this_level: bool = false
@@ -72,6 +73,7 @@ func start_new_game() -> void:
 	lives = 3
 	stones = 0
 	artifacts.clear()
+	artifact_counts.clear()
 	unlocked_level = 1
 	current_level = 1
 	life_bought_this_level = false
@@ -98,6 +100,7 @@ func configure_mock_game(mock_lives: int, start_level: int) -> void:
 	lives = maxi(0, mock_lives)
 	stones = 0
 	artifacts.clear()
+	artifact_counts.clear()
 	current_level = clampi(start_level, 1, level_paths.size())
 	unlocked_level = current_level
 	life_bought_this_level = false
@@ -140,41 +143,41 @@ func spend_stones(amount: int) -> bool:
 
 
 func pickup_artifact(item_id: StringName) -> bool:
+	if artifacts.has(item_id):
+		artifact_counts[item_id] = artifact_count(item_id) + 1
+		emit_artifacts_changed()
+		save_game()
+		return true
 	if artifacts.size() >= MAX_ARTIFACTS:
 		return false
 	artifacts.append(item_id)
-	artifacts_changed.emit(artifacts.duplicate())
+	artifact_counts[item_id] = 1
+	emit_artifacts_changed()
 	save_game()
 	return true
 
 
 func purchase_artifact(item_id: StringName, price: int) -> bool:
-	if artifacts.size() >= MAX_ARTIFACTS or not spend_stones(price):
+	if not spend_stones(price):
 		return false
-	artifacts.append(item_id)
-	artifacts_changed.emit(artifacts.duplicate())
+	if pickup_artifact(item_id):
+		return true
+	stones += price
+	stones_changed.emit(stones)
 	save_game()
-	return true
+	return false
 
 
 func purchase_artifact_fifo(item_id: StringName, price: int) -> bool:
-	# 商店已在界面层完成二次确认；这里只执行同样的 FIFO 前移规则。
-	if artifacts.size() < MAX_ARTIFACTS:
-		return purchase_artifact(item_id, price)
-	if not spend_stones(price):
-		return false
-	artifacts.pop_front()
-	artifacts.append(item_id)
-	artifacts_changed.emit(artifacts.duplicate())
-	save_game()
-	return true
+	return purchase_artifact(item_id, price)
 
 
 func discard_artifact(index: int) -> bool:
 	if index < 0 or index >= artifacts.size():
 		return false
+	artifact_counts.erase(artifacts[index])
 	artifacts.remove_at(index)
-	artifacts_changed.emit(artifacts.duplicate())
+	emit_artifacts_changed()
 	save_game()
 	return true
 
@@ -183,7 +186,13 @@ func pop_artifact() -> StringName:
 	if artifacts.is_empty():
 		return &""
 	var item_id: StringName = artifacts.pop_front()
-	artifacts_changed.emit(artifacts.duplicate())
+	var remaining := artifact_count(item_id) - 1
+	if remaining > 0:
+		artifact_counts[item_id] = remaining
+		artifacts.push_front(item_id)
+	else:
+		artifact_counts.erase(item_id)
+	emit_artifacts_changed()
 	save_game()
 	return item_id
 
@@ -192,7 +201,7 @@ func rotate_artifacts() -> void:
 	if artifacts.size() <= 1:
 		return
 	artifacts.append(artifacts.pop_front())
-	artifacts_changed.emit(artifacts.duplicate())
+	emit_artifacts_changed()
 	save_game()
 
 
@@ -227,7 +236,7 @@ func save_game(path: String = "") -> Error:
 		return FileAccess.get_open_error()
 	var artifact_strings: Array[String] = []
 	for item_id in artifacts:
-		artifact_strings.append(String(item_id))
+		artifact_strings.append("%s:%d" % [item_id, artifact_counts.get(item_id, 1)])
 	file.store_string(JSON.stringify({
 		"lives": lives,
 		"stones": stones,
@@ -256,9 +265,14 @@ func load_game(path: String = "") -> bool:
 	lives = maxi(0, int(parsed.get("lives", 3)))
 	stones = maxi(0, int(parsed.get("stones", 0)))
 	artifacts.clear()
-	for item_id in parsed.get("artifacts", []):
-		if artifacts.size() < MAX_ARTIFACTS and ItemCatalog.get_definition(StringName(item_id)) != null:
-			artifacts.append(StringName(item_id))
+	artifact_counts.clear()
+	for stored_item in parsed.get("artifacts", []):
+		var parts := String(stored_item).split(":", false, 1)
+		var item_id := StringName(parts[0])
+		if artifacts.size() >= MAX_ARTIFACTS or ItemCatalog.get_definition(item_id) == null:
+			continue
+		artifacts.append(item_id)
+		artifact_counts[item_id] = maxi(1, int(parts[1])) if parts.size() > 1 else 1
 	unlocked_level = maxi(1, int(parsed.get("unlocked_level", 1)))
 	current_level = clampi(int(parsed.get("current_level", 1)), 1, unlocked_level)
 	current_level_path = String(parsed.get("current_level_path", FIRST_LEVEL))
@@ -287,6 +301,14 @@ func has_save() -> bool:
 func emit_resource_signals() -> void:
 	lives_changed.emit(lives)
 	stones_changed.emit(stones)
+	emit_artifacts_changed()
+
+
+func artifact_count(item_id: StringName) -> int:
+	return artifact_counts.get(item_id, 1 if artifacts.has(item_id) else 0)
+
+
+func emit_artifacts_changed() -> void:
 	artifacts_changed.emit(artifacts.duplicate())
 
 

@@ -16,12 +16,19 @@ const LEVEL_WIDTH := SECTION_WIDTH * SECTION_COUNT
 const BOSS_REINFORCEMENT_COUNT := 2
 const FINAL_BOSS_MAX_WAVES := 5
 const INITIAL_ENEMY_MIN_X := 760.0
+const LEVEL_TITLES := {
+	2: "第二关 东海龙宫",
+	3: "第三关 地府",
+	4: "第四关 蟠桃园",
+	5: "第五关 南天门",
+	6: "第六关 凌霄宝殿",
+}
 const LEVEL_STORIES := {
-	2: "悟空教训了混世魔王后，得知水帘洞瀑布下连着龙宫，龙宫有各种稀世宝物，于是决定去龙宫寻宝。",
-	3: "悟空强夺定海神针，龙王上天告状，天庭派阎王勾魂，悟空大闹地府。",
-	4: "悟空得知是阎王是受天庭旨意，于是上天报仇，对蟠桃园和蟠桃大会进行大肆破坏",
-	5: "破坏完蟠桃园，悟空一路打杀，并对南天门进行破坏。",
-	6: "悟空打进凌霄殿向玉帝问罪。",
+	2: "悟空从混世魔王口中得知\n龙宫里有很多奇珍异宝\n于是前往东海龙宫索要宝物\n龙王不允\n悟空一怒之下\n將龙宫搅了个天翻地覆",
+	3: "悟空强抢定海神针铁\n龙王上天告状\n天庭派阎王索命\n悟空大闹地府\n撕毁生死簿",
+	4: "悟空得知是天庭要灭自己\n决定上天讨个说法\n误入蟠桃园\n被当成偷桃猴\n一怒之下\n在蟠桃园大肆破坏",
+	5: "破坏蟠桃园后\n悟空还不解气\n一路打砸\n直奔南天门",
+	6: "打败四大天王后\n悟空硬闯凌霄宝殿\n要向玉帝问个究竟",
 }
 
 @export_range(2, 6, 1) var level_number: int = 2
@@ -70,12 +77,13 @@ func _ready() -> void:
 
 
 func play_level_intro() -> void:
+	var title: String = LEVEL_TITLES.get(level_number, "")
 	var story: String = LEVEL_STORIES.get(level_number, "")
-	if story.is_empty():
+	if title.is_empty() or story.is_empty():
 		return
 	player.controls_enabled = false
 	get_tree().paused = true
-	await hud.play_level_intro(story)
+	await hud.play_level_intro(title, story)
 	if get_tree().current_scene != self:
 		return
 	get_tree().paused = false
@@ -185,7 +193,7 @@ func spawn_enemies(section_filter: int = -1) -> void:
 	if section_filter >= 0:
 		var normal_specs: Array = []
 		for spec in section_specs:
-			if spec.behavior != Enemy.Behavior.BOSS:
+			if spec.behavior != Enemy.Behavior.BOSS and not bool(spec.final_boss):
 				normal_specs.append(spec.duplicate())
 		if not normal_specs.is_empty():
 			for index in 2:

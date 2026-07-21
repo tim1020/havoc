@@ -3,6 +3,8 @@
 [resource]
 script = ExtResource("1")
 display_name = "多闻天王"
+animation_frame_size = Vector2(256, 256)
+sprite_position_y = -106.5
 max_health = 600.0
 contact_damage = 30.0
 invulnerability_seconds = 0.15
@@ -15,7 +17,7 @@ spirit_stones = 300
 is_boss = true
 projectile_damage = 24.0
 projectile_speed = 540.0
-projectile_cooldown = 1.8
+projectile_cooldown = 1.15
 projectile_color = Color(0.36, 0.65, 1, 1)
 projectile_style = "dragon_orb"
-reflects_projectiles = true
+contact_confusion_seconds = 2.0

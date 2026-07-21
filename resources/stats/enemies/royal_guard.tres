@@ -3,6 +3,7 @@
 [resource]
 script = ExtResource("1")
 display_name = "御前侍卫"
+sprite_position_y = -66.15
 max_health = 70.0
 contact_damage = 30.0
 invulnerability_seconds = 0.12

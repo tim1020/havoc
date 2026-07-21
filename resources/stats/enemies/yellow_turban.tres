@@ -3,6 +3,8 @@
 [resource]
 script = ExtResource("1")
 display_name = "黄巾力士"
+animation_frame_size = Vector2(256, 256)
+sprite_position_y = -120.0
 max_health = 100.0
 contact_damage = 25.0
 invulnerability_seconds = 0.1

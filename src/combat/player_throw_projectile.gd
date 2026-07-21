@@ -16,7 +16,7 @@ var direction: float = 1.0
 var damage: float = 10.0
 var speed: float = 720.0
 var source_position: Vector2
-var target: Enemy
+var target: Node2D
 var elapsed: float = 0.0
 var staff_hits: int = 0
 var next_staff_strike_at: float = 0.0
@@ -37,13 +37,22 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	elapsed += delta
-	if kind == Kind.STAFF and update_staff_attack(delta):
+	if not is_instance_valid(target):
+		target = null
+	if kind == Kind.STAFF and target is Enemy and update_staff_attack(delta):
 		return
 	var travel := Vector2(direction, 0.0)
-	if is_instance_valid(target) and not target.dead:
-		travel = navigation_direction(target.global_position + Vector2(0.0, -42.0))
+	if is_target_available():
+		travel = navigation_direction(target_position())
 	global_position += travel * speed * delta
 	rotation = travel.angle() if kind == Kind.STAFF else rotation + delta * 12.0 * direction
+	for enemy_projectile_node in get_tree().get_nodes_in_group(&"enemy_projectiles"):
+		var enemy_projectile := enemy_projectile_node as Node2D
+		if enemy_projectile == null or enemy_projectile.is_queued_for_deletion() or global_position.distance_to(enemy_projectile.global_position) > 42.0:
+			continue
+		enemy_projectile.queue_free()
+		queue_free()
+		return
 	for enemy_node in get_tree().get_nodes_in_group(&"enemies"):
 		var enemy := enemy_node as Enemy
 		if enemy.dead or global_position.distance_to(enemy.global_position + Vector2(0.0, -42.0)) > 48.0:
@@ -56,9 +65,10 @@ func _physics_process(delta: float) -> void:
 
 
 func update_staff_attack(delta: float) -> bool:
-	if not is_instance_valid(target) or target.dead:
-		queue_free()
-		return true
+	if not is_target_available():
+		target = null
+		return false
+	var enemy := target as Enemy
 	var target_position := target.global_position + Vector2(0.0, -42.0)
 	var travel := navigation_direction(target_position)
 	if global_position.distance_to(target_position) > STAFF_STRIKE_RANGE:
@@ -70,13 +80,26 @@ func update_staff_attack(delta: float) -> bool:
 		rotation = travel.angle() + swing
 		global_position = target_position - travel * 46.0 + Vector2(0.0, swing * 22.0)
 		if not staff_damage_applied:
-			target.take_projectile_damage(damage, source_position)
+			enemy.take_projectile_damage(damage, source_position)
 			staff_damage_applied = true
 		staff_hits += 1
 		next_staff_strike_at = elapsed + STAFF_STRIKE_INTERVAL
 		if staff_hits >= STAFF_STRIKE_COUNT:
 			queue_free()
 	return true
+
+
+func is_target_available() -> bool:
+	if not is_instance_valid(target) or target.is_queued_for_deletion():
+		return false
+	if target is Enemy:
+		return not (target as Enemy).dead
+	return true
+
+
+func target_position() -> Vector2:
+	var offset := Vector2(0.0, -42.0) if target is Enemy else Vector2.ZERO
+	return target.global_position + offset
 
 
 func navigation_direction(target_position: Vector2) -> Vector2:

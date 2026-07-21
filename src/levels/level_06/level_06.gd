@@ -18,15 +18,15 @@ const KING_STATS := [
 	preload("res://resources/stats/enemies/dhritarashtra.tres"), preload("res://resources/stats/enemies/virudhaka.tres"),
 	preload("res://resources/stats/enemies/virupaksha.tres"), preload("res://resources/stats/enemies/vaishravana.tres"),
 ]
-const YELLOW_FRAMES := preload("res://assets/generated/characters/campaign/yellow_turban_frames.png")
+const YELLOW_FRAMES := preload("res://assets/generated/characters/campaign/yellow_turban_frames_v2.png")
 const CURTAIN_FRAMES := preload("res://assets/generated/characters/campaign/curtain_general_frames.png")
-const THUNDER_FRAMES := preload("res://assets/generated/characters/campaign/thunder_lord_frames.png")
-const LIGHTNING_MOTHER_FRAMES := preload("res://assets/generated/characters/campaign/lightning_mother_frames.png")
+const THUNDER_FRAMES := preload("res://assets/generated/characters/campaign/thunder_lord_frames_v2.png")
+const LIGHTNING_MOTHER_FRAMES := preload("res://assets/generated/characters/campaign/lightning_mother_frames_v2.png")
 const ROYAL_FRAMES := preload("res://assets/generated/characters/campaign/royal_guard_frames.png")
 const HOUND_FRAMES := preload("res://assets/generated/characters/campaign/heaven_hound_frames.png")
 const NEZHA_FRAMES := preload("res://assets/generated/characters/campaign/nezha_frames.png")
 const ERLANG_FRAMES := preload("res://assets/generated/characters/campaign/erlang_frames.png")
-const LI_JING_FRAMES := preload("res://assets/generated/characters/campaign/li_jing_frames.png")
+const LI_JING_FRAMES := preload("res://assets/generated/characters/campaign/li_jing_frames_v2.png")
 const EMPEROR_FRAMES := preload("res://assets/generated/characters/campaign/jade_emperor_frames.png")
 const KING_FRAMES := [
 	preload("res://assets/generated/characters/campaign/dhritarashtra_frames.png"), preload("res://assets/generated/characters/campaign/virudhaka_frames.png"),
@@ -39,6 +39,10 @@ var hounds_summoned := false
 var emperor_shield_breaks := 0
 var emperor_shield_reset := false
 var emperor_reinforcement_timer: Timer
+var emperor: Enemy
+var final_guardians_spawned := false
+var final_guardians: Dictionary = {}
+var final_soldiers: Array[WeakRef] = []
 
 
 func _ready() -> void:
@@ -64,13 +68,6 @@ func on_section_loaded(section: int) -> void:
 		var enemy := enemy_node as Enemy
 		if floori(enemy.global_position.x / SECTION_WIDTH) != section:
 			continue
-		if enemy.stats in [NEZHA, ERLANG, LI_JING]:
-			enemy.add_to_group("emperor_protectors")
-			enemy.protects_group = &"jade_emperor"
-		if enemy.stats == EMPEROR:
-			enemy.add_to_group("jade_emperor")
-			enemy.behavior = Enemy.Behavior.EVADE
-			enemy.protected_by_group = &"emperor_protectors"
 
 
 func ground_rects() -> Array[Rect2]:
@@ -83,20 +80,131 @@ func platform_rects() -> Array[Rect2]:
 
 func enemy_specs() -> Array:
 	return [
-		spec(Vector2(520, 580), YELLOW, YELLOW_FRAMES), spec(Vector2(1120, 580), YELLOW, YELLOW_FRAMES), spec(Vector2(1760, 580), YELLOW, YELLOW_FRAMES), spec(Vector2(2120, 510), THUNDER, THUNDER_FRAMES, Enemy.Behavior.BOSS, Vector2(1.45, 1.45)), spec(Vector2(2360, 510), LIGHTNING_MOTHER, LIGHTNING_MOTHER_FRAMES, Enemy.Behavior.BOSS, Vector2(1.45, 1.45)),
+		spec(Vector2(520, 580), YELLOW, YELLOW_FRAMES, Enemy.Behavior.MELEE, Vector2(1.5, 1.5)), spec(Vector2(1120, 580), YELLOW, YELLOW_FRAMES, Enemy.Behavior.MELEE, Vector2(1.5, 1.5)), spec(Vector2(1760, 580), YELLOW, YELLOW_FRAMES, Enemy.Behavior.MELEE, Vector2(1.5, 1.5)), spec(Vector2(2120, 510), THUNDER, THUNDER_FRAMES, Enemy.Behavior.BOSS, Vector2(1.5, 1.5)), spec(Vector2(2360, 510), LIGHTNING_MOTHER, LIGHTNING_MOTHER_FRAMES, Enemy.Behavior.BOSS, Vector2(1.1, 1.1)),
 		spec(Vector2(3060, 580), CURTAIN, CURTAIN_FRAMES), spec(Vector2(3700, 580), CURTAIN, CURTAIN_FRAMES), spec(Vector2(4320, 580), CURTAIN, CURTAIN_FRAMES), spec(Vector2(4820, 510), ERLANG, ERLANG_FRAMES, Enemy.Behavior.BOSS, Vector2(1.5, 1.5)),
 		spec(Vector2(5620, 580), HOUND, HOUND_FRAMES, Enemy.Behavior.CHARGE), spec(Vector2(6260, 580), HOUND, HOUND_FRAMES, Enemy.Behavior.CHARGE), spec(Vector2(6880, 580), HOUND, HOUND_FRAMES, Enemy.Behavior.CHARGE), spec(Vector2(7380, 510), NEZHA, NEZHA_FRAMES, Enemy.Behavior.BOSS, Vector2(1.5, 1.5)),
-		spec(Vector2(8180, 580), ROYAL, ROYAL_FRAMES), spec(Vector2(8820, 580), ROYAL, ROYAL_FRAMES), spec(Vector2(9440, 580), ROYAL, ROYAL_FRAMES), spec(Vector2(9940, 510), LI_JING, LI_JING_FRAMES, Enemy.Behavior.BOSS, Vector2(1.5, 1.5)),
-		spec(Vector2(10380, 580), YELLOW, YELLOW_FRAMES), spec(Vector2(10680, 580), CURTAIN, CURTAIN_FRAMES), spec(Vector2(10980, 580), ROYAL, ROYAL_FRAMES), spec(Vector2(11280, 580), HOUND, HOUND_FRAMES, Enemy.Behavior.CHARGE),
-		spec(Vector2(11450, 510), THUNDER, THUNDER_FRAMES, Enemy.Behavior.BOSS, Vector2(1.25, 1.25), true), spec(Vector2(11700, 510), LIGHTNING_MOTHER, LIGHTNING_MOTHER_FRAMES, Enemy.Behavior.BOSS, Vector2(1.25, 1.25), true), spec(Vector2(12000, 510), ERLANG, ERLANG_FRAMES, Enemy.Behavior.BOSS, Vector2(1.3, 1.3), true), spec(Vector2(12220, 510), NEZHA, NEZHA_FRAMES, Enemy.Behavior.BOSS, Vector2(1.3, 1.3), true), spec(Vector2(12400, 510), LI_JING, LI_JING_FRAMES, Enemy.Behavior.BOSS, Vector2(1.3, 1.3), true), spec(Vector2(12600, 500), EMPEROR, EMPEROR_FRAMES, Enemy.Behavior.EVADE, Vector2(1.3, 1.3), true),
+		spec(Vector2(8180, 580), ROYAL, ROYAL_FRAMES, Enemy.Behavior.MELEE, Vector2(1.35, 1.35)), spec(Vector2(8820, 580), ROYAL, ROYAL_FRAMES, Enemy.Behavior.MELEE, Vector2(1.35, 1.35)), spec(Vector2(9440, 580), ROYAL, ROYAL_FRAMES, Enemy.Behavior.MELEE, Vector2(1.35, 1.35)), spec(Vector2(9940, 510), LI_JING, LI_JING_FRAMES, Enemy.Behavior.BOSS, Vector2(0.75, 0.75)),
+		spec(Vector2(10380, 580), YELLOW, YELLOW_FRAMES, Enemy.Behavior.MELEE, Vector2(1.5, 1.5)), spec(Vector2(10680, 580), CURTAIN, CURTAIN_FRAMES), spec(Vector2(10980, 580), ROYAL, ROYAL_FRAMES, Enemy.Behavior.MELEE, Vector2(1.35, 1.35)), spec(Vector2(11280, 580), HOUND, HOUND_FRAMES, Enemy.Behavior.CHARGE),
+		spec(Vector2(11450, 510), THUNDER, THUNDER_FRAMES, Enemy.Behavior.BOSS, Vector2(1.5, 1.5), true), spec(Vector2(11700, 510), LIGHTNING_MOTHER, LIGHTNING_MOTHER_FRAMES, Enemy.Behavior.BOSS, Vector2(1.1, 1.1), true), spec(Vector2(12000, 510), ERLANG, ERLANG_FRAMES, Enemy.Behavior.BOSS, Vector2(1.3, 1.3), true), spec(Vector2(12220, 510), NEZHA, NEZHA_FRAMES, Enemy.Behavior.BOSS, Vector2(1.3, 1.3), true), spec(Vector2(12400, 510), LI_JING, LI_JING_FRAMES, Enemy.Behavior.BOSS, Vector2(0.75, 0.75), true), spec(Vector2(12600, 500), EMPEROR, EMPEROR_FRAMES, Enemy.Behavior.EVADE, Vector2(1.3, 1.3), true),
 	]
+
+
+func spawn_final_boss(section: int) -> void:
+	if section != SECTION_COUNT - 1:
+		super(section)
+		return
+	if section_final_boss_spawned.get(section, false):
+		return
+	section_final_boss_spawned[section] = true
+	emperor = spawn_final_character(Vector2(12600, 500), EMPEROR, EMPEROR_FRAMES, Enemy.Behavior.EVADE, Vector2(1.3, 1.3), &"jade_emperor")
+	emperor.protected_by_group = &"emperor_protectors"
+	emperor.hit_received.connect(start_emperor_guard_battle, CONNECT_ONE_SHOT)
+
+
+func start_emperor_guard_battle(_enemy: Enemy, _current: float, _maximum: float) -> void:
+	if final_guardians_spawned:
+		return
+	final_guardians_spawned = true
+	register_final_guardian(THUNDER, spawn_final_character(Vector2(11450, 510), THUNDER, THUNDER_FRAMES, Enemy.Behavior.BOSS, Vector2(1.5, 1.5), &"emperor_attackers"))
+	register_final_guardian(LIGHTNING_MOTHER, spawn_final_character(Vector2(11700, 510), LIGHTNING_MOTHER, LIGHTNING_MOTHER_FRAMES, Enemy.Behavior.BOSS, Vector2(1.1, 1.1), &"emperor_attackers"))
+	register_final_guardian(NEZHA, spawn_final_protector(Vector2(12150, 510), NEZHA, NEZHA_FRAMES, Vector2(1.3, 1.3), 370.0))
+	register_final_guardian(LI_JING, spawn_final_protector(Vector2(12320, 510), LI_JING, LI_JING_FRAMES, Vector2(0.75, 0.75), 260.0))
+	register_final_guardian(ERLANG, spawn_final_protector(Vector2(12470, 510), ERLANG, ERLANG_FRAMES, Vector2(1.3, 1.3), 150.0))
+	for soldier_index in 4:
+		final_soldiers.append(weakref(spawn_final_soldier(Vector2(11920.0 + soldier_index * 115.0, 580.0), 480.0 + soldier_index * 70.0)))
+
+
+func register_final_guardian(stats_value: EnemyStats, guardian: Enemy) -> void:
+	final_guardians[stats_value] = weakref(guardian)
+	guardian.defeated.connect(update_emperor_guard_phase)
+
+
+func get_final_guardian(stats_value: EnemyStats) -> Enemy:
+	var reference := final_guardians.get(stats_value) as WeakRef
+	if reference == null:
+		return null
+	return reference.get_ref() as Enemy
+
+
+func spawn_final_protector(position_value: Vector2, stats_value: EnemyStats, atlas: Texture2D, scale_value: Vector2, guard_distance: float) -> Enemy:
+	var protector := spawn_final_character(position_value, stats_value, atlas, Enemy.Behavior.BOSS, scale_value, &"emperor_protectors")
+	protector.protects_group = &"jade_emperor"
+	protector.bodyguard_attacks = true
+	protector.bodyguard_distance = guard_distance
+	protector.engaged = true
+	return protector
+
+
+func spawn_final_soldier(position_value: Vector2, guard_distance: float) -> Enemy:
+	var soldier := spawn_enemy_spec(spec(position_value, ROYAL, ROYAL_FRAMES, Enemy.Behavior.MELEE, Vector2(1.35, 1.35)), SECTION_COUNT - 1)
+	soldier.add_to_group(&"emperor_protectors")
+	soldier.add_to_group(&"emperor_soldiers")
+	soldier.protects_group = &"jade_emperor"
+	soldier.bodyguard_attacks = true
+	soldier.bodyguard_distance = guard_distance
+	soldier.engaged = true
+	return soldier
+
+
+func spawn_final_character(position_value: Vector2, stats_value: EnemyStats, atlas: Texture2D, behavior_value: Enemy.Behavior, scale_value: Vector2, group_name: StringName) -> Enemy:
+	var character := spawn_enemy_spec(spec(position_value, stats_value, atlas, behavior_value, scale_value, true), SECTION_COUNT - 1)
+	character.add_to_group(group_name)
+	return character
+
+
+func update_emperor_guard_phase(_reward: int) -> void:
+	for stats_value in final_guardians:
+		var guardian := get_final_guardian(stats_value)
+		if guardian != null and guardian.dead:
+			guardian.remove_from_group(&"emperor_protectors")
+	if guardians_defeated([THUNDER, LIGHTNING_MOTHER]):
+		activate_final_attackers([NEZHA, LI_JING])
+	if guardians_defeated([NEZHA, LI_JING]):
+		activate_final_attackers([ERLANG])
+		retreat_final_soldiers()
+
+
+func guardians_defeated(stats_list: Array) -> bool:
+	for stats_value in stats_list:
+		var guardian := get_final_guardian(stats_value as EnemyStats)
+		if guardian != null and not guardian.dead:
+			return false
+	return true
+
+
+func activate_final_attackers(stats_list: Array) -> void:
+	for stats_value in stats_list:
+		var guardian := get_final_guardian(stats_value as EnemyStats)
+		if guardian == null or guardian.dead:
+			continue
+		guardian.remove_from_group(&"emperor_protectors")
+		guardian.add_to_group(&"emperor_attackers")
+		guardian.protects_group = &""
+		guardian.bodyguard_attacks = true
+
+
+func retreat_final_soldiers() -> void:
+	for reference in final_soldiers:
+		var soldier := reference.get_ref() as Enemy
+		if soldier == null:
+			continue
+		soldier.remove_from_group(&"emperor_protectors")
+		soldier.remove_from_group(&"emperor_soldiers")
+		enemy_tracker.remove(soldier, SECTION_COUNT - 1)
+		soldier.queue_free()
+	final_soldiers.clear()
+
+
+func update_section_waves(section: int) -> void:
+	if section != SECTION_COUNT - 1:
+		super(section)
 
 
 func item_specs() -> Array:
 	return [
-		{"position": Vector2(720, 425), "id": &"peach"}, {"position": Vector2(1120, 360), "id": &"fire_spear"},
+		{"position": Vector2(720, 425), "id": &"peach"}, {"position": Vector2(1120, 360), "id": &"samadhi_fire"},
 		{"position": Vector2(1500, 475), "id": &"wine"}, {"position": Vector2(3500, 540), "id": &"elixir"},
-		{"position": Vector2(4100, 455), "id": &"heaven_seal"}, {"position": Vector2(4700, 385), "id": &"binding_rope"},
+		{"position": Vector2(4100, 455), "id": &"banana_fan"}, {"position": Vector2(4700, 385), "id": &"freeze_talisman"},
 	]
 
 

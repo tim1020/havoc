@@ -36,6 +36,7 @@ const ENEMY_PROJECTILE := preload("res://src/combat/enemy_projectile.gd")
 
 @onready var sprite: AnimatedSprite2D = %Sprite
 @onready var attack_effect: AnimatedSprite2D = %AttackEffect
+@onready var body_shape: CollisionShape2D = $BodyShape
 
 var health: float
 var spawn_position: Vector2
@@ -60,12 +61,15 @@ var next_projectile_at: int = 0
 var next_boss_reposition_at: int = 0
 var protected_by_group: StringName = &""
 var protects_group: StringName = &""
+var bodyguard_attacks: bool = true
+var bodyguard_distance: float = 130.0
 var protected_damage_multiplier: float = 0.2
 var patrol_target_x: float
 var next_patrol_decision_at: int = 0
 var patrol_pause_until: int = 0
 var boss_target_lost_until: int = 0
 var next_boss_target_loss_at: int = 0
+var visual_facing_direction: float = 1.0
 var last_player_side: float = 0.0
 var engaged: bool = false
 var target_player: Player
@@ -74,11 +78,14 @@ var avoiding_player_combo: bool = false
 var ambush_until: int = 0
 var launched_until: int = 0
 var player_lost_since: int = 0
+var hallucinated_until: int = 0
 
 
 func _ready() -> void:
 	assert(stats != null, "EnemyStats is required")
 	assert(animation_atlas != null, "Enemy animation atlas is required")
+	visual_facing_direction = 1.0 if stats.faces_right_by_default else -1.0
+	sprite.position.y = stats.sprite_position_y
 	add_to_group("enemies")
 	if stats.is_boss:
 		add_to_group("bosses")
@@ -92,9 +99,16 @@ func _ready() -> void:
 	disguised = stats.disguise_reveal_distance > 0.0
 	setup_character_frames()
 	setup_attack_effect_frames()
-	sprite.scale = visual_scale
+	apply_visual_scale(visual_scale)
 	sprite.play("idle")
 	health_changed.emit(health, stats.max_health)
+
+
+func apply_visual_scale(scale_value: Vector2) -> void:
+	visual_scale = scale_value
+	sprite.scale = scale_value
+	body_shape.scale = scale_value
+	body_shape.position = Vector2(0.0, -38.0 * scale_value.y)
 
 
 func _process(delta: float) -> void:
@@ -109,10 +123,16 @@ func _physics_process(delta: float) -> void:
 	if dead:
 		return
 	if is_pit_fall():
-		die()
+		if stats.is_boss:
+			rescue_boss_from_pit()
+		else:
+			die()
 		return
 	if Time.get_ticks_msec() < frozen_until:
 		velocity = Vector2.ZERO
+		return
+	if Time.get_ticks_msec() < hallucinated_until:
+		update_hallucination(delta)
 		return
 	if Time.get_ticks_msec() < launched_until:
 		if behavior != Behavior.FLYING:
@@ -123,6 +143,12 @@ func _physics_process(delta: float) -> void:
 	if not is_instance_valid(target_player):
 		target_player = get_tree().get_first_node_in_group("player") as Player
 	var player := target_player
+	if player != null and player.is_physically_invisible():
+		if not stats.is_boss and behavior != Behavior.FLYING:
+			player_lost_since = Time.get_ticks_msec() - PLAYER_LOST_PATROL_DELAY_MS
+		else:
+			velocity = Vector2.ZERO
+			return
 	if not engaged:
 		engaged = should_engage(player)
 		if not engaged:
@@ -163,6 +189,16 @@ func _physics_process(delta: float) -> void:
 
 func is_pit_fall() -> bool:
 	return behavior != Behavior.FLYING and global_position.y > PIT_DEATH_Y
+
+
+func rescue_boss_from_pit() -> void:
+	global_position = spawn_position
+	velocity = Vector2.ZERO
+	health = maxf(1.0, health - stats.max_health * 0.12)
+	invulnerable_until = Time.get_ticks_msec() + 500
+	hit_reaction_until = Time.get_ticks_msec() + 260
+	health_changed.emit(health + shield_health, stats.max_health + stats.shield_health)
+	hit_received.emit(self, health + shield_health, stats.max_health + stats.shield_health)
 
 
 func should_engage(player: Player) -> bool:
@@ -218,7 +254,7 @@ func update_grounded(player: Player) -> void:
 	if player == null:
 		velocity.x = 0.0
 		return
-	if behavior == Behavior.BOSS and can_reposition and Time.get_ticks_msec() >= next_boss_reposition_at and not has_clear_line_to_player(player):
+	if can_reposition and Time.get_ticks_msec() >= next_boss_reposition_at and (behavior == Behavior.EVADE or not has_clear_line_to_player(player)):
 		reposition_boss()
 	if not protects_group.is_empty() and update_bodyguard_position(player):
 		return
@@ -282,18 +318,19 @@ func reposition_boss() -> void:
 	next_boss_reposition_at = Time.get_ticks_msec() + randi_range(7000, 10000)
 	var section_width := 2560.0
 	var section := floori(global_position.x / section_width)
-	var minimum_x := section * section_width + 220.0
-	var maximum_x := (section + 1) * section_width - 220.0
-	var space := get_world_2d().direct_space_state
-	for attempt in 8:
-		var target_x := randf_range(minimum_x, maximum_x)
+	var level := get_parent()
+	var valid_ground: Array[Rect2] = []
+	if level != null and level.has_method(&"ground_rects"):
+		for ground_value in level.ground_rects():
+			var ground := ground_value as Rect2
+			if floori(ground.get_center().x / section_width) == section and ground.size.x > 180.0:
+				valid_ground.append(ground)
+	valid_ground.shuffle()
+	for ground in valid_ground:
+		var target_x := randf_range(ground.position.x + 80.0, ground.end.x - 80.0)
 		if absf(target_x - global_position.x) < 320.0:
 			continue
-		var query := PhysicsRayQueryParameters2D.create(Vector2(target_x, 40.0), Vector2(target_x, 690.0), 1)
-		var hit := space.intersect_ray(query)
-		if hit.is_empty() or (hit.normal as Vector2).y > -0.7:
-			continue
-		global_position = Vector2(target_x, (hit.position as Vector2).y - 70.0)
+		global_position = Vector2(target_x, ground.position.y - 70.0)
 		velocity = Vector2.ZERO
 		spawn_position = global_position
 		var tween := create_tween()
@@ -309,18 +346,17 @@ func update_bodyguard_position(player: Player) -> bool:
 	var player_direction := signf(player.global_position.x - protected.global_position.x)
 	if is_zero_approx(player_direction):
 		player_direction = 1.0
-	var guard_position := protected.global_position.x + player_direction * 130.0
+	var guard_position := protected.global_position.x + player_direction * bodyguard_distance
 	var distance_to_guard_position := guard_position - global_position.x
 	patrol_direction = signf(distance_to_guard_position)
 	face_direction(player.global_position.x - global_position.x)
-	if absf(player.global_position.x - global_position.x) <= stats.attack_range:
-		velocity.x = move_toward(velocity.x, 0.0, 80.0)
+	if bodyguard_attacks and absf(player.global_position.x - global_position.x) <= stats.attack_range:
+		velocity.x = move_toward(velocity.x, 0.0, 100.0)
 		try_attack(player)
 	elif absf(distance_to_guard_position) > 35.0:
 		velocity.x = patrol_direction * stats.move_speed
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, 100.0)
-		try_ranged_attack(player)
 	return true
 
 
@@ -371,7 +407,15 @@ func update_flying(delta: float, player: Player) -> void:
 func face_direction(direction: float) -> void:
 	if is_zero_approx(direction):
 		return
-	sprite.flip_h = direction < 0.0 if stats.faces_right_by_default else direction > 0.0
+	visual_facing_direction = direction
+	apply_sprite_facing(sprite.animation)
+
+
+func apply_sprite_facing(animation: StringName) -> void:
+	var flip := visual_facing_direction < 0.0 if stats.faces_right_by_default else visual_facing_direction > 0.0
+	if animation == &"attack" and stats.attack_frames_face_opposite:
+		flip = not flip
+	sprite.flip_h = flip
 
 
 func update_player_body_collision(player: Player) -> void:
@@ -439,6 +483,8 @@ func try_jump_to_player_platform(distance: Vector2) -> bool:
 
 
 func try_ranged_attack(player: Player, force_forward_stone: bool = false) -> bool:
+	if not bodyguard_attacks:
+		return false
 	var throws_ground_projectile := force_forward_stone and not stats.is_boss
 	if player == null or not has_clear_line_to_player(player) or (stats.projectile_damage <= 0.0 and not throws_ground_projectile) or Time.get_ticks_msec() < next_projectile_at:
 		return false
@@ -446,6 +492,7 @@ func try_ranged_attack(player: Player, force_forward_stone: bool = false) -> boo
 	AudioService.play_sfx(self, AudioService.ENEMY_THROW, -1.0)
 	attack_animation_until = Time.get_ticks_msec() + 320
 	var aim := Vector2(patrol_direction, 0.0) if throws_ground_projectile else (player.global_position + Vector2(0, -42) - (global_position + Vector2(0, -52))).normalized()
+	face_direction(player.global_position.x - global_position.x)
 	var angles := [-0.18, 0.0, 0.18] if phase_two else [0.0]
 	for angle in angles:
 		var projectile = ENEMY_PROJECTILE.new()
@@ -461,6 +508,8 @@ func try_ranged_attack(player: Player, force_forward_stone: bool = false) -> boo
 
 
 func try_attack(player: Player) -> void:
+	if not bodyguard_attacks:
+		return
 	if not has_clear_line_to_player(player):
 		return
 	if behavior != Behavior.FLYING and absf(player.global_position.y - global_position.y) > 90.0:
@@ -498,7 +547,7 @@ func apply_contact_damage() -> void:
 
 
 func has_clear_line_to_player(player: Player) -> bool:
-	if player == null:
+	if player == null or player.is_physically_invisible():
 		return false
 	var ray_start := global_position + Vector2(0.0, -52.0)
 	var ray_end := player.global_position + Vector2(0.0, -42.0)
@@ -512,7 +561,7 @@ func take_damage(damage: float, source_position: Vector2) -> void:
 	if dead or not ghost_solid or Time.get_ticks_msec() < invulnerable_until:
 		return
 	engage_nearby_allies()
-	if not protected_by_group.is_empty() and not get_tree().get_nodes_in_group(protected_by_group).is_empty():
+	if has_active_protector():
 		damage *= protected_damage_multiplier
 	AudioService.play_sfx(self, AudioService.ENEMY_HURT)
 	if shield_health > 0.0:
@@ -538,6 +587,16 @@ func take_damage(damage: float, source_position: Vector2) -> void:
 		phase_two = current_phase > 1
 	if is_zero_approx(health):
 		die()
+
+
+func has_active_protector() -> bool:
+	if protected_by_group.is_empty():
+		return false
+	for protector_node in get_tree().get_nodes_in_group(protected_by_group):
+		var protector := protector_node as Enemy
+		if protector != null and not protector.dead:
+			return true
+	return false
 
 
 func take_projectile_damage(damage: float, source_position: Vector2) -> bool:
@@ -601,6 +660,7 @@ func update_visual_animation() -> void:
 		next_animation = &"walk"
 	if sprite.animation != next_animation:
 		sprite.play(next_animation)
+	apply_sprite_facing(next_animation)
 	sprite.speed_scale = 0.0 if now < frozen_until else (1.35 if phase_two else 1.0)
 	var shader_material := sprite.material as ShaderMaterial
 	if shader_material != null:
@@ -623,7 +683,7 @@ func setup_character_frames() -> void:
 		frames.set_animation_speed(animation, definition[2])
 		frames.set_animation_loop(animation, definition[3])
 		for column in range(definition[0], definition[1] + 1):
-			frames.add_frame(animation, create_atlas_frame(animation_atlas, column, atlas_row))
+			frames.add_frame(animation, create_atlas_frame(animation_atlas, column, atlas_row, stats.animation_frame_size))
 	sprite.sprite_frames = frames
 
 
@@ -643,10 +703,10 @@ func setup_attack_effect_frames() -> void:
 	)
 
 
-func create_atlas_frame(atlas: Texture2D, column: int, row: int) -> AtlasTexture:
+func create_atlas_frame(atlas: Texture2D, column: int, row: int, frame_size: Vector2 = FRAME_SIZE) -> AtlasTexture:
 	var frame := AtlasTexture.new()
 	frame.atlas = atlas
-	frame.region = Rect2(Vector2(column, row) * FRAME_SIZE, FRAME_SIZE)
+	frame.region = Rect2(Vector2(column, row) * frame_size, frame_size)
 	return frame
 
 
@@ -658,11 +718,45 @@ func freeze_for(seconds: float) -> void:
 	tween.tween_property(sprite, "modulate", Color.WHITE, 0.12)
 
 
+func hallucinate_for(seconds: float) -> void:
+	hallucinated_until = maxi(hallucinated_until, Time.get_ticks_msec() + int(seconds * 1000.0))
+
+
+func update_hallucination(delta: float) -> void:
+	var target: Enemy
+	var best_distance := INF
+	for enemy_node in get_tree().get_nodes_in_group("enemies"):
+		var ally := enemy_node as Enemy
+		if ally == null or ally == self or ally.dead or not is_same_section(ally):
+			continue
+		var distance := global_position.distance_squared_to(ally.global_position)
+		if distance < best_distance:
+			best_distance = distance
+			target = ally
+	if target == null:
+		velocity = Vector2.ZERO
+		return
+	var distance_to_target := target.global_position - global_position
+	face_direction(distance_to_target.x)
+	if not is_on_floor():
+		velocity.y += stats.gravity * delta
+	if absf(distance_to_target.x) > stats.attack_range:
+		velocity.x = signf(distance_to_target.x) * stats.move_speed
+	else:
+		velocity.x = 0.0
+		if Time.get_ticks_msec() >= next_attack_at:
+			next_attack_at = Time.get_ticks_msec() + 1100
+			target.take_damage(stats.contact_damage, global_position)
+			attack_animation_until = Time.get_ticks_msec() + 260
+	move_and_slide()
+
+
 func die() -> void:
 	dead = true
 	set_physics_process(false)
 	AudioService.play_sfx(self, AudioService.ENEMY_DEATH, 1.0)
 	defeated.emit(stats.spirit_stones)
+	sprite.speed_scale = 1.0
 	sprite.play("death")
 	await sprite.animation_finished
 	var tween := create_tween()

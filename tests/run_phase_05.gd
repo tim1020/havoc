@@ -41,7 +41,6 @@ func run_checks() -> void:
 		if hazard.kind == LineHazard.Kind.WIND and hazard.push_force >= 380.0:
 			wind_found = true
 	check(wind_found, "罡风区域持续施加水平推力")
-
 	var phantom := find_enemy("增长天王幻影")
 	phantom.set_physics_process(false)
 	phantom.invulnerable_until = 0
@@ -89,9 +88,10 @@ func run_checks() -> void:
 
 	king = find_enemy("多闻天王")
 	king.set_physics_process(false)
+	king.invulnerable_until = 0
 	var health_before := king.health
 	var accepted := king.take_projectile_damage(15.0, level.player.global_position)
-	check(not accepted and king.health == health_before, "多闻天王混元伞反射追踪投棒")
+	check(accepted and king.health == health_before - 15.0, "多闻天王被投射物命中后正常显示血条并扣血")
 	kill_enemy(king, level.player)
 	await get_tree().create_timer(1.0).timeout
 	check(count_rewards() == 4, "四天王每场胜利均掉落1个蟠桃")

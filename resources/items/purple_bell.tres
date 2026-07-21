@@ -7,5 +7,5 @@ display_name = "紫金铃"
 category = 2
 price = 80
 power = 10.0
-duration = 1.0
+duration = 10.0
 color = Color(0.68, 0.33, 0.82, 1)

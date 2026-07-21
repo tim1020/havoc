@@ -3,6 +3,7 @@
 [resource]
 script = ExtResource("1")
 display_name = "天弓手"
+attack_frames_face_opposite = true
 max_health = 40.0
 contact_damage = 15.0
 invulnerability_seconds = 0.15

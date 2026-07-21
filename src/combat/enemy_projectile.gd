@@ -2,6 +2,7 @@ class_name EnemyProjectile
 extends Node2D
 
 const PROJECTILE_ATLAS := preload("res://assets/generated/effects/boss_projectile_frames.png")
+const HEAVEN_ARROW_TEXTURE := preload("res://assets/generated/effects/heaven_arrow_projectile.png")
 const FRAME_SIZE := Vector2(128, 128)
 
 var direction: Vector2 = Vector2.LEFT
@@ -70,6 +71,12 @@ func setup_sprite() -> void:
 
 
 func setup_ground_sprite() -> bool:
+	if style == "arrow":
+		var arrow_sprite := Sprite2D.new()
+		arrow_sprite.texture = HEAVEN_ARROW_TEXTURE
+		arrow_sprite.scale = Vector2(0.48, 0.48)
+		add_child(arrow_sprite)
+		return true
 	var designs := {
 		"stone": [PackedVector2Array([Vector2(-15, -8), Vector2(-5, -16), Vector2(12, -10), Vector2(17, 4), Vector2(4, 14), Vector2(-13, 9)]), Color("8b6c4b")],
 		"fang": [PackedVector2Array([Vector2(-18, 0), Vector2(12, -8), Vector2(18, 0), Vector2(12, 8)]), Color("b7d69a")],
@@ -82,7 +89,6 @@ func setup_ground_sprite() -> bool:
 		"petal": [PackedVector2Array([Vector2(-16, 0), Vector2(0, -14), Vector2(16, 0), Vector2(0, 14)]), Color("f49abc")],
 		"seed": [PackedVector2Array([Vector2(-15, -5), Vector2(0, -12), Vector2(15, -5), Vector2(15, 5), Vector2(0, 12), Vector2(-15, 5)]), Color("f0a34a")],
 		"hammer": [PackedVector2Array([Vector2(-24, -3), Vector2(-2, -3), Vector2(-2, -12), Vector2(15, -12), Vector2(15, 12), Vector2(-2, 12), Vector2(-2, 3), Vector2(-24, 3)]), Color("8995a2")],
-		"arrow": [PackedVector2Array([Vector2(-24, -2), Vector2(8, -2), Vector2(8, -9), Vector2(24, 0), Vector2(8, 9), Vector2(8, 2), Vector2(-24, 2)]), Color("d8c076")],
 	}
 	if not designs.has(style):
 		return false

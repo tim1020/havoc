@@ -97,9 +97,9 @@ func enemy_specs() -> Array:
 
 func item_specs() -> Array:
 	return [
-		{"position": Vector2(430, 475), "id": &"peach"}, {"position": Vector2(810, 420), "id": &"peach"}, {"position": Vector2(1110, 590), "id": &"fire_spear"},
-		{"position": Vector2(1460, 490), "id": &"cosmic_ring"}, {"position": Vector2(2050, 485), "id": &"peach"},
-		{"position": Vector2(4460, 405), "id": &"elixir"}, {"position": Vector2(4800, 475), "id": &"heaven_seal"},
+		{"position": Vector2(430, 475), "id": &"peach"}, {"position": Vector2(810, 420), "id": &"peach"}, {"position": Vector2(1110, 590), "id": &"samadhi_fire"},
+		{"position": Vector2(1460, 490), "id": &"invisibility_talisman"}, {"position": Vector2(2050, 485), "id": &"peach"},
+		{"position": Vector2(4460, 405), "id": &"elixir"}, {"position": Vector2(4800, 475), "id": &"banana_fan"},
 	]
 
 

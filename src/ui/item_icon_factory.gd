@@ -22,12 +22,10 @@ static func symbol_path(item_id: StringName) -> String:
 		&"wine": "M22 15 H42 L39 24 V49 H25 V24 Z M24 32 H40",
 		&"elixir": "M32 13 L48 25 L43 46 L32 53 L21 46 L16 25 Z",
 		&"life_hair": "M18 47 Q29 8 46 17 Q30 24 44 50",
-		&"fire_spear": "M13 36 L45 18 L50 13 L47 24 L52 29 L43 30 L20 49 Z",
-		&"cosmic_ring": "M32 14 A18 18 0 1 1 31.9 14 M32 23 A9 9 0 1 0 32.1 23",
-		&"fire_wheels": "M18 38 A14 14 0 1 1 45 38 A14 14 0 1 1 18 38 M32 9 L38 24 L26 24 Z",
+		&"freeze_talisman": "M22 12 H42 V52 H22 Z M26 20 H38 M26 30 H38 M26 40 H38",
+		&"invisibility_talisman": "M12 32 C20 17 44 17 52 32 C44 47 20 47 12 32 M32 24 A8 8 0 1 1 31.9 24",
+		&"samadhi_fire": "M32 12 C45 26 44 37 32 53 C18 39 18 27 32 12 M32 29 C38 36 35 42 32 46 C28 42 26 36 32 29",
+		&"banana_fan": "M32 51 C12 42 13 17 28 12 C45 9 54 28 42 45 Z M31 18 L34 45",
 		&"purple_bell": "M20 42 Q23 16 32 15 Q41 16 44 42 Z M26 48 H38",
-		&"monkey_hair": "M17 49 Q26 10 34 17 Q42 24 48 12 Q43 35 31 50",
-		&"binding_rope": "M18 23 C18 10 46 10 46 23 C46 36 18 28 18 41 C18 54 46 54 46 41",
-		&"heaven_seal": "M16 20 H48 V47 H16 Z M23 13 H41 V20 M24 29 H40 V39 H24 Z",
 	}
 	return paths.get(item_id, "M18 18 H46 V46 H18 Z")

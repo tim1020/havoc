@@ -3,6 +3,8 @@
 [resource]
 script = ExtResource("1")
 display_name = "雷公"
+animation_frame_size = Vector2(256, 256)
+sprite_position_y = -139.5
 max_health = 380.0
 contact_damage = 24.0
 move_speed = 150.0

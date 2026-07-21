@@ -4,7 +4,7 @@ extends CanvasLayer
 signal closed
 
 # 需要二次确认的操作共用一个状态，切换商品或调整物品栏时会取消确认。
-enum PendingAction { NONE, FIFO_SHIFT, LEAVE }
+enum PendingAction { NONE, LEAVE }
 
 @onready var title_label: Label = %TitleLabel
 @onready var balance_label: Label = %BalanceLabel
@@ -125,20 +125,18 @@ func purchase_selected() -> void:
 		clear_pending()
 		status_label.text = "购买成功：%s" % item.display_name if GameState.purchase_life(item.price) else "无法购买：限购、持有上限或灵石不足"
 		return
-	if GameState.artifacts.size() >= GameState.MAX_ARTIFACTS:
-		# 满栏购买必须二次确认；确认后销毁队首、整体前移，并把新物品追加到队尾。
-		if pending_action != PendingAction.FIFO_SHIFT or pending_item != item:
-			pending_action = PendingAction.FIFO_SHIFT
-			pending_item = item
-			var front := ItemCatalog.get_definition(GameState.artifacts.front())
-			status_label.text = "物品栏已满，再按攻击键确认：丢弃队首 %s，其余前移" % front.display_name
+	if item.category == ItemDefinition.Category.HEALING:
+		if player == null or player.health >= player.stats.max_health:
+			status_label.text = "生命已满，无需购买补给"
 			return
-		var replaced := GameState.purchase_artifact_fifo(item.id, item.price)
-		clear_pending()
-		status_label.text = "购买成功，已放到队尾" if replaced else "无法购买：灵石不足"
+		if GameState.spend_stones(item.price):
+			player.apply_healing_item(item)
+			status_label.text = "购买成功，已立即回复生命"
+		else:
+			status_label.text = "灵石不足"
 		return
 	clear_pending()
-	status_label.text = "购买成功，已放到队尾" if GameState.purchase_artifact(item.id, item.price) else "无法购买：灵石不足"
+	status_label.text = "购买成功，数量已累加" if GameState.purchase_artifact(item.id, item.price) else "无法购买：栏位已满或灵石不足"
 
 
 func confirm_pending() -> void:
@@ -172,10 +170,13 @@ func update_inventory(artifacts: Array[StringName]) -> void:
 		slot.disabled = true
 		if index < artifacts.size():
 			var item := ItemCatalog.get_definition(artifacts[index])
-			slot.text = "%d  %s%s" % [index + 1, item.display_name, "  ▶ 最前" if index == 0 else ""]
-			slot.icon = ItemIconFactory.create(item)
-			slot.expand_icon = true
-			slot.modulate = item.color.lightened(0.18)
+			if item != null:
+				slot.text = "%d  %s ×%d%s" % [index + 1, item.display_name, GameState.artifact_count(artifacts[index]), "  ▶ 最前" if index == 0 else ""]
+				slot.icon = ItemIconFactory.create(item)
+				slot.expand_icon = true
+				slot.modulate = item.color.lightened(0.18)
+			else:
+				slot.text = "%d  空" % (index + 1)
 		else:
 			slot.text = "%d  空" % (index + 1)
 		inventory_row.add_child(slot)

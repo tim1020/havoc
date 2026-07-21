@@ -3,6 +3,8 @@
 [resource]
 script = ExtResource("1")
 display_name = "电母"
+animation_frame_size = Vector2(256, 256)
+sprite_position_y = -115.5
 max_health = 360.0
 contact_damage = 22.0
 move_speed = 165.0
